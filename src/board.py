@@ -97,19 +97,20 @@ def render(b):
     lines = [
         "# Job-search shortlist — live board",
         "",
-        f"_Оновлено: {b.get('updated', '')[:10]} · {len(roles)} живих ролей · "
-        "накопичується щопрогону `/jobsearch`, зникає на apply._",
+        f"_Updated: {b.get('updated', '')[:10]} · {len(roles)} live roles · "
+        "accumulates each run, drops off on apply._",
         "",
-        "**Як читати:** `Added` = коли роль зайшла на дошку (старі внизу свого тіру — "
-        "якщо сидить давно і не подався, це сигнал). Подався → роль зникає звідси назавжди.",
+        "**How to read:** `Added` = when the role landed on the board (older ones sit "
+        "lower in their tier — sitting long unapplied is itself a signal). Apply and the "
+        "role leaves the board for good.",
         "",
     ]
-    for tier, header in (("A", "## Tier A — подавати"), ("B", "## Tier B — варто глянути"), ("C", "## Tier C")):
+    for tier, header in (("A", "## Tier A — apply"), ("B", "## Tier B — worth a look"), ("C", "## Tier C")):
         chunk = [r for r in roles if r.get("tier") == tier]
         if not chunk:
             continue
         lines += [header, ""]
-        lines.append("| Added | Fit | Geo | Роль | Компанія | Comp net/mo | Нюанс | URL |")
+        lines.append("| Added | Fit | Geo | Role | Company | Comp net/mo | Note | URL |")
         lines.append("|---|---|---|---|---|---|---|---|")
         for r in chunk:
             age = ""
@@ -127,8 +128,8 @@ def render(b):
         lines.append("")
     log = b.get("applied_log", [])
     if log:
-        lines += ["---", "", "## Подано (не подаватися повторно)", ""]
-        lines.append("| Дата | Роль | Компанія |")
+        lines += ["---", "", "## Applied (do not re-apply)", ""]
+        lines.append("| Date | Role | Company |")
         lines.append("|---|---|---|")
         for e in log[-30:]:
             lines.append(f"| {e.get('date','')} | {e.get('title','')} | {e.get('company','')} |")

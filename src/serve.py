@@ -83,10 +83,10 @@ def _actions(r):
     return (
         '<form method="post" action="/mark" class="act">'
         f'<input type="hidden" name="role_key" value="{rk}">'
-        '<button name="decision" value="applied" class="ok" title="подався">✓</button>'
-        f'<select name="reason"><option value="">причина…</option>{opts}</select>'
-        '<button name="decision" value="rejected" class="no" title="відхилити">✗</button>'
-        '<input name="comment" placeholder="коментар" class="cmt">'
+        '<button name="decision" value="applied" class="ok" title="applied">✓</button>'
+        f'<select name="reason"><option value="">reason…</option>{opts}</select>'
+        '<button name="decision" value="rejected" class="no" title="reject">✗</button>'
+        '<input name="comment" placeholder="comment" class="cmt">'
         '</form>'
     )
 
@@ -120,9 +120,9 @@ def render_page():
         rows = "".join(_row(r) for r in chunk)
         sections.append(
             f"<h2>{TIER_TITLE[tier]} ({len(chunk)})</h2>"
-            "<table><tr><th>Fit</th><th>Geo</th><th>Роль</th><th>Компанія</th>"
-            f"<th>Comp</th><th>Нюанс</th><th>Дія</th></tr>{rows}</table>")
-    body = "".join(sections) or "<p>Дошка порожня — запусти збір/аналіз.</p>"
+            "<table><tr><th>Fit</th><th>Geo</th><th>Role</th><th>Company</th>"
+            f"<th>Comp</th><th>Note</th><th>Action</th></tr>{rows}</table>")
+    body = "".join(sections) or "<p>Board is empty — run collect / analyze.</p>"
     applied = c["applied"]
     rej = c["rejected"]
     tunable = store.labeled_decisions(require_raw=True)
@@ -131,20 +131,20 @@ def render_page():
     eligible = n_pos >= 1 and n_neg >= 1 and len(tunable) >= NEED_LABELS
     if eligible:
         improve_btn = ('<form method="post" action="/improve" style="display:inline">'
-                       '<button class="improve">⚙ Improve (підігнати ваги)</button></form>')
+                       '<button class="improve">⚙ Improve (refit weights)</button></form>')
     else:
-        improve_btn = (f'<span class="improve-off" title="треба ≥{NEED_LABELS} міток із сирими '
-                       f'фічами та обома класами (зараз tunable: {n_pos}+/{n_neg}−)">⚙ Improve (заблоковано)</span>')
-    gate = (f'<b>{c["total"]}</b> міток (applied {applied}, interested {c["interested"]}, rejected {rej}; '
+        improve_btn = (f'<span class="improve-off" title="needs ≥{NEED_LABELS} labels with raw '
+                       f'features and both classes (tunable now: {n_pos}+/{n_neg}−)">⚙ Improve (locked)</span>')
+    gate = (f'<b>{c["total"]}</b> labels (applied {applied}, interested {c["interested"]}, rejected {rej}; '
             f'tunable {len(tunable)}). {improve_btn}')
-    return f"""<!doctype html><html lang="uk"><head><meta charset="utf-8">
+    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="refresh" content="60">
-<title>Jobsearch board</title><style>{CSS}</style></head><body>
-<header><h1>Jobsearch — жива дошка</h1>
-<div class="sub">{len(roles)} ролей на розгляд · авто-оновлення 60с · ✓ подався / ✗ відхилити (+причина, коментар)</div>
+<title>Yoke board</title><style>{CSS}</style></head><body>
+<header><h1>Yoke — live board</h1>
+<div class="sub">{len(roles)} roles to review · auto-refresh 60s · ✓ applied / ✗ reject (+reason, comment)</div>
 <div class="counts">{gate}</div></header>
-<div class="banner">Кліки пишуть мітки в БД → роль зникає з дошки → годує флайвіл. Improve (тюнер) — слайс 4.</div>
+<div class="banner">Each click writes a label to the DB → the role drops off the board → it feeds the Improve tuner.</div>
 <main>{body}</main></body></html>"""
 
 
@@ -157,26 +157,26 @@ def _page(title, body):
 
 def improve_result(res):
     if not res.get("ok"):
-        return _page("Improve", f'<div class="card"><p>Недостатньо даних: {_esc(res.get("reason"))} '
+        return _page("Improve", f'<div class="card"><p>Not enough data: {_esc(res.get("reason"))} '
                      f'(pursued {res.get("n_pos")}, rejected {res.get("n_neg")}).</p>'
-                     '<p><a href="/">← назад</a></p></div>')
+                     '<p><a href="/">← back</a></p></div>')
     before, after = res["objective_before"], res["objective_after"]
     delta_cls = "up" if after > before else "same"
     changed = res["changed"]
     rows = "".join(
         f"<tr><td><code>{_esc(k)}</code></td><td>{_esc(res['weights_before'][k])}</td>"
         f"<td><b>{_esc(v)}</b></td></tr>" for k, v in changed.items()
-    ) or '<tr><td colspan="3">дефолтні ваги вже оптимальні — змін немає</td></tr>'
+    ) or '<tr><td colspan="3">default weights are already optimal — no change</td></tr>'
     apply_form = ""
     if changed:
         apply_form = ('<form method="post" action="/improve-apply" style="display:inline">'
                       f'<input type="hidden" name="weights" value="{_esc(json.dumps(res["weights_after"]))}">'
-                      '<button class="improve">Застосувати нові ваги</button></form>')
-    body = (f'<div class="card"><h2 style="margin-top:0">Підгін ваг під твої рішення</h2>'
-            f'<p>Мітки: {res["n_pos"]} pursued / {res["n_neg"]} rejected</p>'
+                      '<button class="improve">Apply new weights</button></form>')
+    body = (f'<div class="card"><h2 style="margin-top:0">Refit weights to your decisions</h2>'
+            f'<p>Labels: {res["n_pos"]} pursued / {res["n_neg"]} rejected</p>'
             f'<p>Balanced accuracy: <span class="delta {delta_cls}">{before} → {after}</span></p>'
-            f'<table><tr><th>Вага</th><th>було</th><th>стало</th></tr>{rows}</table>'
-            f'<p style="margin-top:14px">{apply_form} &nbsp; <a href="/">← назад без змін</a></p></div>')
+            f'<table><tr><th>Weight</th><th>was</th><th>now</th></tr>{rows}</table>'
+            f'<p style="margin-top:14px">{apply_form} &nbsp; <a href="/">← back, no change</a></p></div>')
     return _page("Improve", body)
 
 

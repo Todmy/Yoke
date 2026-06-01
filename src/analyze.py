@@ -179,7 +179,7 @@ def main():
             "company": card.get("company"), "title": card.get("title"), "url": card.get("url"),
             "fit": fit, "label": label_of(fit),
             "geo": _GEO_DISPLAY.get(geo, geo),
-            "comp": (comp or "? [треба ресерч]") + (" ⛔<floor" if below else ""),
+            "comp": (comp or "? [research]") + (" ⛔<floor" if below else ""),
             "lane": fill.get("fit_features", {}).get("lane_match", card["lane"]["verdict"]),
             "note": fill.get("note", ""),
             "tier": tier, "date_added": today,
