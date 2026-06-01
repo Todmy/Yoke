@@ -49,12 +49,13 @@ Pick a backend with `YOKE_PROVIDER` (or let it default to your Claude subscripti
 
 ```bash
 git clone https://github.com/Todmy/Yoke && cd Yoke
-./setup.sh                 # auth + optional cron, asks once for a token/key
-cp config/profile.example.json ~/.yoke/profile.json   # then edit with your CV + constraints
-./yoke serve               # open the live board at localhost:8765
+./setup.sh                              # copies config templates, asks once for a token/key, sets up cron
+$EDITOR ~/.yoke/config/profile.json     # your CV + constraints (created by setup from the example)
+./yoke run all                          # collect roles + score them onto the board
+./yoke serve --open                     # live board at localhost:8765
 ```
 
-Run it on a schedule and the board stays fresh on its own; open it when you want to triage.
+`setup.sh` adds a twice-daily cron job, so the board stays fresh on its own — open it when you want to triage. No Claude subscription? Use a provider key or a local model: `export YOKE_PROVIDER=ollama` (see [Providers](#providers)).
 
 ## Status
 
