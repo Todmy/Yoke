@@ -33,6 +33,8 @@ BOARD_PY = Path(__file__).resolve().parent / "board.py"
 # ── user profile (from $YOKE_HOME/config/profile.json, fallback to the example) ──
 _PROFILE = load_profile()
 PROFILE = _PROFILE.get("prompt", "")
+if _PROFILE.get("resume_text"):  # pasted CV (Profile page) — give the model the real thing
+    PROFILE += "\n\nResume:\n" + _PROFILE["resume_text"]
 OUTPUT_LANG = _PROFILE.get("output_language", "en")
 COMP_FLOOR = float(_PROFILE.get("comp_floor_net_mo_usd") or 0)
 
