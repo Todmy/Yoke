@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Yoke — one entrypoint for the whole harness.
+#   yoke setup        install (auth + optional venv + cron)
+#   yoke serve        open the live board UI (localhost)
+#   yoke run [all]    run the pipeline now (collect + analyze)
+#   yoke board ...    board CLI (apply/drop/sync-folders/list)
+#   yoke eval ...     run the eval harness
+#   yoke tune [--apply]  refit fit-weights to your decisions
+#   yoke uninstall    remove the cron entry
+set -euo pipefail
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+S="$REPO/src"
+cmd="${1:-help}"; shift 2>/dev/null || true
+case "$cmd" in
+  setup)      exec bash    "$REPO/setup.sh" "$@" ;;
+  uninstall)  exec bash    "$REPO/setup.sh" --uninstall ;;
+  run)        exec bash    "$S/run.sh" "${@:-all}" ;;
+  serve)      exec python3 "$S/serve.py" "$@" ;;
+  board)      exec python3 "$S/board.py" "$@" ;;
+  eval)       exec python3 "$S/eval.py" "$@" ;;
+  tune)       exec python3 "$S/tune.py" "$@" ;;
+  help|-h|--help|*)
+    sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//' ;;
+esac

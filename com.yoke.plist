@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  launchd TEMPLATE for an autonomous Yoke run on macOS. Plain crontab works too
+  (`yoke setup` sets that up for you) — use this only if you prefer launchd.
+
+  Headless auth: put CLAUDE_CODE_OAUTH_TOKEN (from `claude setup-token`) OR a
+  provider key (OPENROUTER_API_KEY / …) in ~/.config/yoke.env (chmod 600).
+  src/run.sh sources that file, so NO secret goes in this plist.
+
+  INSTALL:
+    1) replace /ABSOLUTE/PATH/TO/Yoke below with your clone's path
+    2) cp com.yoke.plist ~/Library/LaunchAgents/
+    3) launchctl load ~/Library/LaunchAgents/com.yoke.plist
+    UNINSTALL: launchctl unload ~/Library/LaunchAgents/com.yoke.plist
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.yoke</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/ABSOLUTE/PATH/TO/Yoke/src/run.sh</string>
+    <string>all</string>
+    <string>--days</string>
+    <string>3</string>
+  </array>
+
+  <!-- No secrets here: src/run.sh sources ~/.config/yoke.env. Only PATH. -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </array>
+
+  <!-- twice daily at 09:10 and 17:10 -->
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>10</integer></dict>
+    <dict><key>Hour</key><integer>17</integer><key>Minute</key><integer>10</integer></dict>
+  </array>
+
+  <key>StandardOutPath</key>
+  <string>/tmp/yoke-launchd.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/yoke-launchd.log</string>
+  <key>RunAtLoad</key>
+  <false/>
+</dict>
+</plist>
