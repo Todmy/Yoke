@@ -1,0 +1,23 @@
+# data + secrets — never commit
+.yoke/
+*.db
+*.db-wal
+*.db-shm
+job-scans/
+labels.jsonl
+*.env
+.env
+config/profile.json
+config/sources.json
+
+# python
+__pycache__/
+*.pyc
+.venv*/
+*.egg-info/
+
+# os / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
