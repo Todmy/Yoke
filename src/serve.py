@@ -18,7 +18,7 @@ import subprocess
 import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, quote, urlparse
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import store  # noqa: E402
@@ -187,6 +187,7 @@ tr:hover td { background: #161a21; }
 .s-comp { width: 84px; font-size: 13px; color: #b8e6c0; white-space: nowrap; text-align: right; }
 .ritem summary button { border: 0; border-radius: 5px; padding: 5px 10px; cursor: pointer; font-weight: 700; }
 .ritem summary .ok { background: #1f5e35; color: #d6ffe0; } .ritem summary .no { background: #5e2530; color: #ffd6dd; }
+.ritem summary a.applybtn { padding: 5px 12px; border-radius: 5px; font-weight: 700; font-size: 13px; text-decoration: none; white-space: nowrap; }
 .detail { padding: 2px 6px 14px 30px; display: flex; flex-direction: column; gap: 8px; max-width: 920px; }
 .detail .note { color: #b9c2d0; font-size: 13px; margin: 0; }
 .detail .row { display: flex; gap: 8px; align-items: center; }
@@ -264,7 +265,7 @@ def _item(r):
         f'<span class="s-geo">{_esc(r.get("geo"))}</span>'
         f'<span class="s-title">{_esc(r.get("title"))} · <b>{_esc(r.get("company"))}</b></span>'
         f'<span class="s-comp">{_esc(r.get("comp"))}</span>'
-        '<button class="ok" name="decision" value="applied" title="mark applied">✓ Apply</button>'
+        f'<a class="ok applybtn" href="/apply?role={quote(r.get("role_key") or "")}" title="review &amp; log this application">✓ Apply</a>'
         '</summary>'
         '<div class="detail">'
         f'<p class="note">{_esc(r.get("note"))}</p>'
@@ -302,7 +303,7 @@ def board_page(flash="", kind="ok"):
             f'<meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="refresh" content="60">'
             f'<title>Yoke — board</title><style>{CSS}</style></head><body>'
             f'<header>{_nav("/")}<h1>Yoke — live board</h1>'
-            f'<div class="sub">{len(roles)} roles to review · auto-refresh 60s · ✓ applied / ✗ reject</div>'
+            f'<div class="sub">{len(roles)} roles to review · auto-refresh 60s · ✓ Apply opens a log step · ✗ reject is instant</div>'
             f'<div class="counts">{gate}</div></header>{fl}<main>{body}</main></body></html>')
 
 
@@ -398,15 +399,45 @@ def _app_row(a):
     url = a.get("url") or ""
     title = (f'<a href="{_esc(url)}" target="_blank" rel="noopener">{_esc(a.get("title"))}</a>'
              if str(url).startswith("http") else _esc(a.get("title")))
+    cv = f'<div class="sub">CV: {_esc(a.get("resume"))}</div>' if a.get("resume") else ""
     return ('<tr>'
             f'<td class="added">{_esc(a.get("ts"))}</td>'
-            f'<td class="role">{title}</td>'
+            f'<td class="role">{title}{cv}</td>'
             f'<td class="company">{_esc(a.get("company"))}</td>'
             '<td><form method="post" action="/track" class="trk">'
             f'<input type="hidden" name="id" value="{_esc(a.get("id"))}">'
             f'<select name="status">{opts}</select>'
             f'<input name="status_note" value="{_esc(a.get("status_note") or "")}" placeholder="note / rejection reason">'
             '<button class="save2">Save</button></form></td></tr>')
+
+
+def apply_page(role_key, flash=""):
+    r = store.get_role(role_key)
+    if not r or r.get("title") is None:
+        return _page("apply", '<div class="card">Role not found (it may already be decided). '
+                     '<a href="/">← back to the board</a>.</div>', active="/")
+    url = r.get("url") or ""
+    link = (f' · <a href="{_esc(url)}" target="_blank" rel="noopener">open posting →</a>'
+            if str(url).startswith("http") else "")
+    body = f"""<div class="card">
+<h2 style="margin-top:0">{_esc(r.get("title"))} · {_esc(r.get("company"))}</h2>
+<p class="sub">{_esc(r.get("fit"))} {_esc(r.get("label"))} · {_esc(r.get("geo"))} · {_esc(r.get("comp"))}{link}</p>
+<p class="note">{_esc(r.get("note"))}</p>
+</div>
+<form class="cfg" method="post" action="/apply-confirm">
+<input type="hidden" name="role" value="{_esc(role_key)}">
+<div class="card">
+<h2 style="margin-top:0">Log this application</h2>
+<p class="sub">Nothing is recorded until you confirm. Open the posting, apply there, then log what you sent.</p>
+<label>Resume / CV version sent</label>
+<input type="text" name="resume" placeholder="e.g. cv-backend-v3.pdf">
+<label>Notes (cover-letter angle, referral, contact, anything to remember)</label>
+<textarea name="notes" placeholder="optional"></textarea>
+<button class="save" type="submit">✓ Confirm — I applied</button>
+<a href="/" style="margin-left:14px">cancel</a>
+</div>
+</form>"""
+    return _page("apply", body, active="/", flash=flash)
 
 
 def applied_page(flash=""):
@@ -472,6 +503,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._html(schedule_page())
         if path == "/applied":
             return self._html(applied_page())
+        if path == "/apply":
+            role = (parse_qs(urlparse(self.path).query).get("role") or [""])[0]
+            return self._html(apply_page(role))
         self.send_error(404)
 
     def do_POST(self):
@@ -533,6 +567,12 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/unschedule":
             cron_set(False)
             return self._html(board_page(flash="Unscheduled — no more cron runs."))
+        if path == "/apply-confirm":
+            rk = g("role")
+            if rk:
+                store.mark(rk, "applied", comment=g("notes"), source="ui", resume=g("resume"))
+                _add_applied(rk)
+            return self._html(applied_page(flash="Logged — now tracked under Applied."))
         if path == "/track":
             sid = g("id")
             status = g("status", "applied")

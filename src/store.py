@@ -64,7 +64,7 @@ def _init(c):
         c.execute("ALTER TABLE roles ADD COLUMN features TEXT")
     # application-tracking columns on decisions (added after first ship)
     dcols = [r[1] for r in c.execute("PRAGMA table_info(decisions)").fetchall()]
-    for col in ("status", "status_note", "updated", "url"):
+    for col in ("status", "status_note", "updated", "url", "resume"):
         if col not in dcols:
             c.execute(f"ALTER TABLE decisions ADD COLUMN {col} TEXT")
     c.commit()
@@ -150,7 +150,15 @@ def record_decision(rec):
     return True
 
 
-def mark(role_key, decision, reason="", comment="", source="ui"):
+def get_role(role_key):
+    """Fetch a single role (any status) as a dict, or None."""
+    c = _conn()
+    row = c.execute("SELECT * FROM roles WHERE role_key=?", (role_key,)).fetchone()
+    c.close()
+    return dict(row) if row else None
+
+
+def mark(role_key, decision, reason="", comment="", source="ui", resume=""):
     """Record a decision on a board role + move it off the live board.
     decision: applied | interested | rejected. Returns the role dict or None."""
     c = _conn()
@@ -171,9 +179,9 @@ def mark(role_key, decision, reason="", comment="", source="ui"):
         # applied roles enter the tracker pipeline at status 'applied'
         st = "applied" if decision == "applied" else None
         c.execute("""INSERT INTO decisions(ts,slug,role_key,company,title,decision,reason,
-                     comment,features,source,status,updated,url) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                     comment,features,source,status,updated,url,resume) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                   (today, None, role_key, r.get("company"), r.get("title"), decision,
-                   reason, comment, feats_json, source, st, today, r.get("key")))
+                   reason, comment, feats_json, source, st, today, r.get("key"), resume))
     c.execute("UPDATE roles SET status=? WHERE role_key=?", (decision, role_key))
     if decision == "applied":
         c.execute("INSERT INTO applied_log(date,company,title,key) VALUES(?,?,?,?)",
@@ -187,7 +195,7 @@ def mark(role_key, decision, reason="", comment="", source="ui"):
 def applications():
     """Applied roles with their pipeline status, newest first."""
     c = _conn()
-    rows = c.execute("""SELECT id, ts, company, title, url, status, status_note, updated
+    rows = c.execute("""SELECT id, ts, company, title, url, status, status_note, updated, resume
                         FROM decisions WHERE decision='applied' ORDER BY ts DESC, id DESC""").fetchall()
     c.close()
     return [dict(r) for r in rows]
