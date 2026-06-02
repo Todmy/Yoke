@@ -206,6 +206,10 @@ form.cfg input[type=text], form.cfg input[type=password], form.cfg input[type=nu
 form.cfg textarea { min-height: 120px; font-family: ui-monospace, monospace; font-size: 13px; }
 form.cfg .save { margin-top: 16px; background: #2d4a7a; color: #dce8ff; border: 0; border-radius: 6px; padding: 8px 16px; font-weight: 700; cursor: pointer; }
 .checks label { display: inline-flex; gap: 5px; align-items: center; margin: 4px 14px 4px 0; color: #cfd6e4; }
+form.trk { display: flex; gap: 6px; align-items: center; }
+form.trk select, form.trk input { background: #11151c; color: #cfd6e4; border: 1px solid #2a2f3a; border-radius: 5px; padding: 5px 7px; font-size: 12px; }
+form.trk input { flex: 1; min-width: 160px; }
+.save2 { background: #2d4a7a; color: #dce8ff; border: 0; border-radius: 5px; padding: 5px 12px; font-weight: 700; cursor: pointer; }
 .toast { position: fixed; bottom: 20px; right: 20px; z-index: 50; max-width: 440px; padding: 11px 16px; border-radius: 10px; font-size: 13px; box-shadow: 0 10px 30px rgba(0,0,0,.5); animation: toastin .18s ease-out, toastout .5s ease 4.5s forwards; }
 .toast.ok { background: #1f5e35; color: #d6ffe0; }
 .toast.warn { background: #5a4a1c; color: #ffe9b0; border: 1px solid #8a6d1f; }
@@ -225,7 +229,7 @@ def _nav(active):
             '<a href="/schedule" class="schedlink">Schedule (cron)</a>')
     def lk(href, name):
         return f'<a href="{href}" class="{"on" if active == href else ""}">{name}</a>'
-    return ('<nav>' + lk("/", "Board") + lk("/settings", "Settings") + lk("/profile", "Profile")
+    return ('<nav>' + lk("/", "Board") + lk("/applied", "Applied") + lk("/settings", "Settings") + lk("/profile", "Profile")
             + '<span class="spacer"></span>'
             + '<form method="post" action="/run" style="display:inline"><button class="run">▶ Run now</button></form>'
             + sbtn + (' <span class="sub">cron: on</span>' if sched else '') + '</nav>')
@@ -388,6 +392,39 @@ def schedule_page(flash=""):
     return _page("schedule", body, active="/schedule", flash=flash)
 
 
+def _app_row(a):
+    cur = a.get("status") or "applied"
+    opts = "".join(f'<option{" selected" if cur == st else ""}>{st}</option>' for st in store.APP_STATUSES)
+    url = a.get("url") or ""
+    title = (f'<a href="{_esc(url)}" target="_blank" rel="noopener">{_esc(a.get("title"))}</a>'
+             if str(url).startswith("http") else _esc(a.get("title")))
+    return ('<tr>'
+            f'<td class="added">{_esc(a.get("ts"))}</td>'
+            f'<td class="role">{title}</td>'
+            f'<td class="company">{_esc(a.get("company"))}</td>'
+            '<td><form method="post" action="/track" class="trk">'
+            f'<input type="hidden" name="id" value="{_esc(a.get("id"))}">'
+            f'<select name="status">{opts}</select>'
+            f'<input name="status_note" value="{_esc(a.get("status_note") or "")}" placeholder="note / rejection reason">'
+            '<button class="save2">Save</button></form></td></tr>')
+
+
+def applied_page(flash=""):
+    apps = store.applications()
+    if not apps:
+        body = '<div class="card">Nothing applied yet. Hit <b>✓ Apply</b> on the <a href="/">Board</a> to start tracking applications here.</div>'
+    else:
+        s = store.application_stats()
+        by = " · ".join(f"{k} {v}" for k, v in s["by"].items())
+        analytics = (f'<p class="sub" style="margin:8px 0 14px"><b>{s["total"]}</b> applied · '
+                     f'response {s["response_rate"]} · interview {s["interview_rate"]} · '
+                     f'{s["offers"]} offer(s)<br>{by}</p>')
+        rows = "".join(_app_row(a) for a in apps)
+        body = (analytics + "<table><tr><th>Applied</th><th>Role</th><th>Company</th>"
+                f"<th>Status · note</th></tr>{rows}</table>")
+    return _page("applied", body, active="/applied", flash=flash)
+
+
 def improve_result(res):
     if not res.get("ok"):
         return _page("improve", f'<div class="card"><p>Not enough data: {_esc(res.get("reason"))} '
@@ -433,6 +470,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._html(profile_page())
         if path == "/schedule":
             return self._html(schedule_page())
+        if path == "/applied":
+            return self._html(applied_page())
         self.send_error(404)
 
     def do_POST(self):
@@ -494,6 +533,12 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/unschedule":
             cron_set(False)
             return self._html(board_page(flash="Unscheduled — no more cron runs."))
+        if path == "/track":
+            sid = g("id")
+            status = g("status", "applied")
+            if sid and status in store.APP_STATUSES:
+                store.set_status(sid, status, g("status_note"))
+            return self._html(applied_page(flash="Status updated."))
         if path == "/improve":
             return self._html(improve_result(tune.tune(store.labeled_decisions(require_raw=True))))
         if path == "/improve-apply":

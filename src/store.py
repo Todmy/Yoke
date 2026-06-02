@@ -56,14 +56,22 @@ def _init(c):
     CREATE TABLE IF NOT EXISTS decisions(
       id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT, slug TEXT, role_key TEXT,
       company TEXT, title TEXT, decision TEXT, reason TEXT, comment TEXT,
-      features TEXT, source TEXT);
+      features TEXT, source TEXT, status TEXT, status_note TEXT, updated TEXT, url TEXT);
     CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY, value TEXT);
     """)
-    # add `features` to a roles table created before this column existed
-    cols = [r[1] for r in c.execute("PRAGMA table_info(roles)").fetchall()]
-    if "features" not in cols:
+    rcols = [r[1] for r in c.execute("PRAGMA table_info(roles)").fetchall()]
+    if "features" not in rcols:
         c.execute("ALTER TABLE roles ADD COLUMN features TEXT")
+    # application-tracking columns on decisions (added after first ship)
+    dcols = [r[1] for r in c.execute("PRAGMA table_info(decisions)").fetchall()]
+    for col in ("status", "status_note", "updated", "url"):
+        if col not in dcols:
+            c.execute(f"ALTER TABLE decisions ADD COLUMN {col} TEXT")
     c.commit()
+
+
+# application pipeline (Applied tab)
+APP_STATUSES = ["applied", "screening", "interview", "offer", "accepted", "rejected", "ghosted"]
 
 
 def get_weights():
@@ -160,10 +168,12 @@ def mark(role_key, decision, reason="", comment="", source="ui"):
     dup = c.execute("SELECT 1 FROM decisions WHERE IFNULL(role_key,'')=? AND decision=?",
                     (role_key or "", decision)).fetchone()
     if not dup:
+        # applied roles enter the tracker pipeline at status 'applied'
+        st = "applied" if decision == "applied" else None
         c.execute("""INSERT INTO decisions(ts,slug,role_key,company,title,decision,reason,
-                     comment,features,source) VALUES(?,?,?,?,?,?,?,?,?,?)""",
+                     comment,features,source,status,updated,url) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                   (today, None, role_key, r.get("company"), r.get("title"), decision,
-                   reason, comment, feats_json, source))
+                   reason, comment, feats_json, source, st, today, r.get("key")))
     c.execute("UPDATE roles SET status=? WHERE role_key=?", (decision, role_key))
     if decision == "applied":
         c.execute("INSERT INTO applied_log(date,company,title,key) VALUES(?,?,?,?)",
@@ -171,6 +181,39 @@ def mark(role_key, decision, reason="", comment="", source="ui"):
     c.commit()
     c.close()
     return r
+
+
+# ── application tracker (Applied tab) ────────────────────────────────────────
+def applications():
+    """Applied roles with their pipeline status, newest first."""
+    c = _conn()
+    rows = c.execute("""SELECT id, ts, company, title, url, status, status_note, updated
+                        FROM decisions WHERE decision='applied' ORDER BY ts DESC, id DESC""").fetchall()
+    c.close()
+    return [dict(r) for r in rows]
+
+
+def set_status(decision_id, status, note):
+    c = _conn()
+    c.execute("UPDATE decisions SET status=?, status_note=?, updated=? WHERE id=? AND decision='applied'",
+              (status, note, datetime.datetime.now(datetime.timezone.utc).date().isoformat(), decision_id))
+    c.commit()
+    c.close()
+
+
+def application_stats():
+    c = _conn()
+    rows = c.execute("SELECT COALESCE(status,'applied') s, COUNT(*) n FROM decisions "
+                     "WHERE decision='applied' GROUP BY s").fetchall()
+    c.close()
+    by = {r["s"]: r["n"] for r in rows}
+    total = sum(by.values())
+    advanced = sum(by.get(s, 0) for s in ("screening", "interview", "offer", "accepted"))
+    interviews = sum(by.get(s, 0) for s in ("interview", "offer", "accepted"))
+    offers = sum(by.get(s, 0) for s in ("offer", "accepted"))
+    pct = lambda x: f"{round(100 * x / total)}%" if total else "—"
+    return {"by": by, "total": total, "response_rate": pct(advanced),
+            "interview_rate": pct(interviews), "offers": offers}
 
 
 def labeled_decisions(require_raw=True):
