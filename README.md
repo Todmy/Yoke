@@ -1,8 +1,5 @@
 # Yoke
 
-> Була б шия, а ярмо знайдеться.
-> *If there's a neck, a yoke will be found.* — a Ukrainian proverb my mother says
-
 Yoke is a job-search harness you run on your own machine. It pulls roles from across the web, scores each one against your CV with an LLM, and keeps a live board of what's actually worth your time. The more you use it, the better its scoring fits your taste — because it learns from the decisions you make, not from a stranger's idea of a good job.
 
 It isn't a job board, and it isn't a chat wrapper. It's a harness: a rig you run over the market, with an evaluation loop wrapped around the model so you can trust — and improve — what it tells you.
