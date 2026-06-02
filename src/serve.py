@@ -170,10 +170,13 @@ tr:hover td { background: #161a21; }
 .company { color: #cfd6e4; } .note { color: #8b93a3; font-size: 13px; max-width: 360px; }
 .geo, .comp, .added { white-space: nowrap; font-size: 13px; } .comp { color: #b8e6c0; } .added { color: #6b7280; font-size: 12px; }
 .banner { background: #1c2530; color: #9cc4ff; padding: 6px 24px; font-size: 13px; }
-.act { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
-.act button { border: 0; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-weight: 700; }
+td.act-cell { width: 170px; }
+.act { display: flex; flex-direction: column; gap: 5px; }
+.act .btns { display: flex; gap: 5px; }
+.act .btns button { flex: 1; }
+.act button { border: 0; border-radius: 5px; padding: 5px 8px; cursor: pointer; font-weight: 700; font-size: 12px; }
 .act .ok { background: #1f5e35; color: #d6ffe0; } .act .no { background: #5e2530; color: #ffd6dd; }
-.act select, .act .cmt { background: #11151c; color: #cfd6e4; border: 1px solid #2a2f3a; border-radius: 4px; padding: 3px 5px; font-size: 12px; } .act .cmt { width: 110px; }
+.act select, .act .cmt { width: 100%; background: #11151c; color: #cfd6e4; border: 1px solid #2a2f3a; border-radius: 5px; padding: 4px 6px; font-size: 12px; }
 .improve { background: #2d4a7a; color: #dce8ff; border: 0; border-radius: 4px; padding: 5px 10px; cursor: pointer; font-weight: 700; }
 .improve-off { color: #5a6271; cursor: not-allowed; }
 .card { background: #161a21; border: 1px solid #262a33; border-radius: 8px; padding: 16px 20px; margin: 16px 0; max-width: 760px; }
@@ -224,10 +227,12 @@ def _actions(r):
     opts = "".join(f"<option>{o}</option>" for o in REASONS)
     return ('<form method="post" action="/mark" class="act">'
             f'<input type="hidden" name="role_key" value="{rk}">'
-            '<button name="decision" value="applied" class="ok" title="applied">✓</button>'
+            '<div class="btns">'
+            '<button name="decision" value="applied" class="ok" title="mark applied">✓ Apply</button>'
+            '<button name="decision" value="rejected" class="no" title="reject (pick a reason)">✗ Reject</button>'
+            '</div>'
             f'<select name="reason"><option value="">reason…</option>{opts}</select>'
-            '<button name="decision" value="rejected" class="no" title="reject">✗</button>'
-            '<input name="comment" placeholder="comment" class="cmt"></form>')
+            '<input name="comment" placeholder="comment (optional)" class="cmt"></form>')
 
 
 def _row(r):
