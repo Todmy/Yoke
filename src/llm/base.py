@@ -10,6 +10,7 @@ A backend's job: take a prompt (+ optional JSON schema + system), return a parse
 Python dict. The model is instructed to emit JSON only; `extract_json` is the
 shared, wrapping-tolerant parser so every backend returns clean dicts.
 """
+from __future__ import annotations  # `dict | None` hints work on Python 3.9 too
 import json
 import re
 from abc import ABC, abstractmethod

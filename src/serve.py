@@ -12,6 +12,8 @@ import argparse
 import html
 import json
 import os
+import re
+import shutil
 import subprocess
 import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -29,7 +31,16 @@ RUN_SH = HERE / "run.sh"
 ENV_FILE = Path(os.environ.get("YOKE_ENV", Path.home() / ".config" / "yoke.env"))
 RUN_LOG = YOKE_HOME / "run.log"
 CRON_TAG = "# yoke-auto"
-CRON_LINE = f"10 9,17 * * * /bin/bash {RUN_SH} all --days 3 >> /tmp/yoke-cron.log 2>&1 {CRON_TAG}"
+SCHEDULE_PRESETS = {  # label -> (hours csv, description)
+    "1": ("9", "once a day · 09:00"),
+    "2": ("9,17", "twice a day · 09:00, 17:00"),
+    "3": ("8,13,18", "3× a day · 08:00, 13:00, 18:00"),
+    "4": ("6,11,16,21", "4× a day · 06/11/16/21"),
+}
+
+
+def cron_line(hours="9,17", minute="10", days="3"):
+    return f"{minute} {hours} * * * /bin/bash {RUN_SH} all --days {days} >> /tmp/yoke-cron.log 2>&1 {CRON_TAG}"
 
 NEED_LABELS = 12
 TIER_TITLE = {"A": "Tier A — apply", "B": "Tier B — worth a look", "C": "Tier C"}
@@ -89,12 +100,34 @@ def cron_scheduled():
     return CRON_TAG in _crontab()
 
 
-def cron_set(enable):
+def cron_current():
+    """Return (hours, minute) of the installed Yoke cron line, or None."""
+    for ln in _crontab().splitlines():
+        if CRON_TAG in ln:
+            parts = ln.split()
+            if len(parts) >= 2:
+                return parts[1], parts[0]
+    return None
+
+
+def cron_set(enable, hours="9,17", minute="10"):
     kept = [ln for ln in _crontab().splitlines() if CRON_TAG not in ln]
     if enable:
-        kept.append(CRON_LINE)
+        kept.append(cron_line(hours, minute))
     body = ("\n".join(kept) + "\n") if kept else ""
     subprocess.run(["crontab", "-"], input=body, text=True)
+
+
+def run_ready():
+    """Can a run actually score anything? Returns (ok, message)."""
+    env = read_env()
+    if env["has_key"]:
+        return True, ""
+    if env["provider"] in ("ollama", "lmstudio"):
+        return True, ""  # local model, no key needed
+    if env["provider"] == "claude_code" and shutil.which("claude"):
+        return True, ""  # interactive Claude session can auth; cron needs a token
+    return False, "Set an AI provider in Settings first (add a key, pick a local model, or install the Claude CLI)."
 
 
 def run_now():
@@ -147,14 +180,17 @@ form.cfg textarea { min-height: 120px; font-family: ui-monospace, monospace; fon
 form.cfg .save { margin-top: 16px; background: #2d4a7a; color: #dce8ff; border: 0; border-radius: 6px; padding: 8px 16px; font-weight: 700; cursor: pointer; }
 .checks label { display: inline-flex; gap: 5px; align-items: center; margin: 4px 14px 4px 0; color: #cfd6e4; }
 .flash { background: #1f5e35; color: #d6ffe0; padding: 6px 24px; font-size: 13px; }
+nav a.schedlink { background: #1f5e35; color: #d6ffe0; padding: 4px 10px; border-radius: 4px; }
+.checks.col label { display: flex; }
 """
 
 
 def _nav(active):
     sched = cron_scheduled()
+    # Schedule opens a chooser page (when / how often); Unschedule is a one-click off
     sbtn = ('<form method="post" action="/unschedule" style="display:inline"><button class="unsched">Unschedule</button></form>'
             if sched else
-            '<form method="post" action="/schedule" style="display:inline"><button class="sched">Schedule (cron)</button></form>')
+            '<a href="/schedule" class="schedlink">Schedule (cron)</a>')
     def lk(href, name):
         return f'<a href="{href}" class="{"on" if active == href else ""}">{name}</a>'
     return ('<nav>' + lk("/", "Board") + lk("/settings", "Settings") + lk("/profile", "Profile")
@@ -285,6 +321,33 @@ def profile_page(flash=""):
     return _page("profile", body, active="/profile", flash=flash)
 
 
+def schedule_page(flash=""):
+    cur = cron_current()
+    cur_txt = (f"Currently scheduled: every day at minute <code>{_esc(cur[1])}</code> of hours <code>{_esc(cur[0])}</code>."
+               if cur else "Not scheduled yet.")
+    presets = "".join(
+        f'<label><input type="radio" name="preset" value="{k}"{" checked" if k == "2" else ""}> {v[1]}</label>'
+        for k, v in SCHEDULE_PRESETS.items())
+    unsched = ('<form method="post" action="/unschedule" style="margin-top:12px">'
+               '<button class="unsched" style="border:0;border-radius:6px;padding:8px 16px;cursor:pointer">Unschedule</button></form>'
+               if cur else "")
+    body = f"""<form class="cfg" method="post" action="/schedule">
+<div class="card">
+<h2 style="margin-top:0">How often should Yoke run?</h2>
+<p class="sub">{cur_txt} Each run does collect + score, in the background.</p>
+<div class="checks col">{presets}
+<label><input type="radio" name="preset" value="custom"> custom — set hours below</label></div>
+<label>Custom hours (24h, comma-separated, e.g. <code>7,12,19</code>)</label>
+<input type="text" name="hours" placeholder="9,17">
+<label>Minute past the hour (0–59)</label>
+<input type="number" name="minute" value="10" min="0" max="59">
+<button class="save" type="submit">Schedule</button>
+</div>
+</form>{unsched}
+<div class="card"><p class="sub" style="margin:0">Cron runs headless, so it needs auth that works without you logged in: set a token/key in <a href="/settings">Settings</a> (a local Ollama model works too). macOS: if cron does nothing, grant Full Disk Access to <code>/usr/sbin/cron</code> in System Settings › Privacy.</p></div>"""
+    return _page("schedule", body, active="/schedule", flash=flash)
+
+
 def improve_result(res):
     if not res.get("ok"):
         return _page("improve", f'<div class="card"><p>Not enough data: {_esc(res.get("reason"))} '
@@ -328,6 +391,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._html(settings_page())
         if path == "/profile":
             return self._html(profile_page())
+        if path == "/schedule":
+            return self._html(schedule_page())
         self.send_error(404)
 
     def do_POST(self):
@@ -366,11 +431,20 @@ class Handler(BaseHTTPRequestHandler):
             write_json(PROFILE_FILE, p)
             return self._html(profile_page(flash="Profile saved."))
         if path == "/run":
+            ok, msg = run_ready()
+            if not ok:
+                return self._html(board_page(flash="⚠ " + msg))
             run_now()
-            return self._html(board_page(flash="Run started in the background — refresh in a minute."))
+            note = ("" if PROFILE_FILE.exists()
+                    else " (heads up: you're on the example profile — set yours in Profile)")
+            return self._html(board_page(flash="Run started in the background — refresh in a minute." + note))
         if path == "/schedule":
-            cron_set(True)
-            return self._html(board_page(flash="Scheduled: cron runs twice daily (09:10 / 17:10)."))
+            preset = g("preset", "2")
+            hours = (g("hours") if preset == "custom" else SCHEDULE_PRESETS.get(preset, SCHEDULE_PRESETS["2"])[0])
+            hours = ",".join(h for h in re.findall(r"\d{1,2}", hours or "") if int(h) <= 23) or "9,17"
+            minute = str(min(59, max(0, int((re.sub(r"\D", "", g("minute", "10")) or "10")))))
+            cron_set(True, hours, minute)
+            return self._html(board_page(flash=f"Scheduled: daily at minute {minute} of hours {hours}."))
         if path == "/unschedule":
             cron_set(False)
             return self._html(board_page(flash="Unscheduled — no more cron runs."))
