@@ -170,6 +170,10 @@ tr:hover td { background: #161a21; }
 .company { color: #cfd6e4; } .note { color: #8b93a3; font-size: 13px; max-width: 360px; }
 .geo, .comp, .added { white-space: nowrap; font-size: 13px; } .comp { color: #b8e6c0; } .added { color: #6b7280; font-size: 12px; }
 .banner { background: #1c2530; color: #9cc4ff; padding: 6px 24px; font-size: 13px; }
+.tier { display: inline-block; min-width: 16px; text-align: center; padding: 2px 7px; border-radius: 6px; font-size: 11px; font-weight: 800; }
+.tier.A { background: #1f5e35; color: #d6ffe0; }
+.tier.B { background: #5a4a1c; color: #ffe9b0; }
+.tier.C { background: #2a2f3a; color: #9aa4b6; }
 td.act-cell { width: 170px; }
 .act { display: flex; flex-direction: column; gap: 5px; }
 .act .btns { display: flex; gap: 5px; }
@@ -239,7 +243,9 @@ def _row(r):
     url = r.get("url") or ""
     title = _esc(r.get("title"))
     role_cell = f'<a href="{_esc(url)}" target="_blank" rel="noopener">{title}</a>' if url.startswith("http") else title
+    tier = r.get("tier", "B")
     return ("<tr>"
+            f'<td><span class="tier {_esc(tier)}">{_esc(tier)}</span></td>'
             f'<td class="fit">{_esc(r.get("fit"))} {_esc(r.get("label"))}</td>'
             f'<td class="geo">{_esc(r.get("geo"))}</td><td class="role">{role_cell}</td>'
             f'<td class="company">{_esc(r.get("company"))}</td><td class="comp">{_esc(r.get("comp"))}</td>'
@@ -250,16 +256,15 @@ def board_page(flash="", kind="ok"):
     b = store.load()
     c = store.label_counts()
     roles = sorted(b["roles"], key=lambda r: (TIER_ORDER.get(r.get("tier", "B"), 1), -int(r.get("fit") or 0)))
-    sections = []
-    for tier in ("A", "B", "C"):
-        chunk = [r for r in roles if r.get("tier") == tier]
-        if not chunk:
-            continue
-        rows = "".join(_row(r) for r in chunk)
-        sections.append(f"<h2>{TIER_TITLE[tier]} ({len(chunk)})</h2>"
-                        "<table><tr><th>Fit</th><th>Geo</th><th>Role</th><th>Company</th>"
-                        f"<th>Comp</th><th>Note</th><th>Action</th></tr>{rows}</table>")
-    body = "".join(sections) or '<div class="card">Board is empty. Set a provider in <a href="/settings">Settings</a> and your CV in <a href="/profile">Profile</a>, then hit <b>▶ Run now</b>.</div>'
+    counts = {t: sum(1 for r in roles if r.get("tier") == t) for t in ("A", "B", "C")}
+    if roles:
+        rows = "".join(_row(r) for r in roles)
+        caption = " · ".join(f"<span class=\"tier {t}\">{t}</span> {counts[t]}" for t in ("A", "B", "C") if counts[t])
+        body = (f'<p class="sub" style="margin:8px 0 12px">{caption}</p>'
+                "<table><tr><th>Tier</th><th>Fit</th><th>Geo</th><th>Role</th><th>Company</th>"
+                f"<th>Comp</th><th>Note</th><th>Action</th></tr>{rows}</table>")
+    else:
+        body = '<div class="card">Board is empty. Set a provider in <a href="/settings">Settings</a> and your CV in <a href="/profile">Profile</a>, then hit <b>▶ Run now</b>.</div>'
     tunable = store.labeled_decisions(require_raw=True)
     n_pos = sum(1 for l in tunable if l["decision"] in ("applied", "interested"))
     n_neg = sum(1 for l in tunable if l["decision"] == "rejected")
