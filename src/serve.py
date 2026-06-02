@@ -192,6 +192,7 @@ tr:hover td { background: #161a21; }
 .detail .row { display: flex; gap: 8px; align-items: center; }
 .detail select, .detail input { background: #11151c; color: #cfd6e4; border: 1px solid #2a2f3a; border-radius: 5px; padding: 5px 7px; font-size: 12px; }
 .detail input { flex: 1; max-width: 320px; }
+.detail .rlabel { color: #9aa4b6; font-size: 12px; font-weight: 600; }
 .detail .row button { border: 0; border-radius: 5px; padding: 6px 12px; cursor: pointer; font-weight: 700; }
 .detail .row .ok { background: #1f5e35; color: #d6ffe0; } .detail .row .no { background: #5e2530; color: #ffd6dd; }
 .improve { background: #2d4a7a; color: #dce8ff; border: 0; border-radius: 4px; padding: 5px 10px; cursor: pointer; font-weight: 700; }
@@ -259,14 +260,13 @@ def _item(r):
         f'<span class="s-geo">{_esc(r.get("geo"))}</span>'
         f'<span class="s-title">{_esc(r.get("title"))} · <b>{_esc(r.get("company"))}</b></span>'
         f'<span class="s-comp">{_esc(r.get("comp"))}</span>'
-        '<button class="ok" name="decision" value="applied" title="mark applied">✓</button>'
-        '<button class="no" name="decision" value="rejected" title="reject (optionally pick a reason below)">✗</button>'
+        '<button class="ok" name="decision" value="applied" title="mark applied">✓ Apply</button>'
         '</summary>'
         '<div class="detail">'
         f'<p class="note">{_esc(r.get("note"))}</p>'
-        f'<div class="row"><select name="reason"><option value="">reason…</option>{opts}</select>'
+        '<div class="row"><span class="rlabel">Reject —</span>'
+        f'<select name="reason"><option value="">reason…</option>{opts}</select>'
         '<input name="comment" placeholder="comment (optional)">'
-        '<button class="ok" name="decision" value="applied">✓ Apply</button>'
         '<button class="no" name="decision" value="rejected">✗ Reject</button></div>'
         f'<div class="sub">{link}</div>'
         '</div></details></form>')
