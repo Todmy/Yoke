@@ -58,29 +58,30 @@ def _esc(x):
 
 # ── config / auth / cron helpers ─────────────────────────────────────────────
 def read_env():
-    """Return {provider, has_key} from yoke.env without exposing the secret."""
-    prov, has_key = "claude_code", False
+    """Return {provider, has_key, configured}. `configured` = the user actually
+    saved a provider in Settings (not just a default)."""
+    prov, has_key, configured = "claude_code", False, False
     if ENV_FILE.exists():
         for line in ENV_FILE.read_text().splitlines():
             line = line.replace("export ", "").strip()
             if line.startswith("YOKE_PROVIDER="):
                 prov = line.split("=", 1)[1].strip() or prov
+                configured = True
             if line.startswith(("YOKE_API_KEY=", "OPENROUTER_API_KEY=", "CLAUDE_CODE_OAUTH_TOKEN=")) and line.split("=", 1)[1].strip():
                 has_key = True
-    return {"provider": prov, "has_key": has_key}
+                configured = True
+    return {"provider": prov, "has_key": has_key, "configured": configured}
 
 
 def write_env(provider, key):
     ENV_FILE.parent.mkdir(parents=True, exist_ok=True)
-    lines = []
-    if provider == "claude_code":
-        if key:
-            lines.append(f"export CLAUDE_CODE_OAUTH_TOKEN={key}")
-    else:
-        lines.append(f"export YOKE_PROVIDER={provider}")
-        if key:
-            lines.append(f"export YOKE_API_KEY={key}")
-    ENV_FILE.write_text("\n".join(lines) + ("\n" if lines else ""))
+    # always record the chosen provider (even claude_code w/o key) so we can tell
+    # "user picked a provider" from "never configured".
+    lines = [f"export YOKE_PROVIDER={provider}"]
+    if key:
+        lines.append(f"export CLAUDE_CODE_OAUTH_TOKEN={key}" if provider == "claude_code"
+                     else f"export YOKE_API_KEY={key}")
+    ENV_FILE.write_text("\n".join(lines) + "\n")
     try:
         ENV_FILE.chmod(0o600)
     except OSError:
@@ -119,15 +120,18 @@ def cron_set(enable, hours="9,17", minute="10"):
 
 
 def run_ready():
-    """Can a run actually score anything? Returns (ok, message)."""
+    """Can a run actually score anything? Returns (ok, message).
+    Requires an EXPLICIT provider choice saved in Settings — not just a claude
+    binary that happens to be on PATH."""
     env = read_env()
-    if env["has_key"]:
+    if not env["configured"]:
+        return False, "Pick an AI provider in Settings and save it first."
+    if env["has_key"] or env["provider"] in ("ollama", "lmstudio"):
         return True, ""
-    if env["provider"] in ("ollama", "lmstudio"):
-        return True, ""  # local model, no key needed
-    if env["provider"] == "claude_code" and shutil.which("claude"):
-        return True, ""  # interactive Claude session can auth; cron needs a token
-    return False, "Set an AI provider in Settings first (add a key, pick a local model, or install the Claude CLI)."
+    if env["provider"] == "claude_code":
+        return ((True, "") if shutil.which("claude")
+                else (False, "You chose Claude, but the `claude` CLI isn't installed / logged in."))
+    return True, ""  # configured provider without a key (e.g. a custom base_url)
 
 
 def run_now():

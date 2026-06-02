@@ -2,14 +2,14 @@
 
 OpenAI, Groq, Together, OpenRouter, Ollama (local), LM Studio, vLLM, … all speak
 the same /chat/completions API, so a single backend + presets covers them all.
-stdlib-only (urllib). Pick a provider via env JOBSEARCH_PROVIDER, or override
+stdlib-only (urllib). Pick a provider via env YOKE_PROVIDER, or override
 base_url/key/model directly.
 
 Env:
-  JOBSEARCH_PROVIDER   preset name (see PRESETS); default 'openrouter'
-  JOBSEARCH_MODEL      model slug (else the preset default)
-  JOBSEARCH_BASE_URL   override base url (for a custom/self-hosted endpoint)
-  JOBSEARCH_API_KEY    override key (else the preset's key_env, e.g. OPENROUTER_API_KEY)
+  YOKE_PROVIDER   preset name (see PRESETS); default 'openrouter'
+  YOKE_MODEL      model slug (else the preset default)
+  YOKE_BASE_URL   override base url (for a custom/self-hosted endpoint)
+  YOKE_API_KEY    override key (else the preset's key_env, e.g. OPENROUTER_API_KEY)
 """
 import json
 import os
@@ -39,19 +39,19 @@ PRESETS = {
 
 class OpenAICompatBackend(LLMBackend):
     def __init__(self, provider=None, model=None, base_url=None, api_key=None, timeout=120):
-        self.provider = provider or os.environ.get("JOBSEARCH_PROVIDER") or "openrouter"
+        self.provider = provider or os.environ.get("YOKE_PROVIDER") or "openrouter"
         preset = PRESETS.get(self.provider, {})
         self.name = self.provider
-        self.base_url = (base_url or os.environ.get("JOBSEARCH_BASE_URL")
+        self.base_url = (base_url or os.environ.get("YOKE_BASE_URL")
                          or preset.get("base_url"))
         if not self.base_url:
-            raise RuntimeError(f"unknown provider '{self.provider}' and no JOBSEARCH_BASE_URL")
+            raise RuntimeError(f"unknown provider '{self.provider}' and no YOKE_BASE_URL")
         key_env = preset.get("key_env")
-        self.api_key = (api_key or os.environ.get("JOBSEARCH_API_KEY")
+        self.api_key = (api_key or os.environ.get("YOKE_API_KEY")
                         or (os.environ.get(key_env) if key_env else None))
         if key_env and not self.api_key:
             raise RuntimeError(f"{key_env} not set for provider '{self.provider}'")
-        self.model = model or os.environ.get("JOBSEARCH_MODEL") or preset.get("model") or "gpt-4o-mini"
+        self.model = model or os.environ.get("YOKE_MODEL") or preset.get("model") or "gpt-4o-mini"
         self.timeout = timeout
 
     def complete(self, prompt, schema=None, system=None):

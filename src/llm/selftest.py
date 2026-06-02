@@ -40,19 +40,19 @@ check("force claude_code overrides env", get_backend(force="claude_code").name =
 os.environ.pop("OPENROUTER_API_KEY", None)
 
 print("── multi-provider selection ──")
-os.environ["JOBSEARCH_PROVIDER"] = "ollama"  # local, no key needed
-check("JOBSEARCH_PROVIDER=ollama -> ollama", get_backend().name == "ollama")
-os.environ["JOBSEARCH_PROVIDER"] = "groq"
+os.environ["YOKE_PROVIDER"] = "ollama"  # local, no key needed
+check("YOKE_PROVIDER=ollama -> ollama", get_backend().name == "ollama")
+os.environ["YOKE_PROVIDER"] = "groq"
 os.environ["GROQ_API_KEY"] = "x"
 check("provider=groq + key -> groq", get_backend().name == "groq")
 os.environ.pop("GROQ_API_KEY", None)
 try:
-    os.environ["JOBSEARCH_PROVIDER"] = "groq"
+    os.environ["YOKE_PROVIDER"] = "groq"
     get_backend()  # missing key
     check("missing key raises", False)
 except RuntimeError:
     check("missing key raises", True)
-os.environ.pop("JOBSEARCH_PROVIDER", None)
+os.environ.pop("YOKE_PROVIDER", None)
 if saved is not None:
     os.environ["OPENROUTER_API_KEY"] = saved
 

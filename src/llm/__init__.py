@@ -5,13 +5,13 @@
     result = be.complete(prompt, schema=SCHEMA, system=SYS)   # -> dict
 
 Selection (predictable, no surprises from stray keys):
-  • JOBSEARCH_PROVIDER set (openai|groq|together|ollama|lmstudio|openrouter|…)
+  • YOKE_PROVIDER set (openai|groq|together|ollama|lmstudio|openrouter|…)
                             -> OpenAICompatBackend(that provider)
   • else OPENROUTER_API_KEY set (back-compat)  -> OpenAICompatBackend('openrouter')
   • else                    -> ClaudeCodeBackend  (A: Claude subscription via claude -p)
 
-Override model with JOBSEARCH_MODEL, base url with JOBSEARCH_BASE_URL, key with
-JOBSEARCH_API_KEY (or the provider's own key env). `force` overrides selection.
+Override model with YOKE_MODEL, base url with YOKE_BASE_URL, key with
+YOKE_API_KEY (or the provider's own key env). `force` overrides selection.
 """
 import os
 
@@ -22,10 +22,10 @@ __all__ = ["get_backend", "LLMBackend", "extract_json", "build_prompt"]
 
 def get_backend(model=None, force=None):
     """Return the active backend. `force` = 'claude_code' or a provider name."""
-    if force == "claude_code":
+    prov = force or os.environ.get("YOKE_PROVIDER")
+    if prov == "claude_code":  # the Claude-subscription backend, not an HTTP provider
         from .claude_code import ClaudeCodeBackend
         return ClaudeCodeBackend(model=model)
-    prov = force or os.environ.get("JOBSEARCH_PROVIDER")
     if not prov and os.environ.get("OPENROUTER_API_KEY"):
         prov = "openrouter"  # back-compat with the original B trigger
     if prov:
