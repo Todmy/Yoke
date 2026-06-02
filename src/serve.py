@@ -108,6 +108,8 @@ def run_now():
 CSS = """
 * { box-sizing: border-box; }
 body { font: 15px/1.5 -apple-system, system-ui, sans-serif; margin: 0; background: #0f1115; color: #e6e6e6; }
+a, a:visited { color: #7db4ff; }
+a:hover { color: #a9cdff; }
 header { padding: 16px 24px; border-bottom: 1px solid #262a33; position: sticky; top: 0; background: #0f1115; z-index: 5; }
 h1 { font-size: 18px; margin: 0 0 4px; }
 .sub { color: #8b93a3; font-size: 13px; }
