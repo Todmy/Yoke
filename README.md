@@ -57,14 +57,12 @@ Pick a backend with `YOKE_PROVIDER` (or let it default to your Claude subscripti
 ## Quickstart
 
 ```bash
-git clone https://github.com/Todmy/Yoke && cd Yoke
-./setup.sh                              # copies config templates, asks once for a token/key, sets up cron
-$EDITOR ~/.yoke/config/profile.json     # your CV + constraints (created by setup from the example)
-./yoke run all                          # collect roles + score them onto the board
-./yoke serve --open                     # live board at localhost:8765
+git clone https://github.com/Todmy/Yoke && cd Yoke && ./yoke
 ```
 
-`setup.sh` adds a twice-daily cron job, so the board stays fresh on its own — open it when you want to triage. No Claude subscription? Use a provider key or a local model: `export YOKE_PROVIDER=ollama` (see [Providers](#providers)).
+That opens a local control panel in your browser. From there: pick your AI provider (or a local model — no key needed), paste your CV, hit **Run**, and optionally **Schedule** a twice-daily cron. No config files to edit by hand.
+
+Prefer the terminal? `./yoke run all` to score now, `./yoke serve` for the board, `./setup.sh` for an unattended cron install. Run `./yoke help` for everything.
 
 ## Status
 
