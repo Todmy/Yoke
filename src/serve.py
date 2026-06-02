@@ -186,6 +186,7 @@ form.cfg .save { margin-top: 16px; background: #2d4a7a; color: #dce8ff; border: 
 .toast { position: fixed; top: 16px; right: 16px; z-index: 50; max-width: 440px; padding: 10px 14px; border-radius: 8px; font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,.45); animation: toastin .18s ease-out, toastout .5s ease 4.5s forwards; }
 .toast.ok { background: #1f5e35; color: #d6ffe0; }
 .toast.warn { background: #5a4a1c; color: #ffe9b0; border: 1px solid #8a6d1f; }
+.toast.error { background: #5e2530; color: #ffd6dd; border: 1px solid #8a3a48; }
 @keyframes toastin { from { opacity: 0; transform: translateY(-8px); } }
 @keyframes toastout { to { opacity: 0; visibility: hidden; } }
 nav a.schedlink { background: #1f5e35; color: #d6ffe0; padding: 4px 10px; border-radius: 4px; }
@@ -408,6 +409,12 @@ class Handler(BaseHTTPRequestHandler):
         n = int(self.headers.get("Content-Length") or 0)
         d = parse_qs(self.rfile.read(n).decode("utf-8")) if n else {}
         g = lambda k, default="": (d.get(k) or [default])[0]
+        try:
+            return self._post(path, d, g)
+        except Exception as e:  # any handler failure -> a red toast, not a 500
+            return self._html(board_page(flash=f"⚠ {type(e).__name__}: {e}", kind="error"))
+
+    def _post(self, path, d, g):
         if path == "/mark":
             rk, dec = g("role_key"), g("decision")
             if rk and dec in ("applied", "rejected", "interested"):
