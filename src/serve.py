@@ -174,13 +174,24 @@ tr:hover td { background: #161a21; }
 .tier.A { background: #1f5e35; color: #d6ffe0; }
 .tier.B { background: #5a4a1c; color: #ffe9b0; }
 .tier.C { background: #2a2f3a; color: #9aa4b6; }
-td.act-cell { width: 170px; }
-.act { display: flex; flex-direction: column; gap: 5px; }
-.act .btns { display: flex; gap: 5px; }
-.act .btns button { flex: 1; }
-.act button { border: 0; border-radius: 5px; padding: 5px 8px; cursor: pointer; font-weight: 700; font-size: 12px; }
-.act .ok { background: #1f5e35; color: #d6ffe0; } .act .no { background: #5e2530; color: #ffd6dd; }
-.act select, .act .cmt { width: 100%; background: #11151c; color: #cfd6e4; border: 1px solid #2a2f3a; border-radius: 5px; padding: 4px 6px; font-size: 12px; }
+.board { margin-top: 4px; }
+.ritem { border-bottom: 1px solid #1d2129; }
+.ritem details > summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 11px 6px; cursor: pointer; }
+.ritem details > summary::-webkit-details-marker { display: none; }
+.ritem details > summary::before { content: "▸"; color: #5a6271; font-size: 11px; transition: transform .15s ease; }
+.ritem details[open] > summary::before { transform: rotate(90deg); }
+.ritem summary:hover { background: #161a21; }
+.s-fit { width: 150px; font-weight: 700; white-space: nowrap; }
+.s-geo { width: 86px; font-size: 13px; white-space: nowrap; }
+.s-title { flex: 1; min-width: 180px; } .s-title b { color: #cfd6e4; }
+.s-comp { width: 84px; font-size: 13px; color: #b8e6c0; white-space: nowrap; text-align: right; }
+.ritem summary button { border: 0; border-radius: 5px; padding: 5px 10px; cursor: pointer; font-weight: 700; }
+.ritem summary .ok { background: #1f5e35; color: #d6ffe0; } .ritem summary .no { background: #5e2530; color: #ffd6dd; }
+.detail { padding: 2px 6px 14px 30px; display: flex; flex-direction: column; gap: 8px; max-width: 920px; }
+.detail .note { color: #b9c2d0; font-size: 13px; margin: 0; }
+.detail .row { display: flex; gap: 8px; align-items: center; }
+.detail select, .detail input { background: #11151c; color: #cfd6e4; border: 1px solid #2a2f3a; border-radius: 5px; padding: 5px 7px; font-size: 12px; }
+.detail input { flex: 1; max-width: 320px; }
 .improve { background: #2d4a7a; color: #dce8ff; border: 0; border-radius: 4px; padding: 5px 10px; cursor: pointer; font-weight: 700; }
 .improve-off { color: #5a6271; cursor: not-allowed; }
 .card { background: #161a21; border: 1px solid #262a33; border-radius: 8px; padding: 16px 20px; margin: 16px 0; max-width: 760px; }
@@ -226,30 +237,35 @@ def _page(title, body, active="", flash="", kind="ok"):
 
 
 # ── board ────────────────────────────────────────────────────────────────────
-def _actions(r):
+# Each role is an expandable <details> wrapped in one <form>: the summary is the
+# at-a-glance triage line (overview), the body holds the note + reject reason +
+# comment (details-on-demand). Because reason/comment live in the same form, the
+# ✓/✗ buttons in the summary submit them whether or not the row is expanded.
+def _item(r):
     rk = _esc(r.get("role_key"))
-    opts = "".join(f"<option>{o}</option>" for o in REASONS)
-    return ('<form method="post" action="/mark" class="act">'
-            f'<input type="hidden" name="role_key" value="{rk}">'
-            '<div class="btns">'
-            '<button name="decision" value="applied" class="ok" title="mark applied">✓ Apply</button>'
-            '<button name="decision" value="rejected" class="no" title="reject (pick a reason)">✗ Reject</button>'
-            '</div>'
-            f'<select name="reason"><option value="">reason…</option>{opts}</select>'
-            '<input name="comment" placeholder="comment (optional)" class="cmt"></form>')
-
-
-def _row(r):
-    url = r.get("url") or ""
-    title = _esc(r.get("title"))
-    role_cell = f'<a href="{_esc(url)}" target="_blank" rel="noopener">{title}</a>' if url.startswith("http") else title
     tier = r.get("tier", "B")
-    return ("<tr>"
-            f'<td><span class="tier {_esc(tier)}">{_esc(tier)}</span></td>'
-            f'<td class="fit">{_esc(r.get("fit"))} {_esc(r.get("label"))}</td>'
-            f'<td class="geo">{_esc(r.get("geo"))}</td><td class="role">{role_cell}</td>'
-            f'<td class="company">{_esc(r.get("company"))}</td><td class="comp">{_esc(r.get("comp"))}</td>'
-            f'<td class="note">{_esc(r.get("note"))}</td><td class="act-cell">{_actions(r)}</td></tr>')
+    url = r.get("url") or ""
+    link = (f'<a href="{_esc(url)}" target="_blank" rel="noopener">open posting →</a>'
+            if url.startswith("http") else _esc(r.get("source", "")))
+    opts = "".join(f"<option>{o}</option>" for o in REASONS)
+    return (
+        '<form method="post" action="/mark" class="ritem">'
+        f'<input type="hidden" name="role_key" value="{rk}">'
+        '<details><summary>'
+        f'<span class="tier {_esc(tier)}">{_esc(tier)}</span>'
+        f'<span class="s-fit">{_esc(r.get("fit"))} {_esc(r.get("label"))}</span>'
+        f'<span class="s-geo">{_esc(r.get("geo"))}</span>'
+        f'<span class="s-title">{_esc(r.get("title"))} · <b>{_esc(r.get("company"))}</b></span>'
+        f'<span class="s-comp">{_esc(r.get("comp"))}</span>'
+        '<button class="ok" name="decision" value="applied" title="mark applied">✓</button>'
+        '<button class="no" name="decision" value="rejected" title="reject (optionally pick a reason below)">✗</button>'
+        '</summary>'
+        '<div class="detail">'
+        f'<p class="note">{_esc(r.get("note"))}</p>'
+        f'<div class="row"><select name="reason"><option value="">reason…</option>{opts}</select>'
+        '<input name="comment" placeholder="comment (optional)"></div>'
+        f'<div class="sub">{link}</div>'
+        '</div></details></form>')
 
 
 def board_page(flash="", kind="ok"):
@@ -258,11 +274,10 @@ def board_page(flash="", kind="ok"):
     roles = sorted(b["roles"], key=lambda r: (TIER_ORDER.get(r.get("tier", "B"), 1), -int(r.get("fit") or 0)))
     counts = {t: sum(1 for r in roles if r.get("tier") == t) for t in ("A", "B", "C")}
     if roles:
-        rows = "".join(_row(r) for r in roles)
+        items = "".join(_item(r) for r in roles)
         caption = " · ".join(f"<span class=\"tier {t}\">{t}</span> {counts[t]}" for t in ("A", "B", "C") if counts[t])
-        body = (f'<p class="sub" style="margin:8px 0 12px">{caption}</p>'
-                "<table><tr><th>Tier</th><th>Fit</th><th>Geo</th><th>Role</th><th>Company</th>"
-                f"<th>Comp</th><th>Note</th><th>Action</th></tr>{rows}</table>")
+        body = (f'<p class="sub" style="margin:8px 0 12px">{caption} · click a role for the why + reject reason</p>'
+                f'<div class="board">{items}</div>')
     else:
         body = '<div class="card">Board is empty. Set a provider in <a href="/settings">Settings</a> and your CV in <a href="/profile">Profile</a>, then hit <b>▶ Run now</b>.</div>'
     tunable = store.labeled_decisions(require_raw=True)
