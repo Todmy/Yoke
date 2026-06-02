@@ -1,5 +1,6 @@
 # data + secrets — never commit
 .yoke/
+.valis.json
 *.db
 *.db-wal
 *.db-shm
