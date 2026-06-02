@@ -21,8 +21,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import store  # noqa: E402
 from analyze import score_fit  # noqa: E402
+from scoring import THRESHOLD  # noqa: E402  (single-source cutline shared with analyze.tier_of, Δ3)
 
-THRESHOLD = 55  # fit >= this = "worth pursuing" (Tier A/B boundary)
 # coarse grid around the most impactful weights (kept small: deterministic + fast)
 GRID = {
     "lane_in": [40, 50, 60],
@@ -32,8 +32,22 @@ GRID = {
 }
 
 
+# Δ2: the tuner refuses to fit below these (configurable via store meta 'tune_gate').
+# A handful of points per class overfits the weight grid and yields a misleading
+# before/after — so it declines and explains, rather than producing junk weights.
+GATE_DEFAULTS = {"min_applied": 5, "min_rejected": 5, "min_total": 20}
+
+
+def gate_thresholds():
+    g = dict(GATE_DEFAULTS)
+    g.update(store.get_meta("tune_gate", {}) or {})
+    return g
+
+
 def _split(labels):
-    pos = [l for l in labels if l["decision"] in ("applied", "interested")]
+    # Δ1: positive class = `applied` ONLY. `interested` is a bookmark, not a label —
+    # the tuner learns from action (applied) vs rejection, not from intent.
+    pos = [l for l in labels if l["decision"] == "applied"]
     neg = [l for l in labels if l["decision"] == "rejected"]
     return pos, neg
 
@@ -49,9 +63,14 @@ def objective(pos, neg, w):
 def tune(labels):
     pos, neg = _split(labels)
     base = store.get_weights()
-    if not pos or not neg:
-        return {"ok": False, "reason": "need both pursued and rejected labels with raw features",
-                "n_pos": len(pos), "n_neg": len(neg), "weights": base}
+    g = gate_thresholds()
+    total = len(pos) + len(neg)
+    if len(pos) < g["min_applied"] or len(neg) < g["min_rejected"] or total < g["min_total"]:
+        return {"ok": False,
+                "reason": (f"not enough decisions to fit reliably — need >={g['min_applied']} applied, "
+                           f">={g['min_rejected']} rejected, >={g['min_total']} total; "
+                           f"have {len(pos)} applied / {len(neg)} rejected / {total} total"),
+                "n_pos": len(pos), "n_neg": len(neg), "gate": g, "weights": base}
     base_obj = objective(pos, neg, base)
     best, best_obj = base, base_obj
     keys = list(GRID)

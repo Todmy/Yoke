@@ -95,6 +95,19 @@ def set_weights(w):
     c.close()
 
 
+def get_meta(key, default=None):
+    """Generic JSON-valued meta read (e.g. the tuner gate thresholds)."""
+    c = _conn()
+    row = c.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
+    c.close()
+    if not row:
+        return default
+    try:
+        return json.loads(row["value"])
+    except (json.JSONDecodeError, TypeError):
+        return default
+
+
 def _upsert_role(c, r, status="live"):
     vals = [r.get(col) for col in ROLE_COLS] + [status]
     ph = ",".join("?" * (len(ROLE_COLS) + 1))
@@ -253,10 +266,12 @@ def label_counts():
     c.close()
     d = {row["decision"]: row["n"] for row in rows}
     wf = sum(row["wf"] or 0 for row in rows)
-    pos = d.get("applied", 0) + d.get("interested", 0)
+    # Δ1: the tuner's positive class is `applied` ONLY — `interested` is a bookmark,
+    # not a training label. both_classes reflects what the tuner can actually fit.
     return {"applied": d.get("applied", 0), "interested": d.get("interested", 0),
             "rejected": d.get("rejected", 0), "with_features": wf,
-            "both_classes": pos > 0 and d.get("rejected", 0) > 0, "total": sum(d.values())}
+            "both_classes": d.get("applied", 0) > 0 and d.get("rejected", 0) > 0,
+            "total": sum(d.values())}
 
 
 if __name__ == "__main__":

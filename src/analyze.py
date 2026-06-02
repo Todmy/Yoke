@@ -27,6 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from llm import get_backend  # noqa: E402
 import store  # noqa: E402  (fit weights live here, tunable by the Improve loop)
 from paths import load_profile  # noqa: E402
+from scoring import THRESHOLD, TIER_A  # noqa: E402  (single-source tier cutlines, Δ3)
 
 BOARD_PY = Path(__file__).resolve().parent / "board.py"
 
@@ -94,9 +95,9 @@ def tier_of(fit, geo, comp_below_floor):
         return "C"
     if comp_below_floor:
         return "C"  # passive-search floor: below ~$10k net is not an option
-    if fit >= 70 and geo == "remote":
+    if fit >= TIER_A and geo == "remote":
         return "A"
-    if fit >= 55 or (fit >= 70 and geo == "verify"):
+    if fit >= THRESHOLD or (fit >= TIER_A and geo == "verify"):
         return "B"
     return "C"
 

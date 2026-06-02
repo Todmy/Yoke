@@ -1,10 +1,10 @@
 {
-  "_comment": "Copy this to $YOKE_HOME/config/profile.json (default ~/.yoke/config/profile.json) and edit. 'prompt' is fed to the model verbatim as the scoring profile — describe your lane, differentiators, seniority, languages, geo, comp floor. Be specific; vague profiles score everything mediocre.",
-  "name": "Jane Doe",
+  "_comment": "ICP-default preset (Ukrainian IT, remote). Copy to $YOKE_HOME/config/profile.json and edit. 'prompt' is fed to the model verbatim as the scoring profile — describe your lane, differentiators, seniority, languages, geo, comp floor. Be specific; vague profiles score everything mediocre. This default gets a new user to a scored board in one session without hand-editing (SC-001).",
+  "name": "",
   "headline": "Senior Software Engineer",
   "output_language": "en",
-  "comp_floor_net_mo_usd": 0,
-  "prompt": "Jane Doe — 10y software engineering, 2y applied AI. Target lane: Applied AI Engineer / Backend / Platform at AI-infra or product companies. Differentiators (count how many the role actually calls for, 0-5): Python, LLM integration, RAG, evaluation/observability, cloud (AWS/GCP), TypeScript. Seniority: senior/staff practitioner — NOT junior, NOT frontier research-scientist. Languages: English (native). Geo: remote within the EU; cannot relocate. Comp: no hard floor.",
+  "comp_floor_net_mo_usd": 3000,
+  "prompt": "Senior software engineer, Ukraine-based, working remotely. Target lane: Backend / Platform / Applied-AI engineer at product or AI-infra companies hiring remote in Europe or worldwide. Differentiators (count how many the role actually calls for, 0-5): Python, TypeScript, distributed/high-load systems, cloud (AWS/GCP), LLM/agent integration, eval/observability. Seniority: senior practitioner — NOT junior, NOT frontier research-scientist. Languages: English (professional), Ukrainian (native). Geo: fully remote; based in Ukraine; open to EU/EMEA/worldwide-remote; cannot relocate short-term. Comp: net monthly floor ~$3000.",
   "resume_text": "",
   "scoring_instructions": ""
 }
