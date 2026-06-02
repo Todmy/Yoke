@@ -41,15 +41,15 @@
 
 **Independent Test**: `prepare | analyze --mock --no-board` yields tiered roles with ~¼ rules-decided and zero model calls; re-collect drops dead-URL roles.
 
-- [ ] T007 [US1] Implement posting-URL liveness pruning in `src/board.py` (or `src/collect.py`): a live role whose source URL returns 404/410 on re-collect is removed; transient errors (timeout/5xx) do NOT prune (FR-005)
-- [ ] T008 [P] [US1] Hiring Cafe source adapter in `src/collect.py` via stdlib `urllib` (JSON aggregator → one high-yield source) (FR-001, research R3)
-- [ ] T009 [P] [US1] Djinni source adapter in `src/collect.py` via stdlib `urllib` + `html.parser`/`re`, rate-limited (≥2s between requests, exponential backoff on 429/5xx) (FR-001)
-- [ ] T010 [P] [US1] DOU source adapter in `src/collect.py` via stdlib `urllib` + `html.parser`/`re`, rate-limited (≥2s between requests, exponential backoff on 429/5xx) (FR-001)
-- [ ] T011 [P] [US1] LinkedIn read-only adapter (venv-optional `jobspy`, no logged-in actions; skip gracefully if absent) (FR-001, assumptions)
-- [ ] T012 [P] [US1] Manual paste/CSV import adapter in `src/collect.py` (stdlib fallback so the pipeline works with every scraper down) (FR-001)
-- [ ] T013 [US1] Confirm/extend `model_fill` so the comp-band estimate (`comp_est_net_mo`) is informed by company + target-market context, not title/JD alone, in `src/analyze.py` (FR-002 — schema already present)
-- [ ] T014 [P] [US1] Add `tests/test_dedup.py` — role-key normalization (URL + normalized company|title); an applied/rejected role never resurfaces, incl. repost under a new URL (FR-009, SC-005)
-- [ ] T015 [P] [US1] Add `tests/test_pipeline.py` — `prepare | analyze --mock` end-to-end runs with no provider; assert tiering + roughly a quarter hard-gated with zero model calls (FR-006, SC-002)
+- [X] T007 [US1] Implement posting-URL liveness pruning in `src/board.py` (or `src/collect.py`): a live role whose source URL returns 404/410 on re-collect is removed; transient errors (timeout/5xx) do NOT prune (FR-005)
+- [X] T008 [P] [US1] Hiring Cafe source adapter in `src/collect.py` via stdlib `urllib` (JSON aggregator → one high-yield source) (FR-001, research R3)
+- [X] T009 [P] [US1] Djinni source adapter in `src/collect.py` via stdlib `urllib` + `html.parser`/`re`, rate-limited (≥2s between requests, exponential backoff on 429/5xx) (FR-001)
+- [X] T010 [P] [US1] DOU source adapter in `src/collect.py` via stdlib `urllib` + `html.parser`/`re`, rate-limited (≥2s between requests, exponential backoff on 429/5xx) (FR-001)
+- [X] T011 [P] [US1] LinkedIn read-only adapter (venv-optional `jobspy`, no logged-in actions; skip gracefully if absent) (FR-001, assumptions)
+- [X] T012 [P] [US1] Manual paste/CSV import adapter in `src/collect.py` (stdlib fallback so the pipeline works with every scraper down) (FR-001)
+- [X] T013 [US1] Confirm/extend `model_fill` so the comp-band estimate (`comp_est_net_mo`) is informed by company + target-market context, not title/JD alone, in `src/analyze.py` (FR-002 — schema already present)
+- [X] T014 [P] [US1] Add `tests/test_dedup.py` — role-key normalization (URL + normalized company|title); an applied/rejected role never resurfaces, incl. repost under a new URL (FR-009, SC-005)
+- [X] T015 [P] [US1] Add `tests/test_pipeline.py` — `prepare | analyze --mock` end-to-end runs with no provider; assert tiering + roughly a quarter hard-gated with zero model calls (FR-006, SC-002)
 
 **Checkpoint**: trustworthy, self-pruning board from v1 sources — independently shippable.
 
@@ -61,9 +61,9 @@
 
 **Independent Test**: apply a role → it enters the tracker with an immutable CV snapshot; re-collect doesn't resurface it; funnel rates update.
 
-- [ ] T016 [US2] Ensure `board apply` writes an **immutable** `resume` snapshot (base CV + any accepted tailoring edits, possibly just base) in `src/store.py` + `src/board.py` — never a mutable reference (Δ4, FR-007)
-- [ ] T017 [US2] Treat `interested` as a board-side bookmark in the tracker UI/CLI (distinct from a training label) in `src/store.py`/`src/serve.py` (Δ1, FR-008)
-- [ ] T018 [P] [US2] Add `tests/test_tracker.py` — snapshot immutability after base-CV edit; `application_stats` response/interview/offer rates; status set by hand is preserved (FR-007/010)
+- [X] T016 [US2] Ensure `board apply` writes an **immutable** `resume` snapshot (base CV + any accepted tailoring edits, possibly just base) in `src/store.py` + `src/board.py` — never a mutable reference (Δ4, FR-007)
+- [X] T017 [US2] Treat `interested` as a board-side bookmark in the tracker UI/CLI (distinct from a training label) in `src/store.py`/`src/serve.py` (Δ1, FR-008)
+- [X] T018 [P] [US2] Add `tests/test_tracker.py` — snapshot immutability after base-CV edit; `application_stats` response/interview/offer rates; status set by hand is preserved (FR-007/010)
 
 **Checkpoint**: tracker + dedup + honest CV snapshot.
 
@@ -75,13 +75,13 @@
 
 **Independent Test**: `gap <role>` returns matched/ranked-missing skills + honest band; no suggestion asserts a skill absent from the CV; `cover <role>` drafts a letter grounded only in CV+JD.
 
-- [ ] T019 [US3] Create the skill taxonomy data file (tools + knowledge domains e.g. high-load + meta-qualities e.g. fast-learner, with aliases) at `src/data/skills.json` (FR-011, research R2)
-- [ ] T020 [US3] Create `src/gap.py` — deterministic taxonomy+alias matched/missing-skill extraction ranked by relevance + honest match indicator (qualitative band + number on expand), no required model call (FR-011)
-- [ ] T021 [US3] Add model-backed learning suggestions for genuinely-missing skills in `src/gap.py` (FR-012)
-- [ ] T022 [US3] Add accept/reject bullet-level tuning suggestions, only for skills the CV supports, truthfulness-guarded (never fabricate skill/metric/seniority) in `src/gap.py` (FR-013/014)
-- [ ] T023 [US3] Produce a per-application tailored CV copy from accepted edits at apply time (feeds the T016 snapshot); CLI-reachable (FR-012, depends on T016)
-- [ ] T024 [US3] Create `src/cover.py` — standalone `cover <role_key>` command (CLI + thin serve.py surface): cover-letter draft in `profile.output_language`, grounded only in CV+JD, accept/reject/edit, never auto-sent, never fabricated (FR-026)
-- [ ] T025 [P] [US3] Add `tests/test_gap.py` — no suggestion or cover draft asserts a skill/metric/seniority absent from the CV (SC-006); match indicator framed as relevance, not ATS-beating (FR-014)
+- [X] T019 [US3] Create the skill taxonomy data file (tools + knowledge domains e.g. high-load + meta-qualities e.g. fast-learner, with aliases) at `src/data/skills.json` (FR-011, research R2)
+- [X] T020 [US3] Create `src/gap.py` — deterministic taxonomy+alias matched/missing-skill extraction ranked by relevance + honest match indicator (qualitative band + number on expand), no required model call (FR-011)
+- [X] T021 [US3] Add model-backed learning suggestions for genuinely-missing skills in `src/gap.py` (FR-012)
+- [X] T022 [US3] Add accept/reject bullet-level tuning suggestions, only for skills the CV supports, truthfulness-guarded (never fabricate skill/metric/seniority) in `src/gap.py` (FR-013/014)
+- [X] T023 [US3] Produce a per-application tailored CV copy from accepted edits at apply time (feeds the T016 snapshot); CLI-reachable (FR-012, depends on T016)
+- [X] T024 [US3] Create `src/cover.py` — standalone `cover <role_key>` command (CLI + thin serve.py surface): cover-letter draft in `profile.output_language`, grounded only in CV+JD, accept/reject/edit, never auto-sent, never fabricated (FR-026)
+- [X] T025 [P] [US3] Add `tests/test_gap.py` — no suggestion or cover draft asserts a skill/metric/seniority absent from the CV (SC-006); match indicator framed as relevance, not ATS-beating (FR-014)
 
 **Checkpoint**: gap + tailor-at-apply + cover, all CLI-usable, truthfulness-guarded.
 
@@ -97,7 +97,7 @@
 - [X] T027 [US4] Update `store.labeled_decisions` / `label_counts` positive-class + `both_classes` semantics to match (`applied` vs `rejected`) in `src/store.py` (Δ1)
 - [X] T028 [US4] Replace the `≥1-each` gate with a configurable ≥5 applied / ≥5 rejected / ≥20 total gate that declines with an explanatory message in `src/tune.py` (Δ2, FR-017, SC-004)
 - [X] T029 [P] [US4] Add `tests/test_tune.py` — gate thresholds; applied-only positive class; before/after objective improves on seeded labels; declines below gate (SC-004)
-- [ ] T030 [P] [US4] Add `tests/test_eval.py` — scorecard always emitted; a seeded safety violation (geo false-positive) forces a fail regardless of fit closeness (SC-003, FR-016)
+- [X] T030 [P] [US4] Add `tests/test_eval.py` — scorecard always emitted; a seeded safety violation (geo false-positive) forces a fail regardless of fit closeness (SC-003, FR-016)
 
 **Checkpoint**: harness reconciled — the differentiator is sound and tested.
 
@@ -115,10 +115,10 @@
 
 ## Phase 8: Polish & Cross-Cutting
 
-- [ ] T034 [P] Run the `quickstart.md` smoke checklist end-to-end; confirm SC-001..SC-008 hold
-- [ ] T035 [P] Update `README.md` with the new `gap` / `cover` commands, the v1 source set, and the ICP preset
-- [ ] T036 [P] Guard the project invariants (a tiny test/CI grep): (a) no new third-party import in `src/` core, `jobspy` confined to the venv path; (b) no personal data committed to the repo — all under `$YOKE_HOME` (FR-020); (c) no auto-apply / auto-send / auto-rewrite code path — every irreversible action is human-confirmed (FR-021)
-- [ ] T037 Wire `cover` (and `gap` if scheduled) into `src/serve.py` thin client + `src/run.sh` where appropriate (FR-018)
+- [X] T034 [P] Run the `quickstart.md` smoke checklist end-to-end; confirm SC-001..SC-008 hold
+- [X] T035 [P] Update `README.md` with the new `gap` / `cover` commands, the v1 source set, and the ICP preset
+- [X] T036 [P] Guard the project invariants (a tiny test/CI grep): (a) no new third-party import in `src/` core, `jobspy` confined to the venv path; (b) no personal data committed to the repo — all under `$YOKE_HOME` (FR-020); (c) no auto-apply / auto-send / auto-rewrite code path — every irreversible action is human-confirmed (FR-021)
+- [X] T037 Wire `cover` (and `gap` if scheduled) into `src/serve.py` thin client + `src/run.sh` where appropriate (FR-018)
 
 ---
 

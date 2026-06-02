@@ -23,6 +23,7 @@ from urllib.parse import parse_qs, quote, urlparse
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import store  # noqa: E402
 import tune  # noqa: E402
+import gap  # noqa: E402  (deterministic skill-gap panel on the apply page)
 from paths import (STATE, YOKE_HOME, CONFIG_DIR, PROFILE_FILE, SOURCES_FILE,  # noqa: E402
                    ensure_home, load_profile, load_sources)
 
@@ -419,18 +420,33 @@ def apply_page(role_key, flash=""):
     url = r.get("url") or ""
     link = (f' · <a href="{_esc(url)}" target="_blank" rel="noopener">open posting →</a>'
             if str(url).startswith("http") else "")
+    # deterministic skill-gap panel (no model) — T037 / FR-011
+    prof = load_profile()
+    base_cv = prof.get("resume_text") or ""
+    jd_text = gap._jd_text(url) or f"{r.get('title','')} {r.get('company','')}"
+    g = gap.compute_gap(jd_text, gap._cv_text())
+    matched = ", ".join(g["matched"]) or "—"
+    missing = ", ".join(m["skill"] for m in g["missing"]) or "—"
+    gap_panel = f"""<div class="card">
+<h2 style="margin-top:0">Gap vs your CV</h2>
+<p class="sub">Match: <b>{_esc(g['match_band'])}</b> ({g['match_score']}% of {g['required_count']} role skills) — a relevance signal for you, not a prediction of beating screening.</p>
+<p>Matched: {_esc(matched)}</p>
+<p>Missing (most central first): {_esc(missing)}</p>
+<p class="sub">Tailor the CV below to surface the skills you genuinely have. For a letter draft run <code>yoke cover {_esc(role_key)}</code> — nothing is auto-written or sent.</p>
+</div>"""
     body = f"""<div class="card">
 <h2 style="margin-top:0">{_esc(r.get("title"))} · {_esc(r.get("company"))}</h2>
 <p class="sub">{_esc(r.get("fit"))} {_esc(r.get("label"))} · {_esc(r.get("geo"))} · {_esc(r.get("comp"))}{link}</p>
 <p class="note">{_esc(r.get("note"))}</p>
 </div>
+{gap_panel}
 <form class="cfg" method="post" action="/apply-confirm">
 <input type="hidden" name="role" value="{_esc(role_key)}">
 <div class="card">
 <h2 style="margin-top:0">Log this application</h2>
 <p class="sub">Nothing is recorded until you confirm. Open the posting, apply there, then log what you sent.</p>
-<label>Resume / CV version sent</label>
-<input type="text" name="resume" placeholder="e.g. cv-backend-v3.pdf">
+<label>Resume / CV sent — edit to tailor for this role; this exact text is snapshotted (immutable)</label>
+<textarea name="resume" rows="10" placeholder="paste or tailor the CV you send…">{_esc(base_cv)}</textarea>
 <label>Notes (cover-letter angle, referral, contact, anything to remember)</label>
 <textarea name="notes" placeholder="optional"></textarea>
 <button class="save" type="submit">✓ Confirm — I applied</button>
