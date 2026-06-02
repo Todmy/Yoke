@@ -33,6 +33,18 @@ tune      refit the scoring weights to your real applied/rejected decisions
 
 The model surface is deliberately small: it extracts features and writes a one-line note, nothing more. Everything around it — windowing, dedup, scoring math, the board, the labels — is ordinary code you can audit.
 
+## Under the hood
+
+Yoke is a job-search harness — but the scoring loop inside it carries the kind of evaluation discipline you'd want around any model decision in production:
+
+- **Evaluation harness with a reference.** `eval.py` scores the weak model against a stronger reference on a frozen golden set. Safety gates dominate the verdict — a wrong "remote" call or a hallucinated requirement counts far more than a fit-score being a few points off. You don't want it sending you somewhere you can't work.
+- **A regression gate, not vibes.** Before trusting a cheaper or faster model you run the golden set and read the numbers. The model gets downgraded on evidence, not hope.
+- **Deterministic core, thin AI surface.** About a quarter of roles are decided by rules and never call a model. The model fills a fixed feature schema; a weighted formula you can read turns those features into the score — so the score is stable and auditable, not a black box.
+- **The tuner closes the loop.** Your real apply/reject labels refit the formula weights to maximise balanced accuracy at the "worth pursuing" threshold — a deterministic grid-search, zero model calls.
+- **Plain, inspectable state.** SQLite in WAL mode, idempotent board operations, a sidecar cache for job descriptions. No hidden magic.
+
+The reasoning behind these choices lives as ADRs in [`docs/adr/`](docs/adr/); the full pipeline is in [`docs/architecture.md`](docs/architecture.md).
+
 ## Providers
 
 Pick a backend with `YOKE_PROVIDER` (or let it default to your Claude subscription):
