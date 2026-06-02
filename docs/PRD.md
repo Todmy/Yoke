@@ -42,10 +42,11 @@ Yoke is a harness: a rig around a model decision that makes it verifiable, safe,
 
 | Capability | What it does | Status |
 |---|---|---|
-| `collect` / `prepare` / `analyze` | Pull roles from pluggable sources, build deterministic feature cards, score + tier with a thin LLM surface | Built |
+| `collect` / `prepare` / `analyze` | Pull roles from pluggable sources (v1 set: Djinni, DOU, Hiring Cafe, LinkedIn read-only), build deterministic feature cards, score + tier with a thin LLM surface | Built |
 | `board` | A live, self-pruning shortlist with a local triage UI | Built |
 | `track` | Application tracker: a decision log (applied / rejected + reason), a status pipeline, funnel analytics, and a dedup guarantee — an applied role never resurfaces (key = URL + company\|title) | Built; elevated to a first-class core layer |
-| `gap` | Gap analysis against a role: which skills are matched vs missing, what's worth learning and how, and accept/reject resume-tuning suggestions for skills you actually have. Never a one-click rewrite | New |
+| `gap` | Gap analysis against a role: matched vs missing skills, what's worth learning and how, and accept/reject resume-tuning suggestions for skills you actually have. Per-vacancy ATS/relevance tailoring produces a tailored copy for that application (assisted, grounded only in your real CV, never a one-click or fabricated rewrite). A reusable named-variant library + live editor are post-v1 | New |
+| `cover` | Per-vacancy cover-letter draft (standalone command), in your output language, grounded only in your CV + the JD; accept/reject/edit, never auto-sent, never fabricated | New |
 | `mail-sync` | Read-only email sync that matches employer replies to your applications and updates their status | New (later phase) |
 | `eval` | Scores the model against a reference on a frozen golden set; safety gates (geo false-positive, tier overreach, parse failure) dominate; a regression gate to trust a cheaper model on evidence | Built |
 | `tune` | Refits the scoring weights to your apply/reject decisions (balanced accuracy at the "worth pursuing" threshold), zero model calls | Built |
@@ -55,7 +56,7 @@ Every capability is a CLI command first; the web panel is a thin client over the
 ## Non-goals
 
 - **No auto-apply.** Yoke picks which roles deserve an application; you apply yourself. Mass applying creates noise, gets flagged as spam, and risks account bans.
-- **No one-click resume rewrite.** Gap analysis gives suggestions you accept or reject; it never fabricates skills, metrics, or seniority, and never auto-edits your resume.
+- **No silent or fabricated rewrite.** Per-vacancy CV tailoring and cover letters *are* supported — but assisted: every change is accept/reject, grounded only in your real CV, never auto-applied, and never invents a skill, metric, or seniority you don't have. The line vs auto-rewrite tools is *assisted + truthful*, not *no tailoring*.
 - **Not a job board, not a chat wrapper.** It scores and triages roles you can act on.
 
 ## Success criteria
@@ -66,6 +67,10 @@ Every capability is a CLI command first; the web panel is a thin client over the
 - An applied role never reappears on the board.
 - `gap` returns matched/missing skills and learning suggestions, and the suggestion layer never invents a skill the user doesn't have.
 
+## Go-to-market
+
+Build-in-public is the distribution motion, not an afterthought: ship the harness openly, post the eval scorecards and tuning before/after numbers as they land, and recruit beta testers from that audience. This fits the launch-as-portfolio strategy — the rigor doubles as a credibility artifact for the hiring/reviewer audience (S3) while the working tool serves the niche technical, privacy-conscious seeker (S1/S2). Yoke does not compete on job-feed breadth; the moat is the auditable harness, local-first/BYO-model posture, and the truthfulness boundary.
+
 ## Roadmap (post-v1)
 
-Full email outcome-loop, a richer learning-path layer (resources and sequencing), and an Electron shell. The architecture (CLI-first engine, thin client, outcome-loop) already accommodates these.
+A named, reusable CV-variant library with a live in-tool editor (v1 ships per-application tailored copies; v2 adds reuse and management), the full email outcome-loop, a richer learning-path layer (resources and sequencing), and an Electron shell. The architecture (CLI-first engine, thin client, outcome-loop) already accommodates these.
