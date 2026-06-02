@@ -183,7 +183,11 @@ form.cfg input[type=text], form.cfg input[type=password], form.cfg input[type=nu
 form.cfg textarea { min-height: 120px; font-family: ui-monospace, monospace; font-size: 13px; }
 form.cfg .save { margin-top: 16px; background: #2d4a7a; color: #dce8ff; border: 0; border-radius: 6px; padding: 8px 16px; font-weight: 700; cursor: pointer; }
 .checks label { display: inline-flex; gap: 5px; align-items: center; margin: 4px 14px 4px 0; color: #cfd6e4; }
-.flash { background: #1f5e35; color: #d6ffe0; padding: 6px 24px; font-size: 13px; }
+.toast { position: fixed; top: 16px; right: 16px; z-index: 50; max-width: 440px; padding: 10px 14px; border-radius: 8px; font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,.45); animation: toastin .18s ease-out, toastout .5s ease 4.5s forwards; }
+.toast.ok { background: #1f5e35; color: #d6ffe0; }
+.toast.warn { background: #5a4a1c; color: #ffe9b0; border: 1px solid #8a6d1f; }
+@keyframes toastin { from { opacity: 0; transform: translateY(-8px); } }
+@keyframes toastout { to { opacity: 0; visibility: hidden; } }
 nav a.schedlink { background: #1f5e35; color: #d6ffe0; padding: 4px 10px; border-radius: 4px; }
 .checks.col label { display: flex; }
 """
@@ -203,8 +207,8 @@ def _nav(active):
             + sbtn + (' <span class="sub">cron: on</span>' if sched else '') + '</nav>')
 
 
-def _page(title, body, active="", flash=""):
-    fl = f'<div class="flash">{_esc(flash)}</div>' if flash else ""
+def _page(title, body, active="", flash="", kind="ok"):
+    fl = f'<div class="toast {kind}">{_esc(flash)}</div>' if flash else ""
     return (f'<!doctype html><html lang="en"><head><meta charset="utf-8">'
             f'<meta name="viewport" content="width=device-width, initial-scale=1">'
             f'<title>Yoke — {_esc(title)}</title><style>{CSS}</style></head>'
@@ -234,7 +238,7 @@ def _row(r):
             f'<td class="note">{_esc(r.get("note"))}</td><td class="act-cell">{_actions(r)}</td></tr>')
 
 
-def board_page(flash=""):
+def board_page(flash="", kind="ok"):
     b = store.load()
     c = store.label_counts()
     roles = sorted(b["roles"], key=lambda r: (TIER_ORDER.get(r.get("tier", "B"), 1), -int(r.get("fit") or 0)))
@@ -257,7 +261,7 @@ def board_page(flash=""):
                f'<span class="improve-off" title="needs ≥{NEED_LABELS} labels, both classes (tunable: {n_pos}+/{n_neg}−)">⚙ Improve (locked)</span>')
     gate = (f'<b>{c["total"]}</b> labels (applied {c["applied"]}, interested {c["interested"]}, '
             f'rejected {c["rejected"]}; tunable {len(tunable)}). {improve}')
-    fl = f'<div class="flash">{_esc(flash)}</div>' if flash else ""
+    fl = f'<div class="toast {kind}">{_esc(flash)}</div>' if flash else ""
     return (f'<!doctype html><html lang="en"><head><meta charset="utf-8">'
             f'<meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="refresh" content="60">'
             f'<title>Yoke — board</title><style>{CSS}</style></head><body>'
@@ -437,7 +441,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/run":
             ok, msg = run_ready()
             if not ok:
-                return self._html(board_page(flash="⚠ " + msg))
+                return self._html(board_page(flash="⚠ " + msg, kind="warn"))
             run_now()
             note = ("" if PROFILE_FILE.exists()
                     else " (heads up: you're on the example profile — set yours in Profile)")
