@@ -192,6 +192,8 @@ tr:hover td { background: #161a21; }
 .detail .row { display: flex; gap: 8px; align-items: center; }
 .detail select, .detail input { background: #11151c; color: #cfd6e4; border: 1px solid #2a2f3a; border-radius: 5px; padding: 5px 7px; font-size: 12px; }
 .detail input { flex: 1; max-width: 320px; }
+.detail .row button { border: 0; border-radius: 5px; padding: 6px 12px; cursor: pointer; font-weight: 700; }
+.detail .row .ok { background: #1f5e35; color: #d6ffe0; } .detail .row .no { background: #5e2530; color: #ffd6dd; }
 .improve { background: #2d4a7a; color: #dce8ff; border: 0; border-radius: 4px; padding: 5px 10px; cursor: pointer; font-weight: 700; }
 .improve-off { color: #5a6271; cursor: not-allowed; }
 .card { background: #161a21; border: 1px solid #262a33; border-radius: 8px; padding: 16px 20px; margin: 16px 0; max-width: 760px; }
@@ -263,7 +265,9 @@ def _item(r):
         '<div class="detail">'
         f'<p class="note">{_esc(r.get("note"))}</p>'
         f'<div class="row"><select name="reason"><option value="">reason…</option>{opts}</select>'
-        '<input name="comment" placeholder="comment (optional)"></div>'
+        '<input name="comment" placeholder="comment (optional)">'
+        '<button class="ok" name="decision" value="applied">✓ Apply</button>'
+        '<button class="no" name="decision" value="rejected">✗ Reject</button></div>'
         f'<div class="sub">{link}</div>'
         '</div></details></form>')
 
