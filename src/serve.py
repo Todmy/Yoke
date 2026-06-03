@@ -413,7 +413,7 @@ def profile_page(flash="", draft=None, pending_cloud=False, kind="ok"):
 <h2 style="margin-top:0">Start from your résumé</h2>
 <p class="sub">Upload or paste your CV, then <b>✨ Auto-fill</b> proposes your headline + scoring prompt for review. Nothing is saved until you click Save.</p>
 <form method="post" action="/profile/upload" enctype="multipart/form-data">
-<input type="file" name="file" accept=".txt,.md,.pdf,.docx">
+<input type="file" name="file" accept=".txt,.md,.pdf,.docx" required>
 <button class="save2" type="submit">⬆ Upload &amp; extract</button>
 </form>
 <p class="sub">PDF / .docx need <code>pip install pypdf python-docx</code> (opt-in). .txt works out of the box. A non-local AI provider means your CV text is sent to that provider.</p>

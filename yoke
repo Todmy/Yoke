@@ -18,24 +18,27 @@
 set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 S="$REPO/src"
+# Prefer the optional venv when present so opt-in extras (pypdf/python-docx for
+# résumé upload, jobspy for scraping) are visible to every command; else stdlib python3.
+PY="$REPO/.venv/bin/python"; [ -x "$PY" ] || PY="python3"
 # no args → open the control panel (panel-first; everything else is in the browser)
-[ $# -eq 0 ] && exec python3 "$S/serve.py" --open
+[ $# -eq 0 ] && exec "$PY" "$S/serve.py" --open
 cmd="$1"; shift
 case "$cmd" in
   setup)      exec bash    "$REPO/setup.sh" "$@" ;;
   uninstall)  exec bash    "$REPO/setup.sh" --uninstall ;;
   run)        exec bash    "$S/run.sh" "${@:-all}" ;;
-  serve)      exec python3 "$S/serve.py" "$@" ;;
-  collect)    exec python3 "$S/collect.py" "$@" ;;
-  prepare)    exec python3 "$S/prepare.py" "$@" ;;
-  analyze)    exec python3 "$S/analyze.py" "$@" ;;
-  gap)        exec python3 "$S/gap.py" "$@" ;;
-  cover)      exec python3 "$S/cover.py" "$@" ;;
-  resume)     exec python3 "$S/resume_import.py" "$@" ;;
-  board)      exec python3 "$S/board.py" "$@" ;;
-  eval)       exec python3 "$S/eval.py" "$@" ;;
-  tune)       exec python3 "$S/tune.py" "$@" ;;
-  status)     exec python3 "$S/store.py" status ;;
+  serve)      exec "$PY" "$S/serve.py" "$@" ;;
+  collect)    exec "$PY" "$S/collect.py" "$@" ;;
+  prepare)    exec "$PY" "$S/prepare.py" "$@" ;;
+  analyze)    exec "$PY" "$S/analyze.py" "$@" ;;
+  gap)        exec "$PY" "$S/gap.py" "$@" ;;
+  cover)      exec "$PY" "$S/cover.py" "$@" ;;
+  resume)     exec "$PY" "$S/resume_import.py" "$@" ;;
+  board)      exec "$PY" "$S/board.py" "$@" ;;
+  eval)       exec "$PY" "$S/eval.py" "$@" ;;
+  tune)       exec "$PY" "$S/tune.py" "$@" ;;
+  status)     exec "$PY" "$S/store.py" status ;;
   help|-h|--help|*)
     sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//' ;;
 esac
