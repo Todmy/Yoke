@@ -14,7 +14,7 @@ SRC = Path(__file__).resolve().parents[1] / "src"
 sys.path.insert(0, str(SRC))
 
 import scoring  # noqa: E402
-from analyze import tier_of, score_fit, label_of  # noqa: E402
+from analyze import tier_of, score_fit, label_of, comp_display  # noqa: E402
 from analyze import THRESHOLD as ANALYZE_THRESHOLD, TIER_A as ANALYZE_TIER_A  # noqa: E402
 
 # representative weights (mirror store.DEFAULT_WEIGHTS) so score_fit needs no DB
@@ -65,6 +65,22 @@ class TestLabelHonoursGeoGate(unittest.TestCase):
     def test_remote_bands_unchanged(self):
         self.assertEqual(label_of(72, "remote"), "🟢 Strong")
         self.assertEqual(label_of(60, "remote"), "🟡 Good")
+
+
+class TestCompDisplayFlagsEstimate(unittest.TestCase):
+    """A model-estimated comp must be flagged 'est', never shown as a scraped fact
+    (ed66a591). Scraped comp shows bare; below-floor adds the gate marker."""
+    def test_estimate_flagged(self):
+        self.assertEqual(comp_display("~$6-9k", True, False), "~$6-9k est")
+
+    def test_scraped_bare(self):
+        self.assertEqual(comp_display("$8k", False, False), "$8k")
+
+    def test_missing_not_flagged(self):
+        self.assertEqual(comp_display(None, True, False), "? [research]")  # no comp → no "est"
+
+    def test_below_floor_marker(self):
+        self.assertEqual(comp_display("$4k", False, True), "$4k ⛔<floor")
 
 
 class TestScoreFit(unittest.TestCase):

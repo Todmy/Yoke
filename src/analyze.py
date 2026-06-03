@@ -84,6 +84,12 @@ def label_of(fit, geo="remote"):
     return "🔴 Reach"
 
 
+def comp_display(comp, estimated, below):
+    """Render the comp cell. A model-estimated band is flagged 'est' (ed66a591:
+    never present a guess as a scraped fact); below-floor gets the gate marker."""
+    return (comp or "? [research]") + (" est" if estimated and comp else "") + (" ⛔<floor" if below else "")
+
+
 def score_fit(f, w=None):
     """Deterministic weighted formula — the model only supplies the features.
     Weights come from store (tunable by the Improve loop); pass w explicitly in
@@ -182,6 +188,7 @@ def main():
         geo = fill.get("geo_verdict") or card["geo"]["verdict"]
         comp = (card["comp"].get("net_mo_est") if card["comp"]["found"]
                 else fill.get("comp_est_net_mo"))
+        comp_estimated = (not card["comp"]["found"]) and bool(comp)  # model guess, not scraped (ed66a591)
         below = comp_below_floor(comp)
         tier = tier_of(fit, geo, below)
         tiers[tier] += 1
@@ -192,7 +199,7 @@ def main():
             "company": card.get("company"), "title": card.get("title"), "url": card.get("url"),
             "fit": fit, "label": label_of(fit, geo),
             "geo": _GEO_DISPLAY.get(geo, geo),
-            "comp": (comp or "? [research]") + (" ⛔<floor" if below else ""),
+            "comp": comp_display(comp, comp_estimated, below),
             "lane": fill.get("fit_features", {}).get("lane_match", card["lane"]["verdict"]),
             "note": fill.get("note", ""),
             "tier": tier, "date_added": today,
