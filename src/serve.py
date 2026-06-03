@@ -78,6 +78,29 @@ LANGS = ["en", "uk", "de", "fr", "es", "pl"]
 MAX_UPLOAD = 5 * 1024 * 1024  # 5 MB résumé upload cap (FR-007a)
 
 
+_ATS_URL = re.compile(
+    r"https?://(?:job-boards|boards)\.greenhouse\.io/([^/?#]+)|"
+    r"https?://jobs\.lever\.co/([^/?#]+)|"
+    r"https?://jobs\.ashbyhq\.com/([^/?#]+)", re.I)
+
+
+def _company_from_line(line):
+    """A Target-Company line is either a job-board URL (greenhouse/lever/ashby —
+    ats+slug auto-detected) or the explicit `name,ats,slug`. Returns a dict or None."""
+    line = line.strip()
+    if not line:
+        return None
+    m = _ATS_URL.match(line)
+    if m:
+        gh, lv, ash = m.groups()
+        ats, slug = ("greenhouse", gh) if gh else ("lever", lv) if lv else ("ashby", ash)
+        return {"name": slug.replace("-", " ").title(), "ats": ats, "slug": slug}
+    parts = [x.strip() for x in line.split(",")]
+    if len(parts) == 3 and all(parts):
+        return {"name": parts[0], "ats": parts[1], "slug": parts[2]}
+    return None
+
+
 def _parse_multipart(ctype, body):
     """Parse multipart/form-data with the stdlib email parser (cgi was removed in
     3.13). Returns {field: (filename|None, bytes)}."""
@@ -253,11 +276,16 @@ form.cfg input[type=text], form.cfg input[type=password], form.cfg input[type=nu
 form.cfg textarea { min-height: 120px; font-family: ui-monospace, monospace; font-size: 13px; }
 form.cfg .save { margin-top: 16px; background: #2d4a7a; color: #dce8ff; border: 0; border-radius: 6px; padding: 8px 16px; font-weight: 700; cursor: pointer; }
 .checks label { display: inline-flex; gap: 5px; align-items: center; margin: 4px 14px 4px 0; color: #cfd6e4; }
-.src-list { display: flex; flex-direction: column; gap: 2px; }
-.src-row { display: flex; gap: 10px; align-items: flex-start; padding: 9px 10px; border-radius: 8px; color: #cfd6e4; cursor: pointer; }
-.src-row:hover { background: #161b24; }
-.src-row input { margin-top: 3px; }
-.src-row .sub { font-size: 12px; }
+.src-list { display: flex; flex-direction: column; gap: 6px; }
+.src-item { border: 1px solid #232936; border-radius: 8px; background: #11151c; overflow: hidden; }
+.src-item > summary { list-style: none; cursor: pointer; padding: 10px 12px; color: #e6e6e6; }
+.src-item > summary::-webkit-details-marker { display: none; }
+.src-item > summary::before { content: "▸"; color: #6b7689; margin-right: 8px; display: inline-block; transition: transform .12s ease; }
+.src-item[open] > summary::before { transform: rotate(90deg); }
+.src-item > summary:hover { background: #161b24; }
+.src-state { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 6px; background: #2a2f3a; color: #9aa4b6; }
+.src-body { padding: 4px 12px 12px 30px; border-top: 1px solid #232936; }
+.src-toggle { display: inline-flex; gap: 6px; align-items: center; margin: 8px 0; color: #cfd6e4; }
 form.trk { display: flex; gap: 6px; align-items: center; }
 form.trk select, form.trk input { background: #11151c; color: #cfd6e4; border: 1px solid #2a2f3a; border-radius: 5px; padding: 5px 7px; font-size: 12px; }
 form.trk input { flex: 1; min-width: 160px; }
@@ -439,14 +467,23 @@ def settings_page(flash=""):
     else:
         cur = (f"Configured: <b>{_esc(env['provider'])}</b> — "
                + ("API key on file ✓" if env["has_key"] else "no key yet — paste one below"))
-    keyhint = "leave blank to keep the saved key" if env["has_key"] else "paste your key (or leave blank for local / Claude session)"
-    # claude_code-specific guidance on getting the token
+    keyhint = "leave blank to keep the saved one" if env["has_key"] else "paste your key (or leave blank for local / Claude session)"
+    # masked indicator so the user can SEE a key/token is already saved (asterisks, never the value)
+    key_status = ('<p class="sub">🔑 A key/token is saved: <code>••••••••••••</code> — leave the field blank to keep it, or paste a new one to replace.</p>'
+                  if env["has_key"] else
+                  '<p class="sub">No key saved yet.</p>')
     cc_note = ("""<p class="sub"><b>Claude subscription:</b> interactive runs use your logged-in <code>claude</code> CLI — no key needed. """
                """For scheduled (cron) runs, generate a long-lived token: run <code>claude setup-token</code> in your terminal and paste it above.</p>""")
+    # each source is a collapsible item: summary (name + on/off + desc) → body (enable + future config)
     src_rows = "".join(
-        f'<label class="src-row"><input type="checkbox" name="src_{s}" '
-        f'{"checked" if enabled.get(s, {}).get("enabled", s != "jobspy") else ""}> '
-        f'<span><b>{_esc(s)}</b><br><span class="sub">{_esc(SOURCE_DESC.get(s, ""))}</span></span></label>'
+        f'<details class="src-item">'
+        f'<summary><b>{_esc(s)}</b> <span class="src-state">{"on" if enabled.get(s, {}).get("enabled", s != "jobspy") else "off"}</span>'
+        f'<span class="sub"> — {_esc(SOURCE_DESC.get(s, ""))}</span></summary>'
+        f'<div class="src-body">'
+        f'<label class="src-toggle"><input type="checkbox" name="src_{s}" '
+        f'{"checked" if enabled.get(s, {}).get("enabled", s != "jobspy") else ""}> Enabled</label>'
+        f'<p class="sub">Per-source settings (filters, URLs) are coming here.</p>'
+        f'</div></details>'
         for s in SOURCE_NAMES)
     body = f"""<form class="cfg" method="post" action="/settings">
 <div class="card">
@@ -456,18 +493,19 @@ def settings_page(flash=""):
 <select name="provider">{prov_opts}</select>
 <label>API key / token — {keyhint}</label>
 <input type="password" name="key" placeholder="sk-… / token (or leave empty)">
+{key_status}
 {cc_note}
 </div>
 <div class="card">
 <h2 style="margin-top:0">Sources</h2>
-<p class="sub">Where Yoke looks for roles. Toggle any off; finer per-source settings are coming.</p>
+<p class="sub">Where Yoke looks for roles. Click a source to expand it.</p>
 <div class="src-list">{src_rows}</div>
 </div>
 <div class="card">
 <h2 style="margin-top:0">Target companies <span class="sub">(optional)</span></h2>
 <p class="sub">Your watchlist of dream employers — Yoke pulls roles straight from each company's own job board (first-source, complete, fresh), not via aggregators. Leave empty if you're not targeting specific companies; the other sources still run.</p>
-<label>One per line: <code>name,ats,slug</code> — <code>ats</code> = greenhouse | lever | ashby; <code>slug</code> = the board id in their careers URL (e.g. <code>Mistral,lever,mistral</code> → <code>jobs.lever.co/mistral</code>)</label>
-<textarea name="companies">{_esc(comp_text)}</textarea>
+<label>Paste a company's job-board URL (Greenhouse / Lever / Ashby) — one per line; Yoke detects the company automatically. <code>name,ats,slug</code> also works.</label>
+<textarea name="companies" placeholder="https://jobs.lever.co/mistral&#10;https://job-boards.greenhouse.io/anthropic">{_esc(comp_text)}</textarea>
 </div>
 <button class="btn" type="submit">Save settings</button>
 </form>"""
@@ -871,11 +909,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/settings":
             write_env(g("provider", "claude_code"), g("key"))
             srcs = {s: {"enabled": (f"src_{s}" in d)} for s in SOURCE_NAMES}
-            companies = []
-            for line in g("companies").splitlines():
-                parts = [x.strip() for x in line.split(",")]
-                if len(parts) == 3 and all(parts):
-                    companies.append({"name": parts[0], "ats": parts[1], "slug": parts[2]})
+            companies = [c for c in (_company_from_line(ln) for ln in g("companies").splitlines()) if c]
             cur = load_sources()
             cur["sources"] = srcs
             if companies:
