@@ -283,9 +283,8 @@ form.cfg .save { margin-top: 16px; background: #2d4a7a; color: #dce8ff; border: 
 .src-item > summary::before { content: "▸"; color: #6b7689; margin-right: 8px; display: inline-block; transition: transform .12s ease; }
 .src-item[open] > summary::before { transform: rotate(90deg); }
 .src-item > summary:hover { background: #161b24; }
-.src-state { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 6px; background: #2a2f3a; color: #9aa4b6; }
-.src-body { padding: 4px 12px 12px 30px; border-top: 1px solid #232936; }
-.src-toggle { display: inline-flex; gap: 6px; align-items: center; margin: 8px 0; color: #cfd6e4; }
+.src-en { vertical-align: middle; margin: 0 8px 0 0; }
+.src-body { padding: 10px 12px 12px 30px; border-top: 1px solid #232936; }
 form.trk { display: flex; gap: 6px; align-items: center; }
 form.trk select, form.trk input { background: #11151c; color: #cfd6e4; border: 1px solid #2a2f3a; border-radius: 5px; padding: 5px 7px; font-size: 12px; }
 form.trk input { flex: 1; min-width: 160px; }
@@ -468,22 +467,27 @@ def settings_page(flash=""):
         cur = (f"Configured: <b>{_esc(env['provider'])}</b> — "
                + ("API key on file ✓" if env["has_key"] else "no key yet — paste one below"))
     keyhint = "leave blank to keep the saved one" if env["has_key"] else "paste your key (or leave blank for local / Claude session)"
-    # masked indicator so the user can SEE a key/token is already saved (asterisks, never the value)
-    key_status = ('<p class="sub">🔑 A key/token is saved: <code>••••••••••••</code> — leave the field blank to keep it, or paste a new one to replace.</p>'
-                  if env["has_key"] else
-                  '<p class="sub">No key saved yet.</p>')
+    # masked indicator so the user can SEE a key/token is already saved (asterisks, never the value).
+    # claude_code/local providers don't store a key — the "Configured:" line above says so; no contradictory note.
+    if env["has_key"]:
+        key_status = '<p class="sub">🔑 A key/token is saved: <code>••••••••••••</code> — leave the field blank to keep it, or paste a new one to replace.</p>'
+    elif env["provider"] in ("claude_code", "ollama", "lmstudio"):
+        key_status = ""
+    else:
+        key_status = '<p class="sub">No key saved yet — paste one above.</p>'
     cc_note = ("""<p class="sub"><b>Claude subscription:</b> interactive runs use your logged-in <code>claude</code> CLI — no key needed. """
                """For scheduled (cron) runs, generate a long-lived token: run <code>claude setup-token</code> in your terminal and paste it above.</p>""")
     # each source is a collapsible item: summary (name + on/off + desc) → body (enable + future config)
+    # enable toggle lives on the summary (next to the name); stopPropagation so
+    # ticking it doesn't expand/collapse the item.
     src_rows = "".join(
         f'<details class="src-item">'
-        f'<summary><b>{_esc(s)}</b> <span class="src-state">{"on" if enabled.get(s, {}).get("enabled", s != "jobspy") else "off"}</span>'
-        f'<span class="sub"> — {_esc(SOURCE_DESC.get(s, ""))}</span></summary>'
-        f'<div class="src-body">'
-        f'<label class="src-toggle"><input type="checkbox" name="src_{s}" '
-        f'{"checked" if enabled.get(s, {}).get("enabled", s != "jobspy") else ""}> Enabled</label>'
-        f'<p class="sub">Per-source settings (filters, URLs) are coming here.</p>'
-        f'</div></details>'
+        f'<summary>'
+        f'<input type="checkbox" class="src-en" name="src_{s}" '
+        f'{"checked" if enabled.get(s, {}).get("enabled", s != "jobspy") else ""} onclick="event.stopPropagation()">'
+        f'<b>{_esc(s)}</b><span class="sub"> — {_esc(SOURCE_DESC.get(s, ""))}</span></summary>'
+        f'<div class="src-body"><p class="sub">Per-source settings (filters, URLs) are coming here.</p></div>'
+        f'</details>'
         for s in SOURCE_NAMES)
     body = f"""<form class="cfg" method="post" action="/settings">
 <div class="card">
