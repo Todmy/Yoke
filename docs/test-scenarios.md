@@ -124,7 +124,7 @@ Improve дає Δ точності ≥ 0 → воронка рахує rates →
 | comp оцінено моделлю | суфікс «est» (тільки свіжий run) | analyze.py (фікс C) |
 | comp нижче планки | tier C, поза бордом, маркер ⛔<floor | analyze.py |
 | Improve | locked до ≥5 applied AND ≥5 rejected | serve.py / tune.py |
-| ☆ star / `interested` | інстант-закладка, зникає з борду → ★ Interested, НЕ позитив тюнера, переживає run | serve.py / store.py |
+| ☆ star / `interested` | інстант-закладка → ★ Interested, НЕ позитив тюнера, переживає run; ★ повертає на борд | serve.py / store.py |
 | Apply | флоу review→confirm, CV-снапшот незмінний | serve.py /apply |
 | Reject | інстант | serve.py /mark |
 | Повторний запуск | дедуп рішень + URL-liveness prune | store/board |
@@ -133,8 +133,8 @@ Improve дає Δ точності ≥ 0 → воронка рахує rates →
 
 ## Прогалини, виявлені при написанні сценаріїв (для бэклогу, не баги)
 
-1. ~~Немає кнопки «interested» на борді~~ — **закрито** (commit eaccfd8): ☆ у рядку + вкладка ★ Interested.
-2. **Unstar відсутній** — зі ★ Interested роль можна тільки Apply/Reject; повернути на борд («передумав, але не відкидаю») не можна. Reject — найближчий обхід. Дрібниця для бэклогу.
+1. ~~Немає кнопки «interested» на борді~~ — **закрито** (eaccfd8): ☆ у рядку + вкладка ★ Interested.
+2. ~~Unstar відсутній~~ — **закрито** (61e7929): ★ на вкладці Interested повертає роль на борд + знімає лейбл.
 3. **comp «est» не ретроактивний** — наявні ролі без прапора scraped/estimated; суфікс зʼявиться
    лише після свіжого `run all`.
 4. **B на вході** — 51/52 ролей = verify, бо сорси тягнуть не-ICP. Фільтр ховає симптом;
