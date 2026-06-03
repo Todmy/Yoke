@@ -241,6 +241,20 @@ form.trk input { flex: 1; min-width: 160px; }
 .btn-ghost { background: #1a1f29; color: #cfd6e4; border: 1px solid #2a2f3a; }
 .btn-ghost:hover { background: #222836; }
 .resume-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+/* auto-fill review modal (smooth fade+scale) */
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; z-index: 100; opacity: 0; transition: opacity .15s ease; }
+.modal-bg.show { opacity: 1; }
+.modal-bg[hidden] { display: none; }
+.modal { width: min(640px, 92vw); max-height: 88vh; overflow: auto; background: #141922; border: 1px solid #2a2f3a; border-radius: 14px; padding: 22px; box-shadow: 0 24px 60px rgba(0,0,0,.6); transform: translateY(10px) scale(.98); transition: transform .15s ease; }
+.modal-bg.show .modal { transform: none; }
+.modal h2 { margin: 0 0 4px; }
+.modal label { display: block; margin: 14px 0 4px; color: #9aa4b6; font-size: 12px; }
+.modal input, .modal textarea { width: 100%; box-sizing: border-box; background: #11151c; color: #e6e6e6; border: 1px solid #2a2f3a; border-radius: 6px; padding: 8px 10px; font: inherit; }
+.modal textarea { min-height: 160px; font-family: ui-monospace, monospace; font-size: 13px; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+.spinner { width: 22px; height: 22px; border: 3px solid #2a2f3a; border-top-color: #6b49c4; border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.af-loading { display: flex; align-items: center; gap: 12px; color: #cfd6e4; padding: 8px 0; }
 .toast { position: fixed; bottom: 20px; right: 20px; z-index: 50; max-width: 440px; padding: 11px 16px; border-radius: 10px; font-size: 13px; box-shadow: 0 10px 30px rgba(0,0,0,.5); animation: toastin .18s ease-out, toastout .5s ease 4.5s forwards; }
 .toast.ok { background: #1f5e35; color: #d6ffe0; }
 .toast.warn { background: #5a4a1c; color: #ffe9b0; border: 1px solid #8a6d1f; }
@@ -410,6 +424,78 @@ def settings_page(flash=""):
 
 
 # ── profile (B) ──────────────────────────────────────────────────────────────
+_AUTOFILL_MODAL = """
+<div id="afModal" class="modal-bg" hidden>
+  <div class="modal">
+    <h2>✨ Auto-fill from your résumé</h2>
+    <p class="sub" id="afNote"></p>
+    <div id="afLoading" class="af-loading"><div class="spinner"></div><span id="afLoadingMsg">Reading…</span></div>
+    <div id="afReview" hidden>
+      <label>Name</label><input id="m_name">
+      <label>Headline</label><input id="m_headline">
+      <label>Scoring prompt</label><textarea id="m_prompt"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="afCancel" type="button">Cancel</button>
+      <button class="btn btn-accent" id="afPrimary" type="button" hidden>Apply</button>
+    </div>
+  </div>
+</div>"""
+
+# Vanilla JS UX layer (no framework, no business logic — extraction/auto-fill/cloud
+# gate all stay server-side). Picks a file → extracts → auto-fills → review modal.
+_AUTOFILL_JS = """
+(function(){
+  var $=function(i){return document.getElementById(i);};
+  var modal=$('afModal'); if(!modal) return;
+  var note=$('afNote'),loading=$('afLoading'),loadMsg=$('afLoadingMsg'),review=$('afReview'),
+      primary=$('afPrimary'),cancel=$('afCancel'),ta=$('pf_resume'),file=$('cvfile'),
+      afbtn=$('afbtn'),upbtn=$('upbtn');
+  if(upbtn) upbtn.style.display='none';  // JS: file pick auto-runs; no separate upload click
+  function open(){modal.hidden=false;void modal.offsetWidth;modal.classList.add('show');}  // reflow, not rAF (works in bg tabs)
+  function close(){modal.classList.remove('show');setTimeout(function(){modal.hidden=true;},160);}
+  function loadingMode(m){note.textContent='';loadMsg.textContent=m;loading.hidden=false;review.hidden=true;primary.hidden=true;open();}
+  function errorMode(m){loading.hidden=true;review.hidden=true;primary.hidden=true;note.textContent=m;open();}
+  function confirmMode(prov,text){loading.hidden=true;review.hidden=true;primary.hidden=false;
+    note.textContent='Your résumé text will be sent to '+prov+' (a non-local provider).';
+    primary.textContent='Send & auto-fill';primary.onclick=function(){autofill(text,true);};}
+  function reviewMode(p){loading.hidden=true;review.hidden=false;primary.hidden=false;
+    note.textContent='Review the proposal — edit anything, then Apply.';
+    $('m_name').value=p.name||'';$('m_headline').value=p.headline||'';$('m_prompt').value=p.scoring_prompt||'';
+    primary.textContent='Apply to profile';primary.onclick=apply;}
+  function apply(){$('pf_name').value=$('m_name').value;$('pf_headline').value=$('m_headline').value;
+    $('pf_prompt').value=$('m_prompt').value;close();}
+  cancel.onclick=close;
+  modal.addEventListener('click',function(e){if(e.target===modal)close();});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!modal.hidden)close();});
+  function autofill(text,confirm){
+    loadingMode('Drafting your profile…');
+    var body=new URLSearchParams();body.set('format','json');body.set('resume_text',text);
+    if(confirm)body.set('confirm_cloud','1');
+    fetch('/profile/autofill',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body})
+      .then(function(r){return r.json();}).then(function(j){
+        if(j.need_confirm){confirmMode(j.need_confirm,text);return;}
+        if(!j.ok){errorMode(j.error||'Auto-fill failed.');return;}
+        ta.value=text;reviewMode(j);
+      }).catch(function(e){errorMode('Network error: '+e);});
+  }
+  function extractThenFill(f){
+    loadingMode('Reading your résumé…');
+    var fd=new FormData();fd.append('file',f);
+    fetch('/profile/extract',{method:'POST',body:fd})
+      .then(function(r){return r.json();}).then(function(j){
+        if(!j.ok){errorMode(j.error||'Could not read the file.');return;}
+        autofill(j.text,false);
+      }).catch(function(e){errorMode('Network error: '+e);});
+  }
+  file.addEventListener('change',function(){if(file.files&&file.files[0])extractThenFill(file.files[0]);});
+  afbtn.addEventListener('click',function(e){e.preventDefault();
+    var t=(ta.value||'').trim();
+    if(!t){errorMode('Pick a file or paste your résumé first.');return;}
+    autofill(t,false);});
+})();"""
+
+
 def profile_page(flash="", draft=None, pending_cloud=False, kind="ok"):
     p = load_profile()
     draft = draft or {}
@@ -422,13 +508,13 @@ def profile_page(flash="", draft=None, pending_cloud=False, kind="ok"):
     # LIVE résumé textarea (whether pasted or just uploaded). No duplicate button.
     upload = """<div class="card">
 <h2 style="margin-top:0">Start from your résumé</h2>
-<p class="sub">Upload or paste your CV, then <b>✨ Auto-fill</b> proposes your headline + scoring prompt for review. Nothing is saved until you click Save.</p>
+<p class="sub">Pick your CV (or paste it below) — Yoke reads it and proposes your headline + scoring prompt for you to review. Nothing is saved until you click Save.</p>
 <div class="resume-actions">
-<form method="post" action="/profile/upload" enctype="multipart/form-data" style="display:contents">
-<input type="file" name="file" accept=".txt,.md,.pdf,.docx" required>
-<button class="btn btn-ghost" type="submit">⬆ Upload &amp; extract</button>
+<form id="upform" method="post" action="/profile/upload" enctype="multipart/form-data" style="display:contents">
+<input type="file" id="cvfile" name="file" accept=".txt,.md,.pdf,.docx" required>
+<button class="btn btn-ghost" id="upbtn" type="submit">⬆ Upload &amp; extract</button>
 </form>
-<button class="btn btn-accent" form="pf" formaction="/profile/autofill" formmethod="post" type="submit">✨ Auto-fill from CV</button>
+<button class="btn btn-accent" id="afbtn" form="pf" formaction="/profile/autofill" formmethod="post" type="submit">✨ Auto-fill from CV</button>
 </div>
 <p class="sub" style="margin-top:10px">PDF / .docx need <code>pip install pypdf python-docx</code> (opt-in). .txt works out of the box. A non-local AI provider means your CV text is sent to that provider.</p>
 </div>"""
@@ -447,20 +533,22 @@ def profile_page(flash="", draft=None, pending_cloud=False, kind="ok"):
 <form class="cfg" id="pf" method="post" action="/profile">
 <div class="card">
 <h2 style="margin-top:0">Who you are</h2>
-<label>Name</label><input type="text" name="name" value="{val('name')}">
-<label>Headline</label><input type="text" name="headline" value="{val('headline')}">
+<label>Name</label><input type="text" id="pf_name" name="name" value="{val('name')}">
+<label>Headline</label><input type="text" id="pf_headline" name="headline" value="{val('headline')}">
 <label>Output language</label><select name="output_language">{lang_opts}</select>
 <label>Comp floor (net USD/mo, 0 = none)</label><input type="number" name="comp_floor" value="{_esc(p.get('comp_floor_net_mo_usd',0))}">
 </div>
 <div class="card">
 <h2 style="margin-top:0">Scoring profile (prompt)</h2>
 <p class="sub">Fed to the model verbatim. Describe your lane, differentiators, seniority, languages, geo, comp. Be specific.</p>
-<textarea name="prompt">{val('prompt')}</textarea>
+<textarea id="pf_prompt" name="prompt">{val('prompt')}</textarea>
 <label>Resume text (paste — optional; appended to the prompt so scoring sees your CV)</label>
-<textarea name="resume_text" placeholder="paste your CV text here…">{val('resume_text')}</textarea>
+<textarea id="pf_resume" name="resume_text" placeholder="paste your CV text here…">{val('resume_text')}</textarea>
 </div>
 <button class="btn" type="submit">Save profile</button>
-</form>"""
+</form>
+{_AUTOFILL_MODAL}
+<script>{_AUTOFILL_JS}</script>"""
     return _page("profile", body, active="/profile", flash=flash, kind=kind)
 
 
@@ -604,6 +692,14 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Location", to)
         self.end_headers()
 
+    def _json(self, obj, code=200):
+        body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_GET(self):
         path = self.path.split("?")[0]
         if path in ("/", ""):
@@ -640,26 +736,36 @@ class Handler(BaseHTTPRequestHandler):
             return self._html(board_page(flash=f"⚠ {type(e).__name__}: {e}", kind="error"))
 
     def _post_multipart(self, path, ctype, raw):
-        if path != "/profile/upload":
+        # /profile/extract → JSON {text} for the JS modal flow; /profile/upload →
+        # no-JS fallback that re-renders the form with the extracted text.
+        if path not in ("/profile/upload", "/profile/extract"):
             return self.send_error(404)
+        js = path == "/profile/extract"
         import os as _os
         import tempfile
         import resume_import
         parts = _parse_multipart(ctype, raw)
         fname, data = parts.get("file", (None, None))
         if not data:
-            return self._html(profile_page(flash="No file received — pick a file or paste the text.", kind="warn"))
+            m = "No file received — pick a file or paste the text."
+            return self._json({"ok": False, "error": m}) if js else \
+                self._html(profile_page(flash=m, kind="warn"))
         with tempfile.NamedTemporaryFile(suffix=Path(fname or "cv.txt").suffix, delete=False) as tf:
             tf.write(data)
             tmp = tf.name
         try:
             text = resume_import.extract_text(tmp)
         except resume_import.ExtractionUnavailable as e:
-            return self._html(profile_page(flash=f"⚠ {e.hint}", kind="warn"))
+            return self._json({"ok": False, "error": e.hint}) if js else \
+                self._html(profile_page(flash=f"⚠ {e.hint}", kind="warn"))
         except resume_import.NoTextFound:
-            return self._html(profile_page(flash="Couldn't read text from that file — paste it instead.", kind="warn"))
+            m = "Couldn't read text from that file — paste it instead."
+            return self._json({"ok": False, "error": m}) if js else \
+                self._html(profile_page(flash=m, kind="warn"))
         finally:
             _os.unlink(tmp)
+        if js:
+            return self._json({"ok": True, "text": text})
         return self._html(profile_page(
             draft={"resume_text": text}, flash="Résumé extracted — review, then ✨ Auto-fill or Save."))
 
@@ -683,22 +789,31 @@ class Handler(BaseHTTPRequestHandler):
             return self._redirect(nxt)
         if path == "/profile/autofill":
             text = g("resume_text")
+            js = g("format") == "json"   # JS (modal) path wants JSON; else no-JS re-render
             ok, msg = run_ready()
             if not ok:
-                return self._html(profile_page(flash=msg, kind="warn", draft={"resume_text": text}))
+                return self._json({"ok": False, "error": msg}) if js else \
+                    self._html(profile_page(flash=msg, kind="warn", draft={"resume_text": text}))
             if not text.strip():
-                return self._html(profile_page(flash="Paste or upload a résumé first.", kind="warn"))
-            local = read_env()["provider"] in ("ollama", "lmstudio")
+                m = "Paste or upload a résumé first."
+                return self._json({"ok": False, "error": m}) if js else \
+                    self._html(profile_page(flash=m, kind="warn"))
+            provider = read_env()["provider"]
+            local = provider in ("ollama", "lmstudio")
             if not local and g("confirm_cloud") != "1":   # FR-013 cloud warning gate
-                return self._html(profile_page(pending_cloud=True, draft={"resume_text": text}))
+                return self._json({"ok": False, "need_confirm": provider}) if js else \
+                    self._html(profile_page(pending_cloud=True, draft={"resume_text": text}))
             import resume_import
             try:
                 out = resume_import.autofill(text)
             except Exception as e:  # malformed output / provider failure (FR-012)
-                return self._html(profile_page(
-                    flash=f"Couldn't auto-fill ({type(e).__name__}) — edit manually.", kind="warn",
-                    draft={"resume_text": text}))
-            return self._html(profile_page(  # replace target fields with the proposal (FR-004)
+                m = f"Couldn't auto-fill ({type(e).__name__}) — edit manually."
+                return self._json({"ok": False, "error": m}) if js else \
+                    self._html(profile_page(flash=m, kind="warn", draft={"resume_text": text}))
+            if js:
+                return self._json({"ok": True, "name": out["name"], "headline": out["headline"],
+                                   "scoring_prompt": out["scoring_prompt"]})
+            return self._html(profile_page(  # no-JS fallback: replace fields inline (FR-004)
                 draft={"name": out["name"], "headline": out["headline"],
                        "prompt": out["scoring_prompt"], "resume_text": text},
                 flash="Auto-filled — review and edit, then Save."))
