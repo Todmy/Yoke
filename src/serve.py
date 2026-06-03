@@ -76,6 +76,10 @@ SOURCE_DESC = {
 }
 LANGS = ["en", "uk", "de", "fr", "es", "pl"]
 MAX_UPLOAD = 5 * 1024 * 1024  # 5 MB résumé upload cap (FR-007a)
+# Post/Redirect/Get: POST handlers redirect to a GET page (so the address bar never
+# holds a POST-only path → no 404 on the board's auto-refresh or a manual reload).
+# The flash for the next render is parked here (single-user local server).
+_FLASH = {"m": "", "k": "ok"}
 KEY_MASK = "•" * 12  # shown in the key field when a secret is on file; treated as "keep" on save
 
 
@@ -839,6 +843,11 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Location", to)
         self.end_headers()
 
+    def _flash_to(self, to, msg="", kind="ok"):
+        """PRG: park a flash and 303-redirect to a GET page."""
+        _FLASH["m"], _FLASH["k"] = msg, kind
+        return self._redirect(to)
+
     def _json(self, obj, code=200):
         body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
         self.send_response(code)
@@ -849,18 +858,21 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = self.path.split("?")[0]
+        fm, fk = _FLASH["m"], _FLASH["k"]          # consume the PRG flash, if any
+        _FLASH["m"], _FLASH["k"] = "", "ok"
         if path in ("/", ""):
             q = parse_qs(urlparse(self.path).query)
-            return self._html(board_page(remote_only=(q.get("remote") or [""])[0] == "1",
+            return self._html(board_page(flash=fm, kind=fk,
+                                         remote_only=(q.get("remote") or [""])[0] == "1",
                                          interested_only=(q.get("interested") or [""])[0] == "1"))
         if path == "/settings":
-            return self._html(settings_page())
+            return self._html(settings_page(flash=fm))
         if path == "/profile":
-            return self._html(profile_page())
+            return self._html(profile_page(flash=fm, kind=fk))
         if path == "/schedule":
-            return self._html(schedule_page())
+            return self._html(schedule_page(flash=fm))
         if path == "/applied":
-            return self._html(applied_page())
+            return self._html(applied_page(flash=fm, kind=fk))
         if path == "/apply":
             role = (parse_qs(urlparse(self.path).query).get("role") or [""])[0]
             return self._html(apply_page(role))
@@ -873,14 +885,13 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if ctype.startswith("multipart/form-data"):
                 if n > MAX_UPLOAD:
-                    return self._html(profile_page(
-                        flash=f"File too large (limit {MAX_UPLOAD // (1024 * 1024)} MB).", kind="warn"))
+                    return self._flash_to("/profile", f"File too large (limit {MAX_UPLOAD // (1024 * 1024)} MB).", "warn")
                 return self._post_multipart(path, ctype, self.rfile.read(n))
             d = parse_qs(self.rfile.read(n).decode("utf-8")) if n else {}
             g = lambda k, default="": (d.get(k) or [default])[0]
             return self._post(path, d, g)
-        except Exception as e:  # any handler failure -> a red toast, not a 500
-            return self._html(board_page(flash=f"⚠ {type(e).__name__}: {e}", kind="error"))
+        except Exception as e:  # any handler failure -> a red toast on the board, not a 500
+            return self._flash_to("/", f"⚠ {type(e).__name__}: {e}", "error")
 
     def _post_multipart(self, path, ctype, raw):
         # /profile/extract → JSON {text} for the JS modal flow; /profile/upload →
@@ -979,7 +990,7 @@ class Handler(BaseHTTPRequestHandler):
             if companies:
                 cur["companies"] = companies
             write_json(SOURCES_FILE, cur)
-            return self._html(settings_page(flash="Settings saved."))
+            return self._flash_to("/settings", "Settings saved.")
         if path == "/profile":
             p = load_profile()
             p.update({"name": g("name"), "headline": g("headline"),
@@ -988,42 +999,41 @@ class Handler(BaseHTTPRequestHandler):
                       "prompt": g("prompt"), "resume_text": g("resume_text")})
             p.pop("_comment", None)
             write_json(PROFILE_FILE, p)
-            return self._html(profile_page(flash="Profile saved."))
+            return self._flash_to("/profile", "Profile saved.")
         if path == "/run":
             ok, msg = run_ready()
             if not ok:
-                return self._html(board_page(flash="⚠ " + msg, kind="warn"))
+                return self._flash_to("/", "⚠ " + msg, "warn")
             run_now()
             note = ("" if PROFILE_FILE.exists()
                     else " (heads up: you're on the example profile — set yours in Profile)")
-            return self._html(board_page(flash="Run started in the background — refresh in a minute." + note))
+            return self._flash_to("/", "Run started in the background — refresh in a minute." + note)
         if path == "/schedule":
             preset = g("preset", "2")
             hours = (g("hours") if preset == "custom" else SCHEDULE_PRESETS.get(preset, SCHEDULE_PRESETS["2"])[0])
             hours = ",".join(h for h in re.findall(r"\d{1,2}", hours or "") if int(h) <= 23) or "9,17"
             minute = str(min(59, max(0, int((re.sub(r"\D", "", g("minute", "10")) or "10")))))
             cron_set(True, hours, minute)
-            return self._html(board_page(flash=f"Scheduled: daily at minute {minute} of hours {hours}."))
+            return self._flash_to("/", f"Scheduled: daily at minute {minute} of hours {hours}.")
         if path == "/unschedule":
             cron_set(False)
-            return self._html(board_page(flash="Unscheduled — no more cron runs."))
+            return self._flash_to("/", "Unscheduled — no more cron runs.")
         if path == "/apply-confirm":
             rk = g("role")
             if rk:
                 store.mark(rk, "applied", comment=g("notes"), source="ui", resume=g("resume"))
                 _add_applied(rk)
-            return self._html(applied_page(flash="Logged — now tracked under Applied."))
+            return self._flash_to("/applied", "Logged — now tracked under Applied.")
         if path == "/track":
             sid = g("id")
             status = g("status", "applied")
             if sid and status in store.APP_STATUSES:
                 store.set_status(sid, status, g("status_note"))
-            return self._html(applied_page(flash="Status updated."))
+            return self._flash_to("/applied", "Status updated.")
         if path == "/unapply":
             ok = store.unapply(g("id"))
-            return self._html(applied_page(
-                flash="Moved back to the board." if ok else "Could not undo (already gone?).",
-                kind="ok" if ok else "warn"))
+            return self._flash_to("/applied", "Moved back to the board." if ok else "Could not undo (already gone?).",
+                                  "ok" if ok else "warn")
         if path == "/improve":
             return self._html(improve_result(tune.tune(store.labeled_decisions(require_raw=True))))
         if path == "/improve-apply":
