@@ -36,7 +36,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from paths import SCANS_DIR, INDEX as INDEX_FILE, JD_CACHE, load_sources  # noqa: E402
+from paths import SCANS_DIR, INDEX as INDEX_FILE, JD_CACHE, YOKE_HOME, load_sources  # noqa: E402
 
 LOCK_FILE = Path("/tmp/yoke-collect.lock")
 TIMEOUT = 20
@@ -432,6 +432,99 @@ def scan_jobspy():
     return out
 
 
+# ── v1 source short-list (FR-001): manual import + UA/aggregator scrapers ─────
+# NOTE: the three web scrapers below are stdlib best-effort against live HTML/JSON
+# whose structure can change; they are error-isolated by run() and degrade to [].
+# Manual import is the always-available offline fallback.
+
+def scan_manual():
+    """Read user-supplied roles from $YOKE_HOME/import.json — the always-available
+    fallback so the pipeline works with every scraper down (FR-001). Format: a JSON
+    list of {title, company, location, url, comp?} (extra keys ignored)."""
+    p = YOKE_HOME / "import.json"
+    if not p.exists():
+        return []
+    try:
+        rows = json.loads(p.read_text())
+    except (json.JSONDecodeError, OSError):
+        return []
+    out = []
+    for r in (rows if isinstance(rows, list) else rows.get("roles", [])):
+        if not isinstance(r, dict):
+            continue
+        out.append(norm(r.get("title"), r.get("company"), r.get("location", "Remote"),
+                        r.get("url"), "manual", r.get("posted_at", ""), r.get("comp", "")))
+    return out
+
+
+def scan_hiringcafe():
+    """Hiring Cafe aggregator (one high-yield remote source). Best-effort against
+    its search API; schema unverified here — defensive parsing, degrades to []."""
+    body = json.dumps({"searchQuery": "engineer", "workplaceTypes": ["Remote"], "size": 100}).encode()
+    try:
+        req = Request("https://hiring.cafe/api/search-jobs", data=body,
+                      headers={"User-Agent": UA, "Content-Type": "application/json",
+                               "Accept": "application/json"})
+        with urlopen(req, timeout=TIMEOUT) as r:
+            data = json.loads(r.read())
+    except (HTTPError, URLError, TimeoutError, ValueError, json.JSONDecodeError) as e:
+        print(f"  hiringcafe: {type(e).__name__}", file=sys.stderr)
+        return []
+    out = []
+    results = data if isinstance(data, list) else (data.get("results") or data.get("jobs") or [])
+    for j in results:
+        if not isinstance(j, dict):
+            continue
+        info = j.get("job") or j
+        out.append(norm(info.get("title") or info.get("position"),
+                        info.get("company") or (info.get("organization") or {}).get("name"),
+                        info.get("location") or "Remote",
+                        info.get("url") or info.get("applyUrl") or info.get("link"),
+                        "hiringcafe", str(info.get("postedAt", "")), info.get("salary", "")))
+    return out
+
+
+_DJINNI_RE = re.compile(r'<a[^>]+href="(/jobs/(\d+)[^"]*)"[^>]*>\s*(.*?)\s*</a>', re.S)
+
+
+def scan_djinni():
+    """Djinni (UA board, no public API). Best-effort HTML scrape, rate-limited;
+    selectors unverified here — degrades to [] if the markup differs."""
+    out = []
+    for q in ("AI+Engineer", "Python", "Golang"):
+        html_txt = fetch_text(f"https://djinni.co/jobs/?primary_keyword={q}&employment=remote")
+        if not html_txt:
+            continue
+        for href, _jid, raw in _DJINNI_RE.findall(html_txt):
+            title = re.sub(r"<[^>]+>", " ", raw)
+            title = re.sub(r"\s+", " ", title).strip()
+            if not title:
+                continue
+            out.append(norm(title, "", "Remote (Djinni)", f"https://djinni.co{href}",
+                            "djinni", ""))
+        time.sleep(2)  # polite rate limit (FR-001)
+    return out
+
+
+_DOU_RE = re.compile(r'<a[^>]+class="vt"[^>]+href="(https://jobs\.dou\.ua/[^"]+)"[^>]*>(.*?)</a>', re.S)
+
+
+def scan_dou():
+    """DOU (UA board, no public API). Best-effort HTML scrape, rate-limited;
+    selectors unverified here — degrades to [] if the markup differs."""
+    out = []
+    for cat in ("Python", "Golang", "AI%2FML"):
+        html_txt = fetch_text(f"https://jobs.dou.ua/vacancies/?category={cat}&remote")
+        if not html_txt:
+            continue
+        for href, raw in _DOU_RE.findall(html_txt):
+            title = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", raw)).strip()
+            if title:
+                out.append(norm(title, "", "Remote (DOU)", href, "dou", ""))
+        time.sleep(2)  # polite rate limit (FR-001)
+    return out
+
+
 # ── Filtering ────────────────────────────────────────────────
 def matches_profile(job):
     t = (job["title"] or "").lower()
@@ -579,7 +672,11 @@ register_source("remotive", scan_remotive)
 register_source("weworkremotely", scan_wwr_rss)
 register_source("hackernews", scan_hn_hiring)
 register_source("dorks", scan_brave_dorks)
-register_source("jobspy", scan_jobspy)
+register_source("jobspy", scan_jobspy)          # includes LinkedIn (read-only) — FR-001 T011
+register_source("hiringcafe", scan_hiringcafe)  # FR-001 T008
+register_source("djinni", scan_djinni)          # FR-001 T009
+register_source("dou", scan_dou)                # FR-001 T010
+register_source("manual", scan_manual)          # FR-001 T012 (offline fallback)
 
 
 def run(args):

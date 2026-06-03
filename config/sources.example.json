@@ -7,7 +7,11 @@
     "weworkremotely": {"enabled": true},
     "hackernews": {"enabled": true},
     "dorks": {"enabled": true},
-    "jobspy": {"enabled": false}
+    "jobspy": {"enabled": false},
+    "hiringcafe": {"enabled": true},
+    "djinni": {"enabled": false},
+    "dou": {"enabled": false},
+    "manual": {"enabled": true}
   },
   "companies": [
     {"name": "Anthropic", "ats": "greenhouse", "slug": "anthropic"},
