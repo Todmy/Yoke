@@ -283,6 +283,7 @@ form.cfg .save { margin-top: 16px; background: #2d4a7a; color: #dce8ff; border: 
 .src-item > summary::before { content: "▸"; color: #6b7689; margin-right: 8px; display: inline-block; transition: transform .12s ease; }
 .src-item[open] > summary::before { transform: rotate(90deg); }
 .src-item > summary:hover { background: #161b24; }
+.ok-pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: #1f5e35; color: #d6ffe0; margin-right: 6px; }
 .src-en { vertical-align: middle; margin: 0 8px 0 0; }
 .src-body { padding: 10px 12px 12px 30px; border-top: 1px solid #232936; }
 form.trk { display: flex; gap: 6px; align-items: center; }
@@ -459,13 +460,13 @@ def settings_page(flash=""):
         for p in PROVIDERS)
     # current saved state — so the user sees what's already configured
     if env["provider"] == "claude_code":
-        cur = ("Configured: <b>Claude subscription</b> — "
-               + ("token on file ✓" if env["has_key"] else "uses your logged-in <code>claude</code> session (a token is needed only for cron)"))
+        cur = ("<b>Claude subscription</b> — "
+               + ("token on file" if env["has_key"] else "uses your logged-in <code>claude</code> session (a token is needed only for cron)"))
     elif env["provider"] in ("ollama", "lmstudio"):
-        cur = f"Configured: <b>{_esc(env['provider'])}</b> — local model, no key needed"
+        cur = f"<b>{_esc(env['provider'])}</b> — local model, no key needed"
     else:
-        cur = (f"Configured: <b>{_esc(env['provider'])}</b> — "
-               + ("API key on file ✓" if env["has_key"] else "no key yet — paste one below"))
+        cur = (f"<b>{_esc(env['provider'])}</b> — "
+               + ("API key on file" if env["has_key"] else "no key yet — paste one below"))
     keyhint = "leave blank to keep the saved one" if env["has_key"] else "paste your key (or leave blank for local / Claude session)"
     # masked indicator so the user can SEE a key/token is already saved (asterisks, never the value).
     # claude_code/local providers don't store a key — the "Configured:" line above says so; no contradictory note.
@@ -492,7 +493,7 @@ def settings_page(flash=""):
     body = f"""<form class="cfg" method="post" action="/settings">
 <div class="card">
 <h2 style="margin-top:0">AI provider</h2>
-<p class="sub">{cur}</p>
+<p class="sub"><span class="ok-pill">✓ Active</span> {cur}</p>
 <label>Provider</label>
 <select name="provider">{prov_opts}</select>
 <label>API key / token — {keyhint}</label>
