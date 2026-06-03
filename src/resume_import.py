@@ -133,8 +133,6 @@ def _assemble_scoring_prompt(resume):
     skills = [s.strip() for s in (resume.get("skills") or []) if s.strip()]
     if skills:
         parts.append("Core skills / differentiators: " + ", ".join(skills))
-    if parts:
-        parts.append("(Add your target geo, comp floor, and any must-have constraints.)")
     return "\n".join(parts)
 
 

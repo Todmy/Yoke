@@ -233,6 +233,14 @@ form.trk { display: flex; gap: 6px; align-items: center; }
 form.trk select, form.trk input { background: #11151c; color: #cfd6e4; border: 1px solid #2a2f3a; border-radius: 5px; padding: 5px 7px; font-size: 12px; }
 form.trk input { flex: 1; min-width: 160px; }
 .save2 { background: #2d4a7a; color: #dce8ff; border: 0; border-radius: 5px; padding: 5px 12px; font-weight: 700; cursor: pointer; }
+/* standalone buttons (work outside form.cfg): consistent, with hover */
+.btn { display: inline-flex; align-items: center; gap: 6px; background: #2d4a7a; color: #dce8ff; border: 0; border-radius: 8px; padding: 9px 16px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; transition: background .12s ease, transform .04s ease; }
+.btn:hover { background: #37589a; } .btn:active { transform: translateY(1px); }
+.btn-accent { background: linear-gradient(135deg, #5b3da8, #3a2d6e); color: #ece6ff; }
+.btn-accent:hover { background: linear-gradient(135deg, #6b49c4, #463584); }
+.btn-ghost { background: #1a1f29; color: #cfd6e4; border: 1px solid #2a2f3a; }
+.btn-ghost:hover { background: #222836; }
+.resume-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
 .toast { position: fixed; bottom: 20px; right: 20px; z-index: 50; max-width: 440px; padding: 11px 16px; border-radius: 10px; font-size: 13px; box-shadow: 0 10px 30px rgba(0,0,0,.5); animation: toastin .18s ease-out, toastout .5s ease 4.5s forwards; }
 .toast.ok { background: #1f5e35; color: #d6ffe0; }
 .toast.warn { background: #5a4a1c; color: #ffe9b0; border: 1px solid #8a6d1f; }
@@ -409,23 +417,21 @@ def profile_page(flash="", draft=None, pending_cloud=False, kind="ok"):
     lang_opts = "".join(
         f'<option value="{l}"{" selected" if l == p.get("output_language", "en") else ""}>{l}</option>' for l in LANGS)
     # ⬆ upload (multipart, its own form) → extracts text into the résumé field.
-    # When résumé text is present (e.g. right after an upload), show the Auto-fill
-    # CTA HERE at the top — carrying that text — so the next action is visible
-    # without scrolling to the button beneath the textarea.
-    has_resume = bool(draft.get("resume_text") or p.get("resume_text"))
-    autofill_cta = (f"""<form method="post" action="/profile/autofill" style="margin-top:10px">
-<input type="hidden" name="resume_text" value="{val('resume_text')}">
-<button class="save" type="submit">✨ Auto-fill profile from this résumé</button>
-</form>""" if has_resume else "")
-    upload = f"""<div class="card">
+    # The single ✨ Auto-fill button sits HERE at the top but, via the HTML form=
+    # attribute, submits the main profile form below — so it always acts on the
+    # LIVE résumé textarea (whether pasted or just uploaded). No duplicate button.
+    upload = """<div class="card">
 <h2 style="margin-top:0">Start from your résumé</h2>
 <p class="sub">Upload or paste your CV, then <b>✨ Auto-fill</b> proposes your headline + scoring prompt for review. Nothing is saved until you click Save.</p>
-<form method="post" action="/profile/upload" enctype="multipart/form-data">
+<div class="resume-actions">
+<form method="post" action="/profile/upload" enctype="multipart/form-data" style="display:contents">
 <input type="file" name="file" accept=".txt,.md,.pdf,.docx" required>
-<button class="save2" type="submit">⬆ Upload &amp; extract</button>
+<button class="btn btn-ghost" type="submit">⬆ Upload &amp; extract</button>
 </form>
-<p class="sub">PDF / .docx need <code>pip install pypdf python-docx</code> (opt-in). .txt works out of the box. A non-local AI provider means your CV text is sent to that provider.</p>
-{autofill_cta}</div>"""
+<button class="btn btn-accent" form="pf" formaction="/profile/autofill" formmethod="post" type="submit">✨ Auto-fill from CV</button>
+</div>
+<p class="sub" style="margin-top:10px">PDF / .docx need <code>pip install pypdf python-docx</code> (opt-in). .txt works out of the box. A non-local AI provider means your CV text is sent to that provider.</p>
+</div>"""
     # cloud-confirm banner (FR-013): re-submits the résumé text with confirm_cloud=1
     confirm = ""
     if pending_cloud:
@@ -435,10 +441,10 @@ def profile_page(flash="", draft=None, pending_cloud=False, kind="ok"):
 <form method="post" action="/profile/autofill">
 <input type="hidden" name="resume_text" value="{val('resume_text')}">
 <input type="hidden" name="confirm_cloud" value="1">
-<button class="save" type="submit">Send &amp; auto-fill</button> <a href="/profile" style="margin-left:12px">cancel</a>
+<button class="btn btn-accent" type="submit">Send &amp; auto-fill</button> <a href="/profile" style="margin-left:12px">cancel</a>
 </form></div>"""
     body = f"""{upload}{confirm}
-<form class="cfg" method="post" action="/profile">
+<form class="cfg" id="pf" method="post" action="/profile">
 <div class="card">
 <h2 style="margin-top:0">Who you are</h2>
 <label>Name</label><input type="text" name="name" value="{val('name')}">
@@ -452,9 +458,8 @@ def profile_page(flash="", draft=None, pending_cloud=False, kind="ok"):
 <textarea name="prompt">{val('prompt')}</textarea>
 <label>Resume text (paste — optional; appended to the prompt so scoring sees your CV)</label>
 <textarea name="resume_text" placeholder="paste your CV text here…">{val('resume_text')}</textarea>
-<button class="save2" formaction="/profile/autofill" type="submit" title="propose headline + scoring prompt from the résumé text">✨ Auto-fill from CV</button>
 </div>
-<button class="save" type="submit">Save profile</button>
+<button class="btn" type="submit">Save profile</button>
 </form>"""
     return _page("profile", body, active="/profile", flash=flash, kind=kind)
 
