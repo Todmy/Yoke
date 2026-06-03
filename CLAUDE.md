@@ -84,6 +84,7 @@ When you receive a `<channel source="valis" event="capture_reminder">`, review y
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/001-jobsearch-harness/plan.md` (with research.md, data-model.md,
-contracts/cli-commands.md, quickstart.md alongside it).
+`specs/002-resume-import/plan.md` (with research.md, data-model.md,
+contracts/cli-and-ui.md, quickstart.md alongside it). The prior feature's
+plan is at `specs/001-jobsearch-harness/plan.md`.
 <!-- SPECKIT END -->
