@@ -47,9 +47,33 @@ NEED_LABELS = 12
 TIER_TITLE = {"A": "Tier A — apply", "B": "Tier B — worth a look", "C": "Tier C"}
 TIER_ORDER = {"A": 0, "B": 1, "C": 2}
 REASONS = ["off-lane", "geo", "comp", "seniority", "not-interesting", "lang", "other"]
+# All providers route through the one OpenAICompat backend (+ presets), except
+# claude_code (subscription via the claude CLI). anthropic uses Anthropic's
+# OpenAI-compatible /v1/chat/completions route (Claude via API key, vs claude_code's
+# subscription). All are functional given a key / local server.
 PROVIDERS = ["claude_code", "openrouter", "openai", "anthropic", "groq",
              "together", "deepinfra", "ollama", "lmstudio"]
+PROVIDER_LABELS = {
+    "claude_code": "Claude subscription — via the claude CLI",
+    "openrouter": "OpenRouter — 100+ models · API key",
+    "openai": "OpenAI — API key",
+    "anthropic": "Anthropic — Claude via API key",
+    "groq": "Groq — fast inference · API key",
+    "together": "Together AI — API key",
+    "deepinfra": "DeepInfra — API key",
+    "ollama": "Ollama — fully local, no key",
+    "lmstudio": "LM Studio — fully local, no key",
+}
 SOURCE_NAMES = ["ats", "remoteok", "remotive", "weworkremotely", "hackernews", "dorks", "jobspy"]
+SOURCE_DESC = {
+    "ats": "Your Target Companies' own job boards (Greenhouse/Lever/Ashby) — first-source, complete, fresh.",
+    "remoteok": "RemoteOK — a large remote-only job aggregator.",
+    "remotive": "Remotive — curated remote roles across tech.",
+    "weworkremotely": "We Work Remotely — the largest remote-work board (RSS).",
+    "hackernews": "Hacker News 'Who is hiring?' — the monthly startup hiring thread.",
+    "dorks": "Google site-search across ATS domains — finds roles at companies NOT in your list (the hidden layer).",
+    "jobspy": "LinkedIn / Indeed via jobspy — needs the optional venv; those sites restrict scraping (off by default).",
+}
 LANGS = ["en", "uk", "de", "fr", "es", "pl"]
 MAX_UPLOAD = 5 * 1024 * 1024  # 5 MB résumé upload cap (FR-007a)
 
@@ -229,6 +253,11 @@ form.cfg input[type=text], form.cfg input[type=password], form.cfg input[type=nu
 form.cfg textarea { min-height: 120px; font-family: ui-monospace, monospace; font-size: 13px; }
 form.cfg .save { margin-top: 16px; background: #2d4a7a; color: #dce8ff; border: 0; border-radius: 6px; padding: 8px 16px; font-weight: 700; cursor: pointer; }
 .checks label { display: inline-flex; gap: 5px; align-items: center; margin: 4px 14px 4px 0; color: #cfd6e4; }
+.src-list { display: flex; flex-direction: column; gap: 2px; }
+.src-row { display: flex; gap: 10px; align-items: flex-start; padding: 9px 10px; border-radius: 8px; color: #cfd6e4; cursor: pointer; }
+.src-row:hover { background: #161b24; }
+.src-row input { margin-top: 3px; }
+.src-row .sub { font-size: 12px; }
 form.trk { display: flex; gap: 6px; align-items: center; }
 form.trk select, form.trk input { background: #11151c; color: #cfd6e4; border: 1px solid #2a2f3a; border-radius: 5px; padding: 5px 7px; font-size: 12px; }
 form.trk input { flex: 1; min-width: 160px; }
@@ -399,28 +428,48 @@ def settings_page(flash=""):
     companies = src.get("companies", [])
     comp_text = "\n".join(f"{c.get('name','')},{c.get('ats','')},{c.get('slug','')}" for c in companies)
     prov_opts = "".join(
-        f'<option value="{p}"{" selected" if p == env["provider"] else ""}>{p}</option>' for p in PROVIDERS)
-    checks = "".join(
-        f'<label><input type="checkbox" name="src_{s}" {"checked" if enabled.get(s, {}).get("enabled", s != "jobspy") else ""}> {s}</label>'
+        f'<option value="{p}"{" selected" if p == env["provider"] else ""}>{_esc(PROVIDER_LABELS.get(p, p))}</option>'
+        for p in PROVIDERS)
+    # current saved state — so the user sees what's already configured
+    if env["provider"] == "claude_code":
+        cur = ("Configured: <b>Claude subscription</b> — "
+               + ("token on file ✓" if env["has_key"] else "uses your logged-in <code>claude</code> session (a token is needed only for cron)"))
+    elif env["provider"] in ("ollama", "lmstudio"):
+        cur = f"Configured: <b>{_esc(env['provider'])}</b> — local model, no key needed"
+    else:
+        cur = (f"Configured: <b>{_esc(env['provider'])}</b> — "
+               + ("API key on file ✓" if env["has_key"] else "no key yet — paste one below"))
+    keyhint = "leave blank to keep the saved key" if env["has_key"] else "paste your key (or leave blank for local / Claude session)"
+    # claude_code-specific guidance on getting the token
+    cc_note = ("""<p class="sub"><b>Claude subscription:</b> interactive runs use your logged-in <code>claude</code> CLI — no key needed. """
+               """For scheduled (cron) runs, generate a long-lived token: run <code>claude setup-token</code> in your terminal and paste it above.</p>""")
+    src_rows = "".join(
+        f'<label class="src-row"><input type="checkbox" name="src_{s}" '
+        f'{"checked" if enabled.get(s, {}).get("enabled", s != "jobspy") else ""}> '
+        f'<span><b>{_esc(s)}</b><br><span class="sub">{_esc(SOURCE_DESC.get(s, ""))}</span></span></label>'
         for s in SOURCE_NAMES)
-    keyhint = "key on file ✓ (leave blank to keep)" if env["has_key"] else "paste key (blank = none / local model / Claude session)"
     body = f"""<form class="cfg" method="post" action="/settings">
 <div class="card">
 <h2 style="margin-top:0">AI provider</h2>
+<p class="sub">{cur}</p>
 <label>Provider</label>
 <select name="provider">{prov_opts}</select>
-<label>API key — {keyhint}</label>
-<input type="password" name="key" placeholder="sk-… (or empty)">
-<p class="sub">claude_code = your Claude subscription (no key needed in an interactive run; a token is needed for cron — see Schedule). ollama / lmstudio = local, no key.</p>
+<label>API key / token — {keyhint}</label>
+<input type="password" name="key" placeholder="sk-… / token (or leave empty)">
+{cc_note}
 </div>
 <div class="card">
 <h2 style="margin-top:0">Sources</h2>
-<div class="checks">{checks}</div>
-<p class="sub">jobspy (LinkedIn/Indeed) off by default — those sites restrict scraping.</p>
-<label>Target companies (one per line: <code>name,ats,slug</code>; ats = greenhouse|lever|ashby)</label>
+<p class="sub">Where Yoke looks for roles. Toggle any off; finer per-source settings are coming.</p>
+<div class="src-list">{src_rows}</div>
+</div>
+<div class="card">
+<h2 style="margin-top:0">Target companies <span class="sub">(optional)</span></h2>
+<p class="sub">Your watchlist of dream employers — Yoke pulls roles straight from each company's own job board (first-source, complete, fresh), not via aggregators. Leave empty if you're not targeting specific companies; the other sources still run.</p>
+<label>One per line: <code>name,ats,slug</code> — <code>ats</code> = greenhouse | lever | ashby; <code>slug</code> = the board id in their careers URL (e.g. <code>Mistral,lever,mistral</code> → <code>jobs.lever.co/mistral</code>)</label>
 <textarea name="companies">{_esc(comp_text)}</textarea>
 </div>
-<button class="save" type="submit">Save settings</button>
+<button class="btn" type="submit">Save settings</button>
 </form>"""
     return _page("settings", body, active="/settings", flash=flash)
 
