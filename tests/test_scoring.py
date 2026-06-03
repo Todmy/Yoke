@@ -14,7 +14,7 @@ SRC = Path(__file__).resolve().parents[1] / "src"
 sys.path.insert(0, str(SRC))
 
 import scoring  # noqa: E402
-from analyze import tier_of, score_fit  # noqa: E402
+from analyze import tier_of, score_fit, label_of  # noqa: E402
 from analyze import THRESHOLD as ANALYZE_THRESHOLD, TIER_A as ANALYZE_TIER_A  # noqa: E402
 
 # representative weights (mirror store.DEFAULT_WEIGHTS) so score_fit needs no DB
@@ -47,6 +47,24 @@ class TestTierBoundaries(unittest.TestCase):
     def test_gates_force_c(self):
         self.assertEqual(tier_of(99, "blocked", False), "C")   # geo gate dominates
         self.assertEqual(tier_of(99, "remote", True), "C")     # comp-floor gate dominates
+
+
+class TestLabelHonoursGeoGate(unittest.TestCase):
+    """The fit-band label must never overstate a role the geo gate hasn't cleared
+    (truthfulness, FR-014): a high-fit but geo=verify role is tier B, so its label
+    must say 'verify geo', never 'Top candidate'."""
+    def test_top_candidate_requires_remote(self):
+        self.assertEqual(label_of(93, "remote"), "🟢 Top candidate")
+        self.assertNotIn("Top candidate", label_of(93, "verify"))   # the bug: was "Top candidate"
+        self.assertIn("verify geo", label_of(93, "verify"))
+
+    def test_verify_caps_at_strong(self):
+        self.assertEqual(label_of(93, "verify"), "🟢 Strong · verify geo")
+        self.assertEqual(label_of(60, "verify"), "🟡 Good · verify geo")
+
+    def test_remote_bands_unchanged(self):
+        self.assertEqual(label_of(72, "remote"), "🟢 Strong")
+        self.assertEqual(label_of(60, "remote"), "🟡 Good")
 
 
 class TestScoreFit(unittest.TestCase):

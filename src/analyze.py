@@ -47,7 +47,9 @@ lane; 'adjacent' = related but off-center; 'out' = clearly a different kind of r
 false if it's a bar the candidate can't realistically clear (e.g. PhD/research-only). geo_verdict:
 'remote' only if the candidate's allowed location is explicitly eligible; 'verify' if unclear; 'blocked'
 if the role excludes them (wrong country/relocation/work-auth). comp_est_net_mo: your net/mo USD estimate
-for the candidate ONLY if comp isn't already known, else null. note: ONE short line in {lang}."""
+for the candidate ONLY if comp isn't already known, else null — base the estimate on the COMPANY (stage,
+size, kind) and the TARGET MARKET/geo the role hires in, not the title alone (the same title can pay 2-3x
+across companies and markets); mark it as an estimate. note: ONE short line in {lang}."""
 
 SCORING_INSTRUCTIONS = (_PROFILE.get("scoring_instructions")
                         or _DEFAULT_SCORING).replace("{lang}", OUTPUT_LANG)
@@ -66,7 +68,15 @@ FEATURE_SCHEMA = {
 }
 
 
-def label_of(fit):
+def label_of(fit, geo="remote"):
+    # geo not confirmed → never brand it "Top candidate"; the gate (tier_of) caps
+    # it at B, and the label must agree — overstating it would be the exact
+    # truthfulness lie Yoke refuses to make. Cap at "Strong", flag the gate.
+    if geo != "remote":
+        if fit >= 70: return "🟢 Strong · verify geo"
+        if fit >= 55: return "🟡 Good · verify geo"
+        if fit >= 40: return "🟡 Stretch · verify geo"
+        return "🔴 Reach · verify geo"
     if fit >= 85: return "🟢 Top candidate"
     if fit >= 70: return "🟢 Strong"
     if fit >= 55: return "🟡 Good"
@@ -180,7 +190,7 @@ def main():
         roles.append({
             "key": card["key"], "role_key": card.get("role_key"),
             "company": card.get("company"), "title": card.get("title"), "url": card.get("url"),
-            "fit": fit, "label": label_of(fit),
+            "fit": fit, "label": label_of(fit, geo),
             "geo": _GEO_DISPLAY.get(geo, geo),
             "comp": (comp or "? [research]") + (" ⛔<floor" if below else ""),
             "lane": fill.get("fit_features", {}).get("lane_match", card["lane"]["verdict"]),
