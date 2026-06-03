@@ -62,7 +62,9 @@ Pick a backend with `YOKE_PROVIDER` (or let it default to your Claude subscripti
 git clone https://github.com/Todmy/Yoke && cd Yoke && ./yoke
 ```
 
-That opens a local control panel in your browser. From there: pick your AI provider (or a local model — no key needed), paste your CV, hit **Run**, and optionally **Schedule** a twice-daily cron. No config files to edit by hand.
+That opens a local control panel in your browser. From there: pick your AI provider (or a local model — no key needed), bring your CV (paste it, or **Upload** a PDF/`.docx`/txt and let **✨ Auto-fill** draft your headline and scoring prompt for review), hit **Run**, and optionally **Schedule** a twice-daily cron. No config files to edit by hand.
+
+> Résumé upload for PDF/`.docx` needs an opt-in extra (`pip install -r requirements-optional.txt`); pasting text and the rest of the tool stay stdlib-only.
 
 Prefer the terminal? `./yoke run all` to score now, `./yoke serve` for the board, `./setup.sh` for an unattended cron install. Run `./yoke help` for everything.
 

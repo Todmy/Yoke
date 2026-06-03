@@ -35,6 +35,20 @@ export YOKE_HOME=$(mktemp -d /tmp/yoke-qa-XXXX)   # ізольований ст�
 | 2.2 | 🧪 Вставити CV у Resume text + заповнити prompt, Save | Toast; текст зберігся після reload | | |
 | 2.3 | 🧪 Виставити Comp floor = 10000, Save | Значення зберіглося | | |
 
+## 2b. Résumé import / Auto-fill (feature 002)
+| # | Дія | Очікування | OK? | Нотатки |
+|---|-----|------------|-----|---------|
+| 2b.1 | 🧪 Profile → вставити CV-текст → **✨ Auto-fill from CV** (cloud-провайдер) | Банер «non-local provider… Send & auto-fill» — БЕЗ виклику моделі поки не підтвердиш (FR-013) | | |
+| 2b.2 | 🔌 Підтвердити «Send & auto-fill» | Name/Headline/Scoring prompt замінені пропозицією з CV; редаговані; нічого не збережено до Save (FR-004) | | |
+| 2b.3 | 🔌 Auto-fill із CV, де нема headline | Поле Headline порожнє, не вигадане (FR-003/005) | | |
+| 2b.4 | 🧪 **⬆ Upload & extract** з `.txt` | Текст CV зʼявляється у Resume text; flash «Résumé extracted» | | |
+| 2b.5 | 🔌 Upload `.pdf` (після `pip install pypdf`) | Текст витягнуто у поле | | |
+| 2b.6 | ⚠️ Upload `.pdf` БЕЗ `pypdf` | Flash «pip install pypdf (or paste)», не падіння; paste працює (FR-009) | | |
+| 2b.7 | ⚠️ Upload `.doc` (legacy) | Flash «save as .docx or paste» | | |
+| 2b.8 | ⚠️ Upload файл > 5 MB | Flash «File too large (limit 5 MB)» до обробки (FR-007a) | | |
+| 2b.9 | 🧪 Auto-fill на локальній моделі (ollama/lmstudio) | БЕЗ cloud-банера, одразу пропозиція | | |
+| 2b.10 | 🔌 `./yoke resume autofill cv.txt --json` | JSON {name,headline,scoring_prompt,_resume} на stdout; stderr-note про провайдера | | |
+
 ## 3. Run (наповнення борду) 🔌
 | # | Дія | Очікування | OK? | Нотатки |
 |---|-----|------------|-----|---------|
