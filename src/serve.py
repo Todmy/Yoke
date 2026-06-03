@@ -300,6 +300,7 @@ form.cfg .save { margin-top: 16px; background: #2d4a7a; color: #dce8ff; border: 
 .src-item[open] > summary::before { transform: rotate(90deg); }
 .src-item > summary:hover { background: #161b24; }
 .ok-pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: #1f5e35; color: #d6ffe0; margin-right: 6px; }
+.ok-pill-off { background: #2a2f3a; color: #9aa4b6; }
 .src-en { vertical-align: middle; margin: 0 8px 0 0; }
 .src-body { padding: 10px 12px 12px 30px; border-top: 1px solid #232936; }
 form.trk { display: flex; gap: 6px; align-items: center; }
@@ -465,6 +466,38 @@ def board_page(flash="", kind="ok", remote_only=False, interested_only=False):
 
 
 # ── settings (A) ─────────────────────────────────────────────────────────────
+# keeps the ✓Active pill, the status line, and the key-field mask in sync with the
+# CURRENTLY SELECTED provider (not just the saved one) — mask/Active only for the
+# saved+keyed provider; switching the dropdown clears them until you Save.
+_SETTINGS_JS = """
+(function(){
+  var sel=document.getElementById('provsel'),pill=document.getElementById('provpill'),
+      st=document.getElementById('provstatus'),k=document.getElementById('apikey');
+  if(!sel||!k) return;
+  var MASK='\\u2022'.repeat(12), saved=sel.dataset.saved, hasKey=sel.dataset.haskey==='1';
+  function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+  function render(){
+    var p=sel.value, isSaved=(p===saved);
+    pill.textContent=isSaved?'\\u2713 Active':'Not saved';
+    pill.className=isSaved?'ok-pill':'ok-pill ok-pill-off';
+    var msg;
+    if(!isSaved) msg='Not saved yet \\u2014 click Save to switch to <b>'+esc(p)+'</b>.';
+    else if(p==='claude_code') msg=hasKey?'<b>Claude subscription</b> \\u2014 token on file':'<b>Claude subscription</b> \\u2014 uses your logged-in <code>claude</code> session (a token is needed only for cron)';
+    else if(p==='ollama'||p==='lmstudio') msg='<b>'+esc(p)+'</b> \\u2014 local model, no key needed';
+    else msg='<b>'+esc(p)+'</b> \\u2014 '+(hasKey?'API key on file':'no key yet \\u2014 paste one below');
+    st.innerHTML=msg;
+    var showMask=isSaved&&hasKey;
+    k.dataset.mask=showMask?MASK:'';
+    if(showMask){ if(k.value===''||k.value===MASK)k.value=MASK; }
+    else { if(k.value===MASK)k.value=''; }
+  }
+  sel.addEventListener('change',render);
+  k.addEventListener('focus',function(){var M=k.dataset.mask;if(M&&k.value===M)k.value='';});
+  k.addEventListener('blur',function(){var M=k.dataset.mask;if(M&&k.value==='')k.value=M;});
+  render();
+})();"""
+
+
 def settings_page(flash=""):
     env = read_env()
     src = load_sources()
@@ -506,9 +539,9 @@ def settings_page(flash=""):
     body = f"""<form class="cfg" method="post" action="/settings">
 <div class="card">
 <h2 style="margin-top:0">AI provider</h2>
-<p class="sub"><span class="ok-pill">✓ Active</span> {cur}</p>
+<p class="sub"><span id="provpill" class="ok-pill">✓ Active</span> <span id="provstatus">{cur}</span></p>
 <label>Provider</label>
-<select name="provider">{prov_opts}</select>
+<select id="provsel" name="provider" data-saved="{_esc(env['provider'])}" data-haskey="{1 if env['has_key'] else 0}">{prov_opts}</select>
 <label>API key / token — {keyhint}</label>
 <input type="password" id="apikey" name="key" value="{key_value}" data-mask="{KEY_MASK if env['has_key'] else ''}" placeholder="sk-… / token (or leave empty)">
 {key_status}
@@ -527,9 +560,7 @@ def settings_page(flash=""):
 </div>
 <button class="btn" type="submit">Save settings</button>
 </form>
-<script>(function(){{var k=document.getElementById('apikey');if(!k)return;var M=k.getAttribute('data-mask')||'';if(!M)return;
-k.addEventListener('focus',function(){{if(k.value===M)k.value='';}});
-k.addEventListener('blur',function(){{if(k.value==='')k.value=M;}});}})();</script>"""
+<script>{_SETTINGS_JS}</script>"""
     return _page("settings", body, active="/settings", flash=flash)
 
 
