@@ -16,11 +16,14 @@ STDLIB_OK = {
     "itertools", "json", "os", "pathlib", "re", "shutil", "subprocess", "sys",
     "time", "typing", "urllib", "abc", "collections", "math", "textwrap", "io",
     "sqlite3", "__future__", "csv", "string", "enum", "dataclasses",
+    "email", "tempfile", "mimetypes",
 }
 FIRST_PARTY = {"paths", "store", "analyze", "tune", "scoring", "llm", "gap", "cover",
-               "prepare", "collect", "board", "eval", "serve"}
-# the ONE sanctioned optional dependency — must be imported lazily inside a function
-OPTIONAL_LAZY = {"jobspy"}
+               "prepare", "collect", "board", "eval", "serve", "resume_import"}
+# sanctioned optional dependencies — must be imported lazily inside a function, never
+# at module level (venv-only, the core never requires them): jobspy (scraping),
+# pypdf/docx (résumé file extraction, feature 002).
+OPTIONAL_LAZY = {"jobspy", "pypdf", "docx"}
 
 
 def _module_level_imports(tree):

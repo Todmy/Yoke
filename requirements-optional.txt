@@ -1,0 +1,13 @@
+# Optional, opt-in dependencies — NOT required by Yoke's stdlib-only core
+# (Constitution VII). Install only the extras you want; the core pipeline and
+# the paste-based résumé auto-fill work without any of these.
+#
+#   pip install -r requirements-optional.txt
+#
+# Résumé file upload (PDF / .docx) — for `yoke resume` and Profile → Upload.
+# Permissive licenses only (no AGPL): pypdf=BSD, python-docx=MIT.
+pypdf>=4.0           # PDF text extraction (BSD-3)
+python-docx>=1.1     # .docx text extraction (MIT)
+
+# JS-heavy job scraping (LinkedIn/Indeed) — used lazily by collect.py.
+# jobspy

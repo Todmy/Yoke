@@ -8,6 +8,7 @@
 #   yoke analyze       score + tier onto the board (thin LLM)
 #   yoke gap <role>    skill-gap analysis (+ --suggest for learning/tuning)
 #   yoke cover <role>  per-vacancy cover-letter draft (truthfulness-guarded)
+#   yoke resume ...    import a CV (extract <file> | autofill <file|->) → profile draft
 #   yoke board ...     board CLI (add/apply/drop/prune/sync-folders/render/list)
 #   yoke eval ...      the eval harness (build-golden/curate/run)
 #   yoke tune [--apply]   refit fit-weights to your decisions
@@ -30,10 +31,11 @@ case "$cmd" in
   analyze)    exec python3 "$S/analyze.py" "$@" ;;
   gap)        exec python3 "$S/gap.py" "$@" ;;
   cover)      exec python3 "$S/cover.py" "$@" ;;
+  resume)     exec python3 "$S/resume_import.py" "$@" ;;
   board)      exec python3 "$S/board.py" "$@" ;;
   eval)       exec python3 "$S/eval.py" "$@" ;;
   tune)       exec python3 "$S/tune.py" "$@" ;;
   status)     exec python3 "$S/store.py" status ;;
   help|-h|--help|*)
-    sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//' ;;
+    sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//' ;;
 esac
