@@ -235,7 +235,7 @@ def _nav(active):
             '<a href="/schedule" class="schedlink">Schedule (cron)</a>')
     def lk(href, name):
         return f'<a href="{href}" class="{"on" if active == href else ""}">{name}</a>'
-    return ('<nav>' + lk("/", "Board") + lk("/interested", "★ Interested") + lk("/applied", "Applied") + lk("/settings", "Settings") + lk("/profile", "Profile")
+    return ('<nav>' + lk("/", "Board") + lk("/applied", "Applied") + lk("/settings", "Settings") + lk("/profile", "Profile")
             + '<span class="spacer"></span>'
             + '<form method="post" action="/run" style="display:inline"><button class="run">▶ Run now</button></form>'
             + sbtn + (' <span class="sub">cron: on</span>' if sched else '') + '</nav>')
@@ -254,27 +254,24 @@ def _page(title, body, active="", flash="", kind="ok"):
 # at-a-glance triage line (overview), the body holds the note + reject reason +
 # comment (details-on-demand). Because reason/comment live in the same form, the
 # ✓/✗ buttons in the summary submit them whether or not the row is expanded.
-def _item(r, starrable=True, unstar=False):
+def _item(r, starred=False, next_q=""):
     rk = _esc(r.get("role_key"))
     tier = r.get("tier", "B")
     url = r.get("url") or ""
     link = (f'<a href="{_esc(url)}" target="_blank" rel="noopener">open posting →</a>'
             if url.startswith("http") else _esc(r.get("source", "")))
     opts = "".join(f"<option>{o}</option>" for o in REASONS)
-    # ☆ bookmark — instant, no flow (a "look later" signal, NOT a tuner positive).
-    # stop the click from toggling the <details> open; the form submit reloads anyway.
-    # On the Interested tab a filled ★ un-stars (formaction overrides the form's /mark).
-    if unstar:
-        star = ('<button class="star starred" formaction="/unstar" title="un-star — back to the board"'
-                ' onclick="event.stopPropagation()">★</button>')
-    elif starrable:
-        star = ('<button class="star" name="decision" value="interested" title="star — interested, look later"'
-                ' onclick="event.stopPropagation()">☆</button>')
-    else:
-        star = ""
+    # ☆/★ bookmark toggle — instant, role STAYS on the board (a "look later" signal,
+    # NOT a tuner positive). formaction overrides the row form's /mark; the hidden
+    # `next` returns the user to the same (possibly filtered) board view.
+    icon, act, title = (("★", "/unstar", "un-star") if starred
+                        else ("☆", "/star", "star — interested, filter to it later"))
+    star = (f'<button class="star{" starred" if starred else ""}" formaction="{act}" title="{title}"'
+            f' onclick="event.stopPropagation()">{icon}</button>')
     return (
         '<form method="post" action="/mark" class="ritem">'
         f'<input type="hidden" name="role_key" value="{rk}">'
+        f'<input type="hidden" name="next" value="{_esc(next_q)}">'
         '<details><summary>'
         f'<span class="tier {_esc(tier)}">{_esc(tier)}</span>'
         f'<span class="s-fit">{_esc(r.get("fit"))} {_esc(r.get("label"))}</span>'
@@ -298,29 +295,45 @@ def _is_remote(r):
     return "remote" in (r.get("geo") or "")
 
 
-def board_page(flash="", kind="ok", remote_only=False):
+def _board_query(remote, interested):
+    qs = [k for k, v in (("remote=1", remote), ("interested=1", interested)) if v]
+    return "/?" + "&".join(qs) if qs else "/"
+
+
+def board_page(flash="", kind="ok", remote_only=False, interested_only=False):
     b = store.load()
     c = store.label_counts()
+    starred = store.starred_keys()
     roles = sorted(b["roles"], key=lambda r: (TIER_ORDER.get(r.get("tier", "B"), 1), -int(r.get("fit") or 0)))
     counts = {t: sum(1 for r in roles if r.get("tier") == t) for t in ("A", "B", "C")}
     n_remote = sum(1 for r in roles if _is_remote(r))
-    shown = [r for r in roles if _is_remote(r)] if remote_only else roles
-    # hybrid (B): broad capture stays, but a toggle collapses the board to the
-    # geo-confirmed roles so the rare true signal isn't drowned by "verify" noise.
-    toggle = (f'<a href="/" class="filt">show all {len(roles)} →</a>' if remote_only
-              else f'<a href="/?remote=1" class="filt">remote-confirmed only ({n_remote}) →</a>')
+    n_starred = sum(1 for r in roles if r.get("role_key") in starred)
+    shown = roles
+    if remote_only:
+        shown = [r for r in shown if _is_remote(r)]
+    if interested_only:
+        shown = [r for r in shown if r.get("role_key") in starred]
+    next_q = _board_query(remote_only, interested_only)  # row toggles return to this view
+    # two independent board filters (each toggle preserves the other):
+    #  · remote-confirmed (hybrid B) — drop the geo=verify noise
+    #  · ★ interested-only — the triage → shortlist → work flow, on the SAME board (no tab)
+    remote_link = (f'<a href="{_board_query(False, interested_only)}" class="filt">show all geos →</a>' if remote_only
+                   else f'<a href="{_board_query(True, interested_only)}" class="filt">remote-confirmed only ({n_remote}) →</a>')
+    star_link = (f'<a href="{_board_query(remote_only, False)}" class="filt">show all →</a>' if interested_only
+                 else f'<a href="{_board_query(remote_only, True)}" class="filt">★ interested only ({n_starred}) →</a>')
     if shown:
-        items = "".join(_item(r) for r in shown)
+        items = "".join(_item(r, starred=r.get("role_key") in starred, next_q=next_q) for r in shown)
         caption = " · ".join(f"<span class=\"tier {t}\">{t}</span> {counts[t]}" for t in ("A", "B", "C") if counts[t])
-        body = (f'<p class="sub" style="margin:8px 0 12px">{caption} · {toggle} · click a role for the why + reject reason</p>'
+        body = (f'<p class="sub" style="margin:8px 0 12px">{caption} · {remote_link} · {star_link} · click a role for the why + reject reason</p>'
                 f'<div class="board">{items}</div>')
-    elif roles:  # roles exist but the remote-only filter hid them all
-        body = (f'<div class="card">No geo-confirmed remote roles. {toggle}<br>'
-                f'<span class="sub">{len(roles)} roles need a geo check before you trust them.</span></div>')
+    elif roles:  # roles exist but a filter hid them all
+        why = "starred" if interested_only else "geo-confirmed remote"
+        body = (f'<div class="card">No {why} roles in this view. {remote_link} · {star_link}<br>'
+                f'<span class="sub">{len(roles)} roles on the board total.</span></div>')
     else:
         body = '<div class="card">Board is empty. Set a provider in <a href="/settings">Settings</a> and your CV in <a href="/profile">Profile</a>, then hit <b>▶ Run now</b>.</div>'
     tunable = store.labeled_decisions(require_raw=True)
-    n_pos = sum(1 for l in tunable if l["decision"] in ("applied", "interested"))
+    n_pos = sum(1 for l in tunable if l["decision"] == "applied")  # tuner positive = applied only (Δ1)
     n_neg = sum(1 for l in tunable if l["decision"] == "rejected")
     eligible = n_pos >= 1 and n_neg >= 1 and len(tunable) >= NEED_LABELS
     improve = ('<form method="post" action="/improve" style="display:inline"><button class="improve">⚙ Improve (refit weights)</button></form>'
@@ -501,20 +514,6 @@ def applied_page(flash=""):
     return _page("applied", body, active="/applied", flash=flash)
 
 
-def interested_page(flash=""):
-    roles = store.interested_roles()
-    if not roles:
-        body = ('<div class="card">Nothing starred yet. Hit <b>☆</b> on a role in the '
-                '<a href="/">Board</a> to save it here for later — starring is a bookmark, '
-                'not an application, and it never feeds the tuner.</div>')
-    else:
-        items = "".join(_item(r, starrable=False, unstar=True) for r in roles)
-        body = (f'<p class="sub" style="margin:8px 0 12px">{len(roles)} starred · '
-                'revisit when ready — <b>✓ Apply</b> to log it, <b>✗ Reject</b> to drop it, <b>★</b> to un-star</p>'
-                f'<div class="board">{items}</div>')
-    return _page("interested", body, active="/interested", flash=flash)
-
-
 def improve_result(res):
     if not res.get("ok"):
         return _page("improve", f'<div class="card"><p>Not enough data: {_esc(res.get("reason"))} '
@@ -553,16 +552,15 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = self.path.split("?")[0]
         if path in ("/", ""):
-            remote_only = (parse_qs(urlparse(self.path).query).get("remote") or [""])[0] == "1"
-            return self._html(board_page(remote_only=remote_only))
+            q = parse_qs(urlparse(self.path).query)
+            return self._html(board_page(remote_only=(q.get("remote") or [""])[0] == "1",
+                                         interested_only=(q.get("interested") or [""])[0] == "1"))
         if path == "/settings":
             return self._html(settings_page())
         if path == "/profile":
             return self._html(profile_page())
         if path == "/schedule":
             return self._html(schedule_page())
-        if path == "/interested":
-            return self._html(interested_page())
         if path == "/applied":
             return self._html(applied_page())
         if path == "/apply":
@@ -583,14 +581,15 @@ class Handler(BaseHTTPRequestHandler):
     def _post(self, path, d, g):
         if path == "/mark":
             rk, dec = g("role_key"), g("decision")
-            if rk and dec in ("applied", "rejected", "interested"):
+            if rk and dec in ("applied", "rejected"):  # interested is star(), not mark()
                 store.mark(rk, dec, g("reason"), g("comment"), source="ui")
                 if dec == "applied":
                     _add_applied(rk)
             return self._redirect("/")
-        if path == "/unstar":
-            store.unstar(g("role_key"))
-            return self._redirect("/interested")
+        if path in ("/star", "/unstar"):  # bookmark toggle — role stays on the board
+            (store.star if path == "/star" else store.unstar)(g("role_key"))
+            nxt = g("next", "/")
+            return self._redirect(nxt if nxt.startswith("/") and not nxt.startswith("//") else "/")
         if path == "/settings":
             write_env(g("provider", "claude_code"), g("key"))
             srcs = {s: {"enabled": (f"src_{s}" in d)} for s in SOURCE_NAMES}

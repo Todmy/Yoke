@@ -38,31 +38,36 @@ class TestSnapshot(unittest.TestCase):
 
 
 class TestInterestedBookmark(unittest.TestCase):
-    def test_interested_not_in_applications(self):
-        _seed_role("r2")
-        store.mark("r2", "interested")
-        self.assertNotIn("https://x/r2", [a.get("url") for a in store.applications()])
-
-    def test_interested_leaves_board_enters_shortlist(self):
+    def test_star_keeps_role_on_board(self):
         _seed_role("r2b")
-        store.mark("r2b", "interested")
-        # off the live board…
-        self.assertNotIn("r2b", [r.get("role_key") for r in store.load()["roles"]])
-        # …but on the starred shortlist (survives, look-later)
-        self.assertIn("r2b", [r.get("role_key") for r in store.interested_roles()])
+        store.star("r2b")
+        # the star is a filter flag — the role STAYS on the live board (no separate tab)
+        self.assertIn("r2b", [r.get("role_key") for r in store.load()["roles"]])
+        self.assertIn("r2b", store.starred_keys())
+
+    def test_star_not_in_applications(self):
+        _seed_role("r2")
+        store.star("r2")
+        self.assertNotIn("https://x/r2", [a.get("url") for a in store.applications()])
 
     def test_unstar_round_trip(self):
         _seed_role("r2c")
-        store.mark("r2c", "interested")
+        store.star("r2c")
         before = store.label_counts()["interested"]
         self.assertTrue(store.unstar("r2c"))
-        self.assertIn("r2c", [r.get("role_key") for r in store.load()["roles"]])      # back on board
-        self.assertNotIn("r2c", [r.get("role_key") for r in store.interested_roles()])  # off shortlist
-        self.assertEqual(store.label_counts()["interested"], before - 1)              # its label removed
-        self.assertFalse(store.unstar("r2c"))                                         # no-op second time
+        self.assertIn("r2c", [r.get("role_key") for r in store.load()["roles"]])   # still on board
+        self.assertNotIn("r2c", store.starred_keys())                              # flag cleared
+        self.assertEqual(store.label_counts()["interested"], before - 1)           # bookmark removed
+        self.assertFalse(store.unstar("r2c"))                                      # no-op second time
+
+    def test_star_not_a_tuner_signal(self):
+        _seed_role("r2d")
+        store.star("r2d")
+        # star() records no raw features → excluded from the tuner's labeled set
+        self.assertNotIn("r2d", [l["role_key"] for l in store.labeled_decisions()])
 
     def test_label_counts_both_classes_is_applied_vs_rejected(self):
-        _seed_role("r3"); store.mark("r3", "interested")   # bookmark only
+        _seed_role("r3"); store.star("r3")                 # bookmark only
         _seed_role("r4"); store.mark("r4", "rejected", reason="off-lane")
         lc = store.label_counts()
         # interested+rejected present, but no `applied` → both_classes must be False

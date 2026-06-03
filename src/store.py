@@ -171,33 +171,38 @@ def get_role(role_key):
     return dict(row) if row else None
 
 
-def interested_roles():
-    """Starred ('interested') roles — the look-later shortlist, newest first.
-    They live off the live board but survive re-runs (save() only clears 'live')."""
-    c = _conn()
-    rows = c.execute(
-        "SELECT * FROM roles WHERE status='interested' ORDER BY date_added DESC, role_key").fetchall()
-    c.close()
-    return [dict(r) for r in rows]
+def star(role_key):
+    """Flag a board role as 'interested' — a bookmark that STAYS on the live board
+    (the user filters to it later, not a separate list). Recorded in the decisions
+    registry so it survives re-runs; never a tuner positive. Idempotent.
+    Returns True if newly starred."""
+    r = get_role(role_key) or {}
+    return record_decision({"role_key": role_key, "company": r.get("company"),
+                            "title": r.get("title"), "decision": "interested", "source": "ui"})
 
 
 def unstar(role_key):
-    """Undo a bookmark: the role returns to the live board and the 'interested'
-    label is removed (so label_counts doesn't keep a phantom bookmark). No-op if
-    the role isn't currently starred. Returns True if something changed."""
+    """Remove the 'interested' bookmark. Returns True if something was removed."""
     c = _conn()
-    n = c.execute("UPDATE roles SET status='live' WHERE role_key=? AND status='interested'",
-                  (role_key,)).rowcount
-    c.execute("DELETE FROM decisions WHERE IFNULL(role_key,'')=? AND decision='interested'",
-              (role_key or "",))
+    n = c.execute("DELETE FROM decisions WHERE IFNULL(role_key,'')=? AND decision='interested'",
+                  (role_key or "",)).rowcount
     c.commit()
     c.close()
     return n > 0
 
 
+def starred_keys():
+    """Set of role_keys currently bookmarked 'interested' — used to flag + filter the board."""
+    c = _conn()
+    rows = c.execute("SELECT DISTINCT role_key FROM decisions WHERE decision='interested'").fetchall()
+    c.close()
+    return {r["role_key"] for r in rows}
+
+
 def mark(role_key, decision, reason="", comment="", source="ui", resume=""):
     """Record a decision on a board role + move it off the live board.
-    decision: applied | interested | rejected. Returns the role dict or None."""
+    decision: applied | rejected (interested is a stay-on-board bookmark — see star()).
+    Returns the role dict or None."""
     c = _conn()
     row = c.execute("SELECT * FROM roles WHERE role_key=?", (role_key,)).fetchone()
     if not row:
