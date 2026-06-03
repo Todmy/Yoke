@@ -69,15 +69,11 @@ FEATURE_SCHEMA = {
 
 
 def label_of(fit, geo="remote"):
-    # geo not confirmed → never brand it "Top candidate"; the gate (tier_of) caps
-    # it at B, and the label must agree — overstating it would be the exact
-    # truthfulness lie Yoke refuses to make. Cap at "Strong", flag the gate.
-    if geo != "remote":
-        if fit >= 70: return "🟢 Strong · verify geo"
-        if fit >= 55: return "🟡 Good · verify geo"
-        if fit >= 40: return "🟡 Stretch · verify geo"
-        return "🔴 Reach · verify geo"
-    if fit >= 85: return "🟢 Top candidate"
+    # "Top candidate" requires a confirmed-remote geo — otherwise the gate (tier_of)
+    # caps the role at B and the label must agree, never overstating (truthfulness,
+    # FR-014). The verify state itself is carried by the adjacent geo cell, so we
+    # only demote the top band here — no redundant "verify" suffix on the label.
+    if fit >= 85: return "🟢 Top candidate" if geo == "remote" else "🟢 Strong"
     if fit >= 70: return "🟢 Strong"
     if fit >= 55: return "🟡 Good"
     if fit >= 40: return "🟡 Stretch"

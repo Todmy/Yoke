@@ -52,15 +52,15 @@ class TestTierBoundaries(unittest.TestCase):
 class TestLabelHonoursGeoGate(unittest.TestCase):
     """The fit-band label must never overstate a role the geo gate hasn't cleared
     (truthfulness, FR-014): a high-fit but geo=verify role is tier B, so its label
-    must say 'verify geo', never 'Top candidate'."""
+    is demoted from 'Top candidate' to 'Strong'. The verify state is carried by the
+    adjacent geo cell, so the label itself stays free of a redundant suffix."""
     def test_top_candidate_requires_remote(self):
         self.assertEqual(label_of(93, "remote"), "🟢 Top candidate")
-        self.assertNotIn("Top candidate", label_of(93, "verify"))   # the bug: was "Top candidate"
-        self.assertIn("verify geo", label_of(93, "verify"))
+        self.assertEqual(label_of(93, "verify"), "🟢 Strong")   # demoted, no "Top candidate"
 
-    def test_verify_caps_at_strong(self):
-        self.assertEqual(label_of(93, "verify"), "🟢 Strong · verify geo")
-        self.assertEqual(label_of(60, "verify"), "🟡 Good · verify geo")
+    def test_lower_bands_geo_agnostic(self):
+        self.assertEqual(label_of(60, "verify"), "🟡 Good")
+        self.assertEqual(label_of(60, "remote"), "🟡 Good")
 
     def test_remote_bands_unchanged(self):
         self.assertEqual(label_of(72, "remote"), "🟢 Strong")
