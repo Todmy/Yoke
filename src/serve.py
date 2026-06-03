@@ -307,6 +307,7 @@ form.trk { display: flex; gap: 6px; align-items: center; }
 form.trk select, form.trk input { background: #11151c; color: #cfd6e4; border: 1px solid #2a2f3a; border-radius: 5px; padding: 5px 7px; font-size: 12px; }
 form.trk input { flex: 1; min-width: 160px; }
 .save2 { background: #2d4a7a; color: #dce8ff; border: 0; border-radius: 5px; padding: 5px 12px; font-weight: 700; cursor: pointer; }
+.save2.undo { background: #2a2f3a; color: #cfd6e4; font-weight: 600; } .save2.undo:hover { background: #3a2530; color: #ffd6dd; }
 /* standalone buttons (work outside form.cfg): consistent, with hover */
 .btn { display: inline-flex; align-items: center; gap: 6px; background: #2d4a7a; color: #dce8ff; border: 0; border-radius: 8px; padding: 9px 16px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; transition: background .12s ease, transform .04s ease; }
 .btn:hover { background: #37589a; } .btn:active { transform: translateY(1px); }
@@ -735,7 +736,12 @@ def _app_row(a):
             f'<input type="hidden" name="id" value="{_esc(a.get("id"))}">'
             f'<select name="status">{opts}</select>'
             f'<input name="status_note" value="{_esc(a.get("status_note") or "")}" placeholder="note / rejection reason">'
-            '<button class="save2">Save</button></form></td></tr>')
+            '<button class="save2">Save</button></form>'
+            '<form method="post" action="/unapply" class="trk" style="margin-top:6px">'
+            f'<input type="hidden" name="id" value="{_esc(a.get("id"))}">'
+            '<button class="save2 undo" title="applied by mistake? move it back to the board" '
+            'onclick="return confirm(\'Move this role back to the board and remove the application?\')">↩ Undo apply</button>'
+            '</form></td></tr>')
 
 
 def apply_page(role_key, flash=""):
@@ -782,7 +788,7 @@ def apply_page(role_key, flash=""):
     return _page("apply", body, active="/", flash=flash)
 
 
-def applied_page(flash=""):
+def applied_page(flash="", kind="ok"):
     apps = store.applications()
     if not apps:
         body = '<div class="card">Nothing applied yet. Hit <b>✓ Apply</b> on the <a href="/">Board</a> to start tracking applications here.</div>'
@@ -795,7 +801,7 @@ def applied_page(flash=""):
         rows = "".join(_app_row(a) for a in apps)
         body = (analytics + "<table><tr><th>Applied</th><th>Role</th><th>Company</th>"
                 f"<th>Status · note</th></tr>{rows}</table>")
-    return _page("applied", body, active="/applied", flash=flash)
+    return _page("applied", body, active="/applied", flash=flash, kind=kind)
 
 
 def improve_result(res):
@@ -1013,6 +1019,11 @@ class Handler(BaseHTTPRequestHandler):
             if sid and status in store.APP_STATUSES:
                 store.set_status(sid, status, g("status_note"))
             return self._html(applied_page(flash="Status updated."))
+        if path == "/unapply":
+            ok = store.unapply(g("id"))
+            return self._html(applied_page(
+                flash="Moved back to the board." if ok else "Could not undo (already gone?).",
+                kind="ok" if ok else "warn"))
         if path == "/improve":
             return self._html(improve_result(tune.tune(store.labeled_decisions(require_raw=True))))
         if path == "/improve-apply":

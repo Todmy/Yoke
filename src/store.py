@@ -243,6 +243,28 @@ def applications():
     return [dict(r) for r in rows]
 
 
+def unapply(decision_id):
+    """Undo an application (e.g. an accidental Apply): the role returns to the live
+    board and the applied label + log entry are removed. Returns True if reverted."""
+    try:
+        decision_id = int(decision_id)
+    except (TypeError, ValueError):
+        return False
+    c = _conn()
+    row = c.execute("SELECT role_key, url FROM decisions WHERE id=? AND decision='applied'",
+                    (decision_id,)).fetchone()
+    if not row:
+        c.close()
+        return False
+    if row["role_key"]:
+        c.execute("UPDATE roles SET status='live' WHERE role_key=?", (row["role_key"],))
+    c.execute("DELETE FROM applied_log WHERE key=?", (row["url"],))
+    c.execute("DELETE FROM decisions WHERE id=?", (decision_id,))
+    c.commit()
+    c.close()
+    return True
+
+
 def set_status(decision_id, status, note):
     c = _conn()
     c.execute("UPDATE decisions SET status=?, status_note=?, updated=? WHERE id=? AND decision='applied'",

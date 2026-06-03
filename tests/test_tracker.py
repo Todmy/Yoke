@@ -76,6 +76,20 @@ class TestInterestedBookmark(unittest.TestCase):
         self.assertTrue(store.label_counts()["both_classes"])  # now applied AND rejected exist
 
 
+class TestUnapply(unittest.TestCase):
+    def test_unapply_returns_role_to_board(self):
+        _seed_role("u1")
+        store.mark("u1", "applied", resume="cv")
+        aid = [a for a in store.applications() if a.get("url") == "https://x/u1"][0]["id"]
+        self.assertTrue(store.unapply(aid))
+        self.assertIn("u1", [r.get("role_key") for r in store.load()["roles"]])      # back on board
+        self.assertNotIn("https://x/u1", [a.get("url") for a in store.applications()])  # off applied
+        self.assertFalse(store.unapply(999999))                                       # bad id → False
+
+    def test_unapply_bad_id(self):
+        self.assertFalse(store.unapply("not-an-int"))
+
+
 class TestFunnel(unittest.TestCase):
     def test_stats_shape(self):
         s = store.application_stats()
