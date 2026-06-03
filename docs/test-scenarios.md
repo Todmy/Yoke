@@ -31,7 +31,7 @@
 ### B. Тріаж борду (основний цикл)
 5. Через ~хв оновити борд (auto-refresh 60s). ✅ З'являються ролі, **tier A зверху**, далі B; сортування за (tier, fit↓).
 6. Прочитати рядок: `tier-бейдж · fit · label · geo · title·company · comp · ✓Apply`.
-   ⚠️ Після фіксу A: роль з `fit≥85` але `geo≠remote` показує **"🟢 Strong · verify geo"**, а не "Top candidate". Справжній "Top candidate" — тільки remote-confirmed.
+   ⚠️ Після фіксу A: роль з `fit≥85` але `geo≠remote` показує **"🟢 Strong"** (демоут), а не "Top candidate"; verify-стан несе geo-колонка поруч. Справжній "Top candidate" — тільки remote-confirmed.
    ⚠️ Після свіжого run: оцінений comp має суфікс **"est"** (`~$6-9k est`); зіскрейплений — без нього.
 7. Клік на роль → розгортається `note` (чому такий скор) + блок reject (reason-select + comment).
 8. Перспективна роль → **✓ Apply** → сторінка `/apply`:
@@ -120,7 +120,7 @@ Improve дає Δ точності ≥ 0 → воронка рахує rates →
 | Гейт / поведінка | Очікування | Де |
 |---|---|---|
 | Run без провайдера | блок + *"Pick an AI provider in Settings"* | serve.py:129 |
-| geo не remote | label «· verify geo», tier ≤ B, не «Top candidate» | analyze.py (фікс A) |
+| geo не remote | label демоут до «Strong», tier ≤ B, не «Top candidate»; verify несе geo-колонка | analyze.py (фікс A) |
 | comp оцінено моделлю | суфікс «est» (тільки свіжий run) | analyze.py (фікс C) |
 | comp нижче планки | tier C, поза бордом, маркер ⛔<floor | analyze.py |
 | Improve | locked до ≥5 applied AND ≥5 rejected | serve.py / tune.py |
