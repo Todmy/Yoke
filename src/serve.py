@@ -241,6 +241,8 @@ form.trk input { flex: 1; min-width: 160px; }
 .btn-ghost { background: #1a1f29; color: #cfd6e4; border: 1px solid #2a2f3a; }
 .btn-ghost:hover { background: #222836; }
 .resume-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+/* [hidden] must win over explicit display rules below (.btn, .af-loading) */
+[hidden] { display: none !important; }
 /* auto-fill review modal (smooth fade+scale) */
 .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; z-index: 100; opacity: 0; transition: opacity .15s ease; }
 .modal-bg.show { opacity: 1; }
@@ -491,8 +493,8 @@ _AUTOFILL_JS = """
   file.addEventListener('change',function(){if(file.files&&file.files[0])extractThenFill(file.files[0]);});
   afbtn.addEventListener('click',function(e){e.preventDefault();
     var t=(ta.value||'').trim();
-    if(!t){errorMode('Pick a file or paste your résumé first.');return;}
-    autofill(t,false);});
+    if(t){autofill(t,false);return;}
+    file.click();});  // no résumé yet → open the file picker (onchange runs the flow)
 })();"""
 
 
