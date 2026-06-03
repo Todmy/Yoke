@@ -589,7 +589,13 @@ class Handler(BaseHTTPRequestHandler):
         if path in ("/star", "/unstar"):  # bookmark toggle — role stays on the board
             (store.star if path == "/star" else store.unstar)(g("role_key"))
             nxt = g("next", "/")
-            return self._redirect(nxt if nxt.startswith("/") and not nxt.startswith("//") else "/")
+            if not (nxt.startswith("/") and not nxt.startswith("//")):
+                nxt = "/"
+            # un-starring the last role while in the interested-only view would strand
+            # the user on an empty filter — drop the interested flag (keep remote if set).
+            if path == "/unstar" and "interested=1" in nxt and not store.starred_keys():
+                nxt = "/?remote=1" if "remote=1" in nxt else "/"
+            return self._redirect(nxt)
         if path == "/settings":
             write_env(g("provider", "claude_code"), g("key"))
             srcs = {s: {"enabled": (f"src_{s}" in d)} for s in SOURCE_NAMES}
