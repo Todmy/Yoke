@@ -190,6 +190,8 @@ tr:hover td { background: #161a21; }
 .ritem summary button { border: 0; border-radius: 5px; padding: 5px 10px; cursor: pointer; font-weight: 700; }
 .ritem summary .ok { background: #1f5e35; color: #d6ffe0; } .ritem summary .no { background: #5e2530; color: #ffd6dd; }
 .ritem summary a.applybtn { padding: 5px 12px; border-radius: 5px; font-weight: 700; font-size: 13px; text-decoration: none; white-space: nowrap; }
+.ritem summary .star { background: transparent; border: 0; color: #c9a227; font-size: 18px; line-height: 1; cursor: pointer; padding: 0 8px; }
+.ritem summary .star:hover { color: #ffd34d; }
 .detail { padding: 2px 6px 14px 30px; display: flex; flex-direction: column; gap: 8px; max-width: 920px; }
 .detail .note { color: #b9c2d0; font-size: 13px; margin: 0; }
 .detail .row { display: flex; gap: 8px; align-items: center; }
@@ -232,7 +234,7 @@ def _nav(active):
             '<a href="/schedule" class="schedlink">Schedule (cron)</a>')
     def lk(href, name):
         return f'<a href="{href}" class="{"on" if active == href else ""}">{name}</a>'
-    return ('<nav>' + lk("/", "Board") + lk("/applied", "Applied") + lk("/settings", "Settings") + lk("/profile", "Profile")
+    return ('<nav>' + lk("/", "Board") + lk("/interested", "★ Interested") + lk("/applied", "Applied") + lk("/settings", "Settings") + lk("/profile", "Profile")
             + '<span class="spacer"></span>'
             + '<form method="post" action="/run" style="display:inline"><button class="run">▶ Run now</button></form>'
             + sbtn + (' <span class="sub">cron: on</span>' if sched else '') + '</nav>')
@@ -251,13 +253,17 @@ def _page(title, body, active="", flash="", kind="ok"):
 # at-a-glance triage line (overview), the body holds the note + reject reason +
 # comment (details-on-demand). Because reason/comment live in the same form, the
 # ✓/✗ buttons in the summary submit them whether or not the row is expanded.
-def _item(r):
+def _item(r, starrable=True):
     rk = _esc(r.get("role_key"))
     tier = r.get("tier", "B")
     url = r.get("url") or ""
     link = (f'<a href="{_esc(url)}" target="_blank" rel="noopener">open posting →</a>'
             if url.startswith("http") else _esc(r.get("source", "")))
     opts = "".join(f"<option>{o}</option>" for o in REASONS)
+    # ☆ bookmark — instant, no flow (a "look later" signal, NOT a tuner positive).
+    # stop the click from toggling the <details> open; the form submit reloads anyway.
+    star = ('<button class="star" name="decision" value="interested" title="star — interested, look later"'
+            ' onclick="event.stopPropagation()">☆</button>' if starrable else "")
     return (
         '<form method="post" action="/mark" class="ritem">'
         f'<input type="hidden" name="role_key" value="{rk}">'
@@ -267,6 +273,7 @@ def _item(r):
         f'<span class="s-geo">{_esc(r.get("geo"))}</span>'
         f'<span class="s-title">{_esc(r.get("title"))} · <b>{_esc(r.get("company"))}</b></span>'
         f'<span class="s-comp">{_esc(r.get("comp"))}</span>'
+        f'{star}'
         f'<a class="ok applybtn" href="/apply?role={quote(r.get("role_key") or "")}" title="review &amp; log this application">✓ Apply</a>'
         '</summary>'
         '<div class="detail">'
@@ -486,6 +493,20 @@ def applied_page(flash=""):
     return _page("applied", body, active="/applied", flash=flash)
 
 
+def interested_page(flash=""):
+    roles = store.interested_roles()
+    if not roles:
+        body = ('<div class="card">Nothing starred yet. Hit <b>☆</b> on a role in the '
+                '<a href="/">Board</a> to save it here for later — starring is a bookmark, '
+                'not an application, and it never feeds the tuner.</div>')
+    else:
+        items = "".join(_item(r, starrable=False) for r in roles)
+        body = (f'<p class="sub" style="margin:8px 0 12px">{len(roles)} starred · '
+                'revisit when ready — <b>✓ Apply</b> to log it, <b>✗ Reject</b> to drop it</p>'
+                f'<div class="board">{items}</div>')
+    return _page("interested", body, active="/interested", flash=flash)
+
+
 def improve_result(res):
     if not res.get("ok"):
         return _page("improve", f'<div class="card"><p>Not enough data: {_esc(res.get("reason"))} '
@@ -532,6 +553,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._html(profile_page())
         if path == "/schedule":
             return self._html(schedule_page())
+        if path == "/interested":
+            return self._html(interested_page())
         if path == "/applied":
             return self._html(applied_page())
         if path == "/apply":

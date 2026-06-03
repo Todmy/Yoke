@@ -171,6 +171,16 @@ def get_role(role_key):
     return dict(row) if row else None
 
 
+def interested_roles():
+    """Starred ('interested') roles — the look-later shortlist, newest first.
+    They live off the live board but survive re-runs (save() only clears 'live')."""
+    c = _conn()
+    rows = c.execute(
+        "SELECT * FROM roles WHERE status='interested' ORDER BY date_added DESC, role_key").fetchall()
+    c.close()
+    return [dict(r) for r in rows]
+
+
 def mark(role_key, decision, reason="", comment="", source="ui", resume=""):
     """Record a decision on a board role + move it off the live board.
     decision: applied | interested | rejected. Returns the role dict or None."""
