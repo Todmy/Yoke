@@ -192,6 +192,7 @@ tr:hover td { background: #161a21; }
 .ritem summary a.applybtn { padding: 5px 12px; border-radius: 5px; font-weight: 700; font-size: 13px; text-decoration: none; white-space: nowrap; }
 .ritem summary .star { background: transparent; border: 0; color: #c9a227; font-size: 18px; line-height: 1; cursor: pointer; padding: 0 8px; }
 .ritem summary .star:hover { color: #ffd34d; }
+.ritem summary .star.starred { color: #ffd34d; }
 .detail { padding: 2px 6px 14px 30px; display: flex; flex-direction: column; gap: 8px; max-width: 920px; }
 .detail .note { color: #b9c2d0; font-size: 13px; margin: 0; }
 .detail .row { display: flex; gap: 8px; align-items: center; }
@@ -253,7 +254,7 @@ def _page(title, body, active="", flash="", kind="ok"):
 # at-a-glance triage line (overview), the body holds the note + reject reason +
 # comment (details-on-demand). Because reason/comment live in the same form, the
 # ✓/✗ buttons in the summary submit them whether or not the row is expanded.
-def _item(r, starrable=True):
+def _item(r, starrable=True, unstar=False):
     rk = _esc(r.get("role_key"))
     tier = r.get("tier", "B")
     url = r.get("url") or ""
@@ -262,8 +263,15 @@ def _item(r, starrable=True):
     opts = "".join(f"<option>{o}</option>" for o in REASONS)
     # ☆ bookmark — instant, no flow (a "look later" signal, NOT a tuner positive).
     # stop the click from toggling the <details> open; the form submit reloads anyway.
-    star = ('<button class="star" name="decision" value="interested" title="star — interested, look later"'
-            ' onclick="event.stopPropagation()">☆</button>' if starrable else "")
+    # On the Interested tab a filled ★ un-stars (formaction overrides the form's /mark).
+    if unstar:
+        star = ('<button class="star starred" formaction="/unstar" title="un-star — back to the board"'
+                ' onclick="event.stopPropagation()">★</button>')
+    elif starrable:
+        star = ('<button class="star" name="decision" value="interested" title="star — interested, look later"'
+                ' onclick="event.stopPropagation()">☆</button>')
+    else:
+        star = ""
     return (
         '<form method="post" action="/mark" class="ritem">'
         f'<input type="hidden" name="role_key" value="{rk}">'
@@ -500,9 +508,9 @@ def interested_page(flash=""):
                 '<a href="/">Board</a> to save it here for later — starring is a bookmark, '
                 'not an application, and it never feeds the tuner.</div>')
     else:
-        items = "".join(_item(r, starrable=False) for r in roles)
+        items = "".join(_item(r, starrable=False, unstar=True) for r in roles)
         body = (f'<p class="sub" style="margin:8px 0 12px">{len(roles)} starred · '
-                'revisit when ready — <b>✓ Apply</b> to log it, <b>✗ Reject</b> to drop it</p>'
+                'revisit when ready — <b>✓ Apply</b> to log it, <b>✗ Reject</b> to drop it, <b>★</b> to un-star</p>'
                 f'<div class="board">{items}</div>')
     return _page("interested", body, active="/interested", flash=flash)
 
@@ -580,6 +588,9 @@ class Handler(BaseHTTPRequestHandler):
                 if dec == "applied":
                     _add_applied(rk)
             return self._redirect("/")
+        if path == "/unstar":
+            store.unstar(g("role_key"))
+            return self._redirect("/interested")
         if path == "/settings":
             write_env(g("provider", "claude_code"), g("key"))
             srcs = {s: {"enabled": (f"src_{s}" in d)} for s in SOURCE_NAMES}

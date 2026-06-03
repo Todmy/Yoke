@@ -51,6 +51,16 @@ class TestInterestedBookmark(unittest.TestCase):
         # …but on the starred shortlist (survives, look-later)
         self.assertIn("r2b", [r.get("role_key") for r in store.interested_roles()])
 
+    def test_unstar_round_trip(self):
+        _seed_role("r2c")
+        store.mark("r2c", "interested")
+        before = store.label_counts()["interested"]
+        self.assertTrue(store.unstar("r2c"))
+        self.assertIn("r2c", [r.get("role_key") for r in store.load()["roles"]])      # back on board
+        self.assertNotIn("r2c", [r.get("role_key") for r in store.interested_roles()])  # off shortlist
+        self.assertEqual(store.label_counts()["interested"], before - 1)              # its label removed
+        self.assertFalse(store.unstar("r2c"))                                         # no-op second time
+
     def test_label_counts_both_classes_is_applied_vs_rejected(self):
         _seed_role("r3"); store.mark("r3", "interested")   # bookmark only
         _seed_role("r4"); store.mark("r4", "rejected", reason="off-lane")

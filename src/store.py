@@ -181,6 +181,20 @@ def interested_roles():
     return [dict(r) for r in rows]
 
 
+def unstar(role_key):
+    """Undo a bookmark: the role returns to the live board and the 'interested'
+    label is removed (so label_counts doesn't keep a phantom bookmark). No-op if
+    the role isn't currently starred. Returns True if something changed."""
+    c = _conn()
+    n = c.execute("UPDATE roles SET status='live' WHERE role_key=? AND status='interested'",
+                  (role_key,)).rowcount
+    c.execute("DELETE FROM decisions WHERE IFNULL(role_key,'')=? AND decision='interested'",
+              (role_key or "",))
+    c.commit()
+    c.close()
+    return n > 0
+
+
 def mark(role_key, decision, reason="", comment="", source="ui", resume=""):
     """Record a decision on a board role + move it off the live board.
     decision: applied | interested | rejected. Returns the role dict or None."""
