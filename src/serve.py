@@ -454,6 +454,7 @@ _AUTOFILL_JS = """
       primary=$('afPrimary'),cancel=$('afCancel'),ta=$('pf_resume'),file=$('cvfile'),
       afbtn=$('afbtn'),upbtn=$('upbtn');
   if(upbtn) upbtn.style.display='none';  // JS: file pick auto-runs; no separate upload click
+  if(file) file.style.display='none';    // hide the native picker; ✨ Auto-fill opens it via file.click()
   function open(){modal.hidden=false;void modal.offsetWidth;modal.classList.add('show');}  // reflow, not rAF (works in bg tabs)
   function close(){modal.classList.remove('show');setTimeout(function(){modal.hidden=true;},160);}
   function loadingMode(m){note.textContent='';loadMsg.textContent=m;loading.hidden=false;review.hidden=true;primary.hidden=true;open();}
