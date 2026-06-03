@@ -408,8 +408,16 @@ def profile_page(flash="", draft=None, pending_cloud=False, kind="ok"):
     val = lambda k, dflt="": _esc(draft.get(k, p.get(k, dflt)))  # draft overrides saved
     lang_opts = "".join(
         f'<option value="{l}"{" selected" if l == p.get("output_language", "en") else ""}>{l}</option>' for l in LANGS)
-    # ⬆ upload (multipart, its own form) → extracts text into the résumé field
-    upload = """<div class="card">
+    # ⬆ upload (multipart, its own form) → extracts text into the résumé field.
+    # When résumé text is present (e.g. right after an upload), show the Auto-fill
+    # CTA HERE at the top — carrying that text — so the next action is visible
+    # without scrolling to the button beneath the textarea.
+    has_resume = bool(draft.get("resume_text") or p.get("resume_text"))
+    autofill_cta = (f"""<form method="post" action="/profile/autofill" style="margin-top:10px">
+<input type="hidden" name="resume_text" value="{val('resume_text')}">
+<button class="save" type="submit">✨ Auto-fill profile from this résumé</button>
+</form>""" if has_resume else "")
+    upload = f"""<div class="card">
 <h2 style="margin-top:0">Start from your résumé</h2>
 <p class="sub">Upload or paste your CV, then <b>✨ Auto-fill</b> proposes your headline + scoring prompt for review. Nothing is saved until you click Save.</p>
 <form method="post" action="/profile/upload" enctype="multipart/form-data">
@@ -417,7 +425,7 @@ def profile_page(flash="", draft=None, pending_cloud=False, kind="ok"):
 <button class="save2" type="submit">⬆ Upload &amp; extract</button>
 </form>
 <p class="sub">PDF / .docx need <code>pip install pypdf python-docx</code> (opt-in). .txt works out of the box. A non-local AI provider means your CV text is sent to that provider.</p>
-</div>"""
+{autofill_cta}</div>"""
     # cloud-confirm banner (FR-013): re-submits the résumé text with confirm_cloud=1
     confirm = ""
     if pending_cloud:
