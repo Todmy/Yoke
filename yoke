@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
 # Yoke — one entrypoint for the whole harness.
-#   yoke              open the control panel in your browser (default)
-#   yoke serve        open the live board UI (localhost)
-#   yoke run [all]    run the pipeline now (collect + analyze)
-#   yoke board ...    board CLI (apply/drop/sync-folders/list)
-#   yoke eval ...     run the eval harness
-#   yoke tune [--apply]  refit fit-weights to your decisions
-#   yoke setup        install (auth + optional venv + cron)
-#   yoke uninstall    remove the cron entry
+#   yoke               open the control panel in your browser (default)
+#   yoke serve         open the live board UI (localhost)
+#   yoke run [all]     run the pipeline now (collect + analyze)
+#   yoke collect       gather + dedup roles into the index
+#   yoke prepare       deterministic feature cards (no model)
+#   yoke analyze       score + tier onto the board (thin LLM)
+#   yoke gap <role>    skill-gap analysis (+ --suggest for learning/tuning)
+#   yoke cover <role>  per-vacancy cover-letter draft (truthfulness-guarded)
+#   yoke board ...     board CLI (add/apply/drop/prune/sync-folders/render/list)
+#   yoke eval ...      the eval harness (build-golden/curate/run)
+#   yoke tune [--apply]   refit fit-weights to your decisions
+#   yoke status        store summary (DB, live/applied counts, labels)
+#   yoke setup         install (auth + optional venv + cron)
+#   yoke uninstall     remove the cron entry
 set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 S="$REPO/src"
@@ -19,9 +25,15 @@ case "$cmd" in
   uninstall)  exec bash    "$REPO/setup.sh" --uninstall ;;
   run)        exec bash    "$S/run.sh" "${@:-all}" ;;
   serve)      exec python3 "$S/serve.py" "$@" ;;
+  collect)    exec python3 "$S/collect.py" "$@" ;;
+  prepare)    exec python3 "$S/prepare.py" "$@" ;;
+  analyze)    exec python3 "$S/analyze.py" "$@" ;;
+  gap)        exec python3 "$S/gap.py" "$@" ;;
+  cover)      exec python3 "$S/cover.py" "$@" ;;
   board)      exec python3 "$S/board.py" "$@" ;;
   eval)       exec python3 "$S/eval.py" "$@" ;;
   tune)       exec python3 "$S/tune.py" "$@" ;;
+  status)     exec python3 "$S/store.py" status ;;
   help|-h|--help|*)
-    sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//' ;;
+    sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//' ;;
 esac

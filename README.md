@@ -16,15 +16,17 @@ Most "AI job search" tools are a prompt and a hope. You paste your CV, a model s
 ## How it works
 
 ```
-collect   pull roles (company ATS, RSS boards, HN, search dorks, optional LinkedIn)
+collect   pull roles (company ATS, RSS boards, HN, dorks, Djinni/DOU/Hiring Cafe, optional LinkedIn)
    ↓
 prepare   deterministic feature cards — geo / lane / comp decided by rules, no LLM
    ↓
 analyze   the model fills a few features; a weighted formula computes fit + tier
    ↓
-board     a live, self-pruning shortlist + a local web UI to triage
+board     a live, self-pruning shortlist (URL-liveness prune) + a local web UI to triage
    ↓
-eval      score the model vs a reference (safety gates dominate)
+gap/cover per-role: skill-gap analysis + a cover-letter draft — accept/reject, never fabricated
+   ↓
+eval      score the model vs a human-reviewed golden set (safety gates dominate)
 tune      refit the scoring weights to your real applied/rejected decisions
 ```
 
