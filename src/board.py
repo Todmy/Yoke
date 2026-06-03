@@ -33,10 +33,37 @@ import re
 import sys
 import datetime
 from pathlib import Path
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import store  # canonical SQLite store (board roles + decision labels)
 from paths import STATE, SHORTLIST, APPS_DIR as JOBSEARCH_DIR  # noqa: E402
+
+_UA = "Yoke/1.0 (+https://github.com/Todmy/Yoke)"
+
+
+def _http_status(url):
+    """HEAD a URL → status code, or None on any transient failure. Network-only;
+    injected as `status_fn` in tests so the pruning logic is verifiable offline."""
+    try:
+        with urlopen(Request(url, method="HEAD", headers={"User-Agent": _UA}), timeout=15) as r:
+            return getattr(r, "status", 200)
+    except HTTPError as e:
+        return e.code
+    except (URLError, TimeoutError, ValueError, OSError):
+        return None
+
+
+def url_liveness(url, status_fn=_http_status):
+    """'dead' ONLY on a definitive gone (HTTP 404/410); 'alive' on 2xx/3xx;
+    'unknown' on transient errors / 5xx / no URL — which MUST NOT prune (FR-005)."""
+    if not url:
+        return "unknown"
+    code = status_fn(url)
+    if code is None or code >= 500:
+        return "unknown"
+    return "dead" if code in (404, 410) else "alive"
 
 # decision labels (apply from a folder / reject from drop --reason) live in the
 # SQLite store (store.record_decision) — the flywheel's ground-truth signal.
@@ -357,6 +384,22 @@ def cmd_drop(args):
     print(f"{len(b['roles'])} live remain" + (f"  (+{len(dropped)} rejected labels)" if reason else ""))
 
 
+def cmd_prune(status_fn=_http_status):
+    """FR-005: drop live roles whose posting URL is definitively gone (404/410).
+    Transient failures / 5xx keep the role. Applied/rejected dedup is separate."""
+    b = load_board()
+    kept, dead = [], []
+    for r in b["roles"]:
+        verdict = url_liveness(r.get("url") or r.get("key"), status_fn)
+        (dead if verdict == "dead" else kept).append(r)
+    b["roles"] = kept
+    save_board(b)
+    render(b)
+    print(f"prune: dropped {len(dead)} dead-URL roles (404/410), {len(kept)} live remain")
+    for r in dead:
+        print(f"  ✗ gone: {r.get('company')} | {r.get('title')}")
+
+
 def cmd_list():
     b = load_board()
     for r in sorted(b["roles"], key=lambda r: (_TIER_ORDER.get(r.get("tier", "B"), 1), -int(r.get("fit", 0)))):
@@ -377,6 +420,8 @@ def main():
         cmd_render()
     elif cmd == "sync":
         cmd_sync()
+    elif cmd == "prune":
+        cmd_prune()
     elif cmd == "list":
         cmd_list()
     else:
