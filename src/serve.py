@@ -51,6 +51,23 @@ PROVIDERS = ["claude_code", "openrouter", "openai", "anthropic", "groq",
              "together", "deepinfra", "ollama", "lmstudio"]
 SOURCE_NAMES = ["ats", "remoteok", "remotive", "weworkremotely", "hackernews", "dorks", "jobspy"]
 LANGS = ["en", "uk", "de", "fr", "es", "pl"]
+MAX_UPLOAD = 5 * 1024 * 1024  # 5 MB résumé upload cap (FR-007a)
+
+
+def _parse_multipart(ctype, body):
+    """Parse multipart/form-data with the stdlib email parser (cgi was removed in
+    3.13). Returns {field: (filename|None, bytes)}."""
+    from email import policy
+    from email.parser import BytesParser
+    header = f"Content-Type: {ctype}\r\nMIME-Version: 1.0\r\n\r\n".encode()
+    # policy.default → EmailMessage (has iter_parts/get_param); the legacy Message does not.
+    msg = BytesParser(policy=policy.default).parsebytes(header + body)
+    out = {}
+    for part in (msg.iter_parts() if msg.is_multipart() else []):
+        name = part.get_param("name", header="content-disposition")
+        if name:
+            out[name] = (part.get_filename(), part.get_payload(decode=True) or b"")
+    return out
 
 
 def _esc(x):
@@ -385,28 +402,53 @@ def settings_page(flash=""):
 
 
 # ── profile (B) ──────────────────────────────────────────────────────────────
-def profile_page(flash=""):
+def profile_page(flash="", draft=None, pending_cloud=False, kind="ok"):
     p = load_profile()
+    draft = draft or {}
+    val = lambda k, dflt="": _esc(draft.get(k, p.get(k, dflt)))  # draft overrides saved
     lang_opts = "".join(
         f'<option value="{l}"{" selected" if l == p.get("output_language", "en") else ""}>{l}</option>' for l in LANGS)
-    body = f"""<form class="cfg" method="post" action="/profile">
+    # ⬆ upload (multipart, its own form) → extracts text into the résumé field
+    upload = """<div class="card">
+<h2 style="margin-top:0">Start from your résumé</h2>
+<p class="sub">Upload or paste your CV, then <b>✨ Auto-fill</b> proposes your headline + scoring prompt for review. Nothing is saved until you click Save.</p>
+<form method="post" action="/profile/upload" enctype="multipart/form-data">
+<input type="file" name="file" accept=".txt,.md,.pdf,.docx">
+<button class="save2" type="submit">⬆ Upload &amp; extract</button>
+</form>
+<p class="sub">PDF / .docx need <code>pip install pypdf python-docx</code> (opt-in). .txt works out of the box. A non-local AI provider means your CV text is sent to that provider.</p>
+</div>"""
+    # cloud-confirm banner (FR-013): re-submits the résumé text with confirm_cloud=1
+    confirm = ""
+    if pending_cloud:
+        prov = read_env()["provider"]
+        confirm = f"""<div class="card" style="border:1px solid #5a4a1c">
+<p style="margin:0 0 8px">⚠ Auto-fill will send your résumé text to <b>{_esc(prov)}</b> (a non-local provider).</p>
+<form method="post" action="/profile/autofill">
+<input type="hidden" name="resume_text" value="{val('resume_text')}">
+<input type="hidden" name="confirm_cloud" value="1">
+<button class="save" type="submit">Send &amp; auto-fill</button> <a href="/profile" style="margin-left:12px">cancel</a>
+</form></div>"""
+    body = f"""{upload}{confirm}
+<form class="cfg" method="post" action="/profile">
 <div class="card">
 <h2 style="margin-top:0">Who you are</h2>
-<label>Name</label><input type="text" name="name" value="{_esc(p.get('name',''))}">
-<label>Headline</label><input type="text" name="headline" value="{_esc(p.get('headline',''))}">
+<label>Name</label><input type="text" name="name" value="{val('name')}">
+<label>Headline</label><input type="text" name="headline" value="{val('headline')}">
 <label>Output language</label><select name="output_language">{lang_opts}</select>
 <label>Comp floor (net USD/mo, 0 = none)</label><input type="number" name="comp_floor" value="{_esc(p.get('comp_floor_net_mo_usd',0))}">
 </div>
 <div class="card">
 <h2 style="margin-top:0">Scoring profile (prompt)</h2>
 <p class="sub">Fed to the model verbatim. Describe your lane, differentiators, seniority, languages, geo, comp. Be specific.</p>
-<textarea name="prompt">{_esc(p.get('prompt',''))}</textarea>
+<textarea name="prompt">{val('prompt')}</textarea>
 <label>Resume text (paste — optional; appended to the prompt so scoring sees your CV)</label>
-<textarea name="resume_text" placeholder="paste your CV text here…">{_esc(p.get('resume_text',''))}</textarea>
+<textarea name="resume_text" placeholder="paste your CV text here…">{val('resume_text')}</textarea>
+<button class="save2" formaction="/profile/autofill" type="submit" title="propose headline + scoring prompt from the résumé text">✨ Auto-fill from CV</button>
 </div>
 <button class="save" type="submit">Save profile</button>
 </form>"""
-    return _page("profile", body, active="/profile", flash=flash)
+    return _page("profile", body, active="/profile", flash=flash, kind=kind)
 
 
 def schedule_page(flash=""):
@@ -571,12 +613,42 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         path = self.path.split("?")[0]
         n = int(self.headers.get("Content-Length") or 0)
-        d = parse_qs(self.rfile.read(n).decode("utf-8")) if n else {}
-        g = lambda k, default="": (d.get(k) or [default])[0]
+        ctype = self.headers.get("Content-Type", "")
         try:
+            if ctype.startswith("multipart/form-data"):
+                if n > MAX_UPLOAD:
+                    return self._html(profile_page(
+                        flash=f"File too large (limit {MAX_UPLOAD // (1024 * 1024)} MB).", kind="warn"))
+                return self._post_multipart(path, ctype, self.rfile.read(n))
+            d = parse_qs(self.rfile.read(n).decode("utf-8")) if n else {}
+            g = lambda k, default="": (d.get(k) or [default])[0]
             return self._post(path, d, g)
         except Exception as e:  # any handler failure -> a red toast, not a 500
             return self._html(board_page(flash=f"⚠ {type(e).__name__}: {e}", kind="error"))
+
+    def _post_multipart(self, path, ctype, raw):
+        if path != "/profile/upload":
+            return self.send_error(404)
+        import os as _os
+        import tempfile
+        import resume_import
+        parts = _parse_multipart(ctype, raw)
+        fname, data = parts.get("file", (None, None))
+        if not data:
+            return self._html(profile_page(flash="No file received — pick a file or paste the text.", kind="warn"))
+        with tempfile.NamedTemporaryFile(suffix=Path(fname or "cv.txt").suffix, delete=False) as tf:
+            tf.write(data)
+            tmp = tf.name
+        try:
+            text = resume_import.extract_text(tmp)
+        except resume_import.ExtractionUnavailable as e:
+            return self._html(profile_page(flash=f"⚠ {e.hint}", kind="warn"))
+        except resume_import.NoTextFound:
+            return self._html(profile_page(flash="Couldn't read text from that file — paste it instead.", kind="warn"))
+        finally:
+            _os.unlink(tmp)
+        return self._html(profile_page(
+            draft={"resume_text": text}, flash="Résumé extracted — review, then ✨ Auto-fill or Save."))
 
     def _post(self, path, d, g):
         if path == "/mark":
@@ -596,6 +668,27 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/unstar" and "interested=1" in nxt and not store.starred_keys():
                 nxt = "/?remote=1" if "remote=1" in nxt else "/"
             return self._redirect(nxt)
+        if path == "/profile/autofill":
+            text = g("resume_text")
+            ok, msg = run_ready()
+            if not ok:
+                return self._html(profile_page(flash=msg, kind="warn", draft={"resume_text": text}))
+            if not text.strip():
+                return self._html(profile_page(flash="Paste or upload a résumé first.", kind="warn"))
+            local = read_env()["provider"] in ("ollama", "lmstudio")
+            if not local and g("confirm_cloud") != "1":   # FR-013 cloud warning gate
+                return self._html(profile_page(pending_cloud=True, draft={"resume_text": text}))
+            import resume_import
+            try:
+                out = resume_import.autofill(text)
+            except Exception as e:  # malformed output / provider failure (FR-012)
+                return self._html(profile_page(
+                    flash=f"Couldn't auto-fill ({type(e).__name__}) — edit manually.", kind="warn",
+                    draft={"resume_text": text}))
+            return self._html(profile_page(  # replace target fields with the proposal (FR-004)
+                draft={"name": out["name"], "headline": out["headline"],
+                       "prompt": out["scoring_prompt"], "resume_text": text},
+                flash="Auto-filled — review and edit, then Save."))
         if path == "/settings":
             write_env(g("provider", "claude_code"), g("key"))
             srcs = {s: {"enabled": (f"src_{s}" in d)} for s in SOURCE_NAMES}
