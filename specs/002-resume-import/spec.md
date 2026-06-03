@@ -11,6 +11,13 @@ Today a new Yoke user must hand-type their Profile: name, headline, output langu
 
 This feature lets a user bring their existing résumé — by pasting its text or uploading a file — and have Yoke **propose** the Profile fields for them in one step. The user always reviews and edits the proposal before it is saved; nothing is auto-committed and nothing is invented beyond what the résumé actually contains.
 
+## Clarifications
+
+### Session 2026-06-03
+
+- Q: Auto-fill sends résumé text to the chosen model; if the provider is cloud, the CV leaves the machine, against the local-first promise. How to handle? → A: Warn before auto-fill when the provider is non-local ("your CV will be sent to <provider>"); user confirms, but it is not blocked.
+- Q: When the user triggers Auto-fill and the form's target fields already hold (unsaved) content, what happens to them? → A: Replace all target fields (name/headline/scoring-prompt) with the proposal; fields stay editable and nothing is saved until the user clicks Save.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Auto-fill my profile from my résumé text (Priority: P1)
@@ -49,12 +56,13 @@ Instead of copy-pasting, the user uploads their résumé file (PDF, Word, or pla
 ### Edge Cases
 
 - **No AI provider configured** → Auto-fill is blocked with the same guidance as Run ("set a provider in Settings").
+- **Cloud provider selected** → before auto-fill, user is warned the résumé will be sent off-machine and must confirm (local-first promise stays honest); local models skip the warning.
 - **Extraction component missing** for an uploaded format → clear "install to enable / or paste instead" message; paste path unaffected.
 - **Scanned/encrypted PDF** with no text layer → "couldn't read text from this file" + paste fallback (OCR is out of scope).
 - **Empty or junk résumé text** → Auto-fill returns empty/partial fields, never fabricated content.
 - **Model returns malformed output** → the proposal is discarded with a "couldn't auto-fill, edit manually" message; existing field values are not destroyed.
 - **Oversized file** → rejected with a size message before processing.
-- **Existing profile already filled** → Auto-fill pre-fills into the form for review and does not overwrite saved values until the user clicks Save.
+- **Existing profile already filled** → Auto-fill replaces the target fields in the form with the proposal for review; saved values are not overwritten until the user clicks Save.
 
 ## Requirements *(mandatory)*
 
@@ -63,7 +71,7 @@ Instead of copy-pasting, the user uploads their résumé file (PDF, Word, or pla
 - **FR-001**: Users MUST be able to trigger an auto-fill of their Profile from résumé text they provide.
 - **FR-002**: Auto-fill MUST propose, at minimum, a name, a one-line headline, and a draft scoring prompt derived from the résumé.
 - **FR-003**: Every proposed value MUST be traceable to content in the résumé; the system MUST NOT invent experience, skills, employers, or titles not present in the source (truthfulness, consistent with the project's assisted-not-fabricated stance).
-- **FR-004**: Proposed values MUST be presented in editable fields and MUST NOT be persisted until the user explicitly saves.
+- **FR-004**: Proposed values MUST be presented in editable fields and MUST NOT be persisted until the user explicitly saves. Triggering Auto-fill MUST replace the target fields (name, headline, scoring prompt) with the proposal even if they already hold unsaved content; saved Profile values are untouched until Save.
 - **FR-005**: When a piece of information is absent from the résumé, the corresponding field MUST be left empty rather than filled with a guess.
 - **FR-006**: Users MUST be able to provide the résumé by pasting text (no upload required for the core flow).
 - **FR-007**: Users MUST be able to provide the résumé by uploading a file in common formats (plain text, PDF, Word).
@@ -72,6 +80,7 @@ Instead of copy-pasting, the user uploads their résumé file (PDF, Word, or pla
 - **FR-010**: Any third-party component introduced for file reading MUST carry a permissive (non-copyleft) license so the project's own license is unaffected.
 - **FR-011**: Auto-fill MUST reuse the user's already-configured AI provider; when none is configured it MUST surface the same guidance as the Run action.
 - **FR-012**: Failures (no provider, unreadable file, malformed model output) MUST be surfaced to the user with a clear next step and MUST NOT destroy existing Profile values.
+- **FR-013**: When the configured provider is not a local model, Auto-fill MUST warn the user that their résumé text will be sent to that provider and require an explicit confirmation before proceeding; it MUST NOT block the action. Local providers (e.g., on-device models) proceed without the warning.
 
 ### Key Entities *(include if feature involves data)*
 
