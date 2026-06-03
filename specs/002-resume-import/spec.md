@@ -61,7 +61,7 @@ Instead of copy-pasting, the user uploads their résumé file (PDF, Word, or pla
 - **Scanned/encrypted PDF** with no text layer → "couldn't read text from this file" + paste fallback (OCR is out of scope).
 - **Empty or junk résumé text** → Auto-fill returns empty/partial fields, never fabricated content.
 - **Model returns malformed output** → the proposal is discarded with a "couldn't auto-fill, edit manually" message; existing field values are not destroyed.
-- **Oversized file** → rejected with a size message before processing.
+- **Oversized file** (> 5 MB) → rejected with a size message before processing.
 - **Existing profile already filled** → Auto-fill replaces the target fields in the form with the proposal for review; saved values are not overwritten until the user clicks Save.
 
 ## Requirements *(mandatory)*
@@ -74,7 +74,8 @@ Instead of copy-pasting, the user uploads their résumé file (PDF, Word, or pla
 - **FR-004**: Proposed values MUST be presented in editable fields and MUST NOT be persisted until the user explicitly saves. Triggering Auto-fill MUST replace the target fields (name, headline, scoring prompt) with the proposal even if they already hold unsaved content; saved Profile values are untouched until Save.
 - **FR-005**: When a piece of information is absent from the résumé, the corresponding field MUST be left empty rather than filled with a guess.
 - **FR-006**: Users MUST be able to provide the résumé by pasting text (no upload required for the core flow).
-- **FR-007**: Users MUST be able to provide the résumé by uploading a file in common formats (plain text, PDF, Word).
+- **FR-007**: Users MUST be able to provide the résumé by uploading a file in common formats: plain text/markdown, PDF, and Word `.docx`. Legacy binary `.doc` is out of scope.
+- **FR-007a**: Uploads MUST be bounded by a size limit of 5 MB; a larger file is rejected with a clear message before processing.
 - **FR-008**: Uploaded files MUST be converted to text and shown in the résumé field for review before auto-fill runs.
 - **FR-009**: The paste-and-auto-fill path (FR-001, FR-006) MUST function using only the project's zero-dependency core; any component required to read non-text file formats MUST be optional and opt-in, and its absence MUST degrade gracefully to the paste path (never a crash).
 - **FR-010**: Any third-party component introduced for file reading MUST carry a permissive (non-copyleft) license so the project's own license is unaffected.
@@ -103,7 +104,7 @@ Instead of copy-pasting, the user uploads their résumé file (PDF, Word, or pla
 - **Scope of auto-filled fields**: name, headline, and scoring prompt. Comp floor and output language are user choices, not inferred from the CV, and are left for the user to set.
 - **Provider reuse**: auto-fill uses the existing LLM backend and provider selection; this feature adds no new provider configuration.
 - **Truthfulness over completeness**: when in doubt the system leaves a field blank rather than guessing — consistent with how Yoke treats the board (assisted, never fabricated).
-- **File formats v1**: plain text/markdown (handled by the core), plus PDF and Word via an optional, permissively-licensed, opt-in text-extraction component installed alongside the existing optional scraping dependency. Scanned-image OCR is out of scope.
+- **File formats v1**: plain text/markdown (handled by the core), plus PDF and Word `.docx` via an optional, permissively-licensed, opt-in text-extraction component installed alongside the existing optional scraping dependency. Legacy `.doc` and scanned-image OCR are out of scope.
 - **Structured format**: the intermediate structured representation follows a common résumé schema (e.g., the JSON Resume shape) so it can be reused later (variant library, export) without redesign — but persisting/exporting it is out of scope for this feature.
 - **Single user, local**: runs locally like the rest of Yoke; the uploaded file is processed on the user's machine and not sent anywhere except the user's chosen model for the auto-fill step.
 - **Existing résumé field**: the Profile already has a résumé-text field and a scoring-prompt field; this feature populates them rather than introducing a parallel store.

@@ -33,8 +33,8 @@
 **Independent test**: upload a text PDF, a .docx, a .txt → readable text appears in the field.
 
 - [ ] T011 [P] [US2] In `src/resume_import.py` implement the `.pdf` reader: lazy `import pypdf` inside the function; extract text per page; on `ImportError` raise `ExtractionUnavailable("pdf", "pip install pypdf")`; on empty text raise `NoTextFound`.
-- [ ] T012 [P] [US2] In `src/resume_import.py` implement the `.docx` reader: lazy `import docx`; join paragraph text; `ImportError` → `ExtractionUnavailable("docx", "pip install python-docx")`.
-- [ ] T013 [US2] In `src/serve.py` add `_parse_multipart(headers, body)` using stdlib `email.parser.BytesParser` (no `cgi`); enforce a size cap before reading the part.
+- [ ] T012 [P] [US2] In `src/resume_import.py` implement the `.docx` reader: lazy `import docx`; join paragraph text; `ImportError` → `ExtractionUnavailable("docx", "pip install python-docx")`. Legacy `.doc` is out of scope — reject with a "convert to .docx or paste" message.
+- [ ] T013 [US2] In `src/serve.py` add `_parse_multipart(headers, body)` using stdlib `email.parser.BytesParser` (no `cgi`); enforce a **5 MB** size cap (FR-007a) before reading the part, rejecting larger uploads with a clear message.
 - [ ] T014 [US2] In `src/serve.py` add POST `/profile/upload` (multipart): parse file → `resume_import.extract_text` (write to a temp path or pass bytes) → render extracted text back into the résumé textarea (unsaved); `ExtractionUnavailable`/`NoTextFound` → flash install-hint / paste-fallback, form intact (FR-009).
 - [ ] T015 [US2] In `src/serve.py` `profile_page`: add **⬆ Upload résumé** file input (`.txt,.md,.pdf,.docx`) posting to `/profile/upload`, with the opt-in install note.
 - [ ] T016 [P] [US2] In `tests/test_resume_import.py`: `extract_text` on a `.txt` fixture → exact text; the `.pdf`/`.docx` branches with the lib import forced to fail → `ExtractionUnavailable` carrying the pip hint (lib-absent fallback, FR-009/SC-005).
@@ -69,3 +69,4 @@
 - No persistence change: Profile already stores `resume_text` and `prompt`; auto-fill writes to the form, Save persists (existing POST `/profile`).
 - Truthfulness (FR-003) lives in `_SYSTEM` + the empty-on-absent mapping, verified by T010.
 - Cloud-warning (FR-013) is UI-layer (T008), not in the pure `autofill` fn.
+- Truthfulness of the *generated* scoring_prompt (free text) is not unit-tested — it can't be checked deterministically; it relies on `_SYSTEM` (T003). T010 verifies no-fabrication on the structured fields (empty-on-absent). Accepted limitation (analyze C3).
