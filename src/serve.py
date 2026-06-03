@@ -451,8 +451,8 @@ _AUTOFILL_JS = """
   var $=function(i){return document.getElementById(i);};
   var modal=$('afModal'); if(!modal) return;
   var note=$('afNote'),loading=$('afLoading'),loadMsg=$('afLoadingMsg'),review=$('afReview'),
-      primary=$('afPrimary'),cancel=$('afCancel'),ta=$('pf_resume'),file=$('cvfile'),
-      afbtn=$('afbtn'),upbtn=$('upbtn');
+      primary=$('afPrimary'),cancel=$('afCancel'),ta=$('pf_resume'),
+      file=$('cvfile'),afbtn=$('afbtn'),upbtn=$('upbtn');
   if(upbtn) upbtn.style.display='none';  // JS: file pick auto-runs; no separate upload click
   if(file) file.style.display='none';    // hide the native picker; ✨ Auto-fill opens it via file.click()
   function open(){modal.hidden=false;void modal.offsetWidth;modal.classList.add('show');}  // reflow, not rAF (works in bg tabs)
@@ -492,10 +492,9 @@ _AUTOFILL_JS = """
       }).catch(function(e){errorMode('Network error: '+e);});
   }
   file.addEventListener('change',function(){if(file.files&&file.files[0])extractThenFill(file.files[0]);});
-  afbtn.addEventListener('click',function(e){e.preventDefault();
-    var t=(ta.value||'').trim();
-    if(t){autofill(t,false);return;}
-    file.click();});  // no résumé yet → open the file picker (onchange runs the flow)
+  // one path: clicking Auto-fill always opens the picker → extract → auto-fill.
+  // (clear value so re-picking the same/new file always fires change)
+  afbtn.addEventListener('click',function(e){e.preventDefault();file.value='';file.click();});
 })();"""
 
 
