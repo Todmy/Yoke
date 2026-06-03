@@ -76,6 +76,22 @@ SOURCE_DESC = {
 }
 LANGS = ["en", "uk", "de", "fr", "es", "pl"]
 MAX_UPLOAD = 5 * 1024 * 1024  # 5 MB résumé upload cap (FR-007a)
+KEY_MASK = "•" * 12  # shown in the key field when a secret is on file; treated as "keep" on save
+
+
+def _stored_key():
+    """The raw saved secret value (token/key), or '' — used to preserve it when the
+    user saves Settings without re-entering the key."""
+    if not ENV_FILE.exists():
+        return ""
+    for line in ENV_FILE.read_text().splitlines():
+        line = line.replace("export ", "").strip()
+        for pfx in ("YOKE_API_KEY=", "CLAUDE_CODE_OAUTH_TOKEN=", "OPENROUTER_API_KEY="):
+            if line.startswith(pfx):
+                v = line.split("=", 1)[1].strip()
+                if v:
+                    return v
+    return ""
 
 
 _ATS_URL = re.compile(
@@ -467,15 +483,12 @@ def settings_page(flash=""):
     else:
         cur = (f"<b>{_esc(env['provider'])}</b> — "
                + ("API key on file" if env["has_key"] else "no key yet — paste one below"))
-    keyhint = "leave blank to keep the saved one" if env["has_key"] else "paste your key (or leave blank for local / Claude session)"
-    # masked indicator so the user can SEE a key/token is already saved (asterisks, never the value).
-    # claude_code/local providers don't store a key — the "Configured:" line above says so; no contradictory note.
-    if env["has_key"]:
-        key_status = '<p class="sub">🔑 A key/token is saved: <code>••••••••••••</code> — leave the field blank to keep it, or paste a new one to replace.</p>'
-    elif env["provider"] in ("claude_code", "ollama", "lmstudio"):
-        key_status = ""
-    else:
-        key_status = '<p class="sub">No key saved yet — paste one above.</p>'
+    keyhint = "saved — leave as-is to keep, or type a new one to replace" if env["has_key"] else "paste your key (or leave blank for local / Claude session)"
+    # the field itself shows masking dots when a secret is on file; focus clears them
+    # for typing (JS), and a left-as-is mask is treated as "keep" on save.
+    key_value = KEY_MASK if env["has_key"] else ""
+    key_status = ("" if env["has_key"] or env["provider"] in ("claude_code", "ollama", "lmstudio")
+                  else '<p class="sub">No key saved yet — paste one above.</p>')
     cc_note = ("""<p class="sub"><b>Claude subscription:</b> interactive runs use your logged-in <code>claude</code> CLI — no key needed. """
                """For scheduled (cron) runs, generate a long-lived token: run <code>claude setup-token</code> in your terminal and paste it above.</p>""")
     # each source is a collapsible item: summary (name + on/off + desc) → body (enable + future config)
@@ -497,7 +510,7 @@ def settings_page(flash=""):
 <label>Provider</label>
 <select name="provider">{prov_opts}</select>
 <label>API key / token — {keyhint}</label>
-<input type="password" name="key" placeholder="sk-… / token (or leave empty)">
+<input type="password" id="apikey" name="key" value="{key_value}" data-mask="{KEY_MASK if env['has_key'] else ''}" placeholder="sk-… / token (or leave empty)">
 {key_status}
 {cc_note}
 </div>
@@ -513,7 +526,10 @@ def settings_page(flash=""):
 <textarea name="companies" placeholder="https://jobs.lever.co/mistral&#10;https://job-boards.greenhouse.io/anthropic">{_esc(comp_text)}</textarea>
 </div>
 <button class="btn" type="submit">Save settings</button>
-</form>"""
+</form>
+<script>(function(){{var k=document.getElementById('apikey');if(!k)return;var M=k.getAttribute('data-mask')||'';if(!M)return;
+k.addEventListener('focus',function(){{if(k.value===M)k.value='';}});
+k.addEventListener('blur',function(){{if(k.value==='')k.value=M;}});}})();</script>"""
     return _page("settings", body, active="/settings", flash=flash)
 
 
@@ -912,7 +928,13 @@ class Handler(BaseHTTPRequestHandler):
                        "prompt": out["scoring_prompt"], "resume_text": text},
                 flash="Auto-filled — review and edit, then Save."))
         if path == "/settings":
-            write_env(g("provider", "claude_code"), g("key"))
+            provider = g("provider", "claude_code")
+            newkey = g("key", "").strip()
+            # blank or the unchanged mask → keep the existing secret (don't wipe it);
+            # only carry it over when the provider is unchanged.
+            if not newkey or set(newkey) <= {"•"}:
+                newkey = _stored_key() if provider == read_env()["provider"] else ""
+            write_env(provider, newkey)
             srcs = {s: {"enabled": (f"src_{s}" in d)} for s in SOURCE_NAMES}
             companies = [c for c in (_company_from_line(ln) for ln in g("companies").splitlines()) if c]
             cur = load_sources()
