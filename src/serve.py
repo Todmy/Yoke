@@ -151,6 +151,7 @@ a:hover { color: #a9cdff; }
 header { padding: 16px 24px; border-bottom: 1px solid #262a33; position: sticky; top: 0; background: #0f1115; z-index: 5; }
 h1 { font-size: 18px; margin: 0 0 4px; }
 .sub { color: #8b93a3; font-size: 13px; }
+.filt { color: #6ea8fe; text-decoration: none; font-weight: 600; } .filt:hover { text-decoration: underline; }
 .counts { margin-top: 8px; font-size: 13px; color: #aab3c5; } .counts b { color: #e6e6e6; }
 nav { display: flex; gap: 14px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
 nav a { color: #9aa4b6; text-decoration: none; font-size: 13px; font-weight: 600; }
@@ -278,16 +279,29 @@ def _item(r):
         '</div></details></form>')
 
 
-def board_page(flash="", kind="ok"):
+def _is_remote(r):
+    return "remote" in (r.get("geo") or "")
+
+
+def board_page(flash="", kind="ok", remote_only=False):
     b = store.load()
     c = store.label_counts()
     roles = sorted(b["roles"], key=lambda r: (TIER_ORDER.get(r.get("tier", "B"), 1), -int(r.get("fit") or 0)))
     counts = {t: sum(1 for r in roles if r.get("tier") == t) for t in ("A", "B", "C")}
-    if roles:
-        items = "".join(_item(r) for r in roles)
+    n_remote = sum(1 for r in roles if _is_remote(r))
+    shown = [r for r in roles if _is_remote(r)] if remote_only else roles
+    # hybrid (B): broad capture stays, but a toggle collapses the board to the
+    # geo-confirmed roles so the rare true signal isn't drowned by "verify" noise.
+    toggle = (f'<a href="/" class="filt">show all {len(roles)} →</a>' if remote_only
+              else f'<a href="/?remote=1" class="filt">remote-confirmed only ({n_remote}) →</a>')
+    if shown:
+        items = "".join(_item(r) for r in shown)
         caption = " · ".join(f"<span class=\"tier {t}\">{t}</span> {counts[t]}" for t in ("A", "B", "C") if counts[t])
-        body = (f'<p class="sub" style="margin:8px 0 12px">{caption} · click a role for the why + reject reason</p>'
+        body = (f'<p class="sub" style="margin:8px 0 12px">{caption} · {toggle} · click a role for the why + reject reason</p>'
                 f'<div class="board">{items}</div>')
+    elif roles:  # roles exist but the remote-only filter hid them all
+        body = (f'<div class="card">No geo-confirmed remote roles. {toggle}<br>'
+                f'<span class="sub">{len(roles)} roles need a geo check before you trust them.</span></div>')
     else:
         body = '<div class="card">Board is empty. Set a provider in <a href="/settings">Settings</a> and your CV in <a href="/profile">Profile</a>, then hit <b>▶ Run now</b>.</div>'
     tunable = store.labeled_decisions(require_raw=True)
@@ -510,7 +524,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = self.path.split("?")[0]
         if path in ("/", ""):
-            return self._html(board_page())
+            remote_only = (parse_qs(urlparse(self.path).query).get("remote") or [""])[0] == "1"
+            return self._html(board_page(remote_only=remote_only))
         if path == "/settings":
             return self._html(settings_page())
         if path == "/profile":
