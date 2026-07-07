@@ -1,5 +1,5 @@
 # Constitution: Yoke
-Version: 1.0.0 | Ratified: 2026-07-07
+Version: 1.1.0 | Ratified: 2026-07-07 | Last amended: 2026-07-07
 
 ## Principles
 
@@ -13,5 +13,8 @@ Version: 1.0.0 | Ratified: 2026-07-07
 8. **Moat barrier & small commits** — MUST: `.private/`, the profile, and labels are never committed; commits are small and discrete (one logical change each); push only with explicit permission. A public OSS repo sits next to private strategy.
 9. **Competitor ban-list** — MUST NOT: WebSearch-only collection, keyword tier-classifier, LaTeX CV pipeline, headless-loop LinkedIn apply, SQLite/TUI heaviness. Consensus failure modes from the 6-repo analysis.
 
+10. **Live-run verification** — MUST: the verify stage of any pipeline-touching feature includes at least one real-network dry-run of the collectors (free sources, zero LLM) and an independent zero-context review of the full diff. Fixture tests proved the parsers; all three of v0's integration defects were caught only by a live run and fresh eyes.
+
 ## Amendment log
 - 1.0.0 (2026-07-07) — initial ratification (grilled setup, feature: yoke-v0)
+- 1.1.0 (2026-07-07) — added Live-run verification (from feature: yoke-v0)
