@@ -1,0 +1,20 @@
+{
+  "jobs": [
+    {
+      "id": 100,
+      "title": "Senior Backend Engineer",
+      "absolute_url": "https://boards.greenhouse.io/acme/jobs/100",
+      "location": {"name": "Remote - Europe"},
+      "updated_at": "2026-07-01T10:00:00Z",
+      "content": "&lt;p&gt;Build backend systems.&lt;/p&gt;"
+    },
+    {
+      "id": 101,
+      "title": "Data Engineer",
+      "absolute_url": "https://boards.greenhouse.io/acme/jobs/101",
+      "location": {"name": "Warsaw, Poland"},
+      "updated_at": "2026-06-20T09:00:00Z",
+      "content": ""
+    }
+  ]
+}
