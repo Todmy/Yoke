@@ -1,0 +1,24 @@
+{
+  "query": {
+    "original": "site:job-boards.greenhouse.io (\"ai engineer\" OR \"backend\") remote"
+  },
+  "web": {
+    "results": [
+      {
+        "title": "AI Engineer",
+        "url": "https://job-boards.greenhouse.io/acmeai/jobs/4012345",
+        "description": "Build agentic LLM systems with the founding team. Remote Europe, B2B contract."
+      },
+      {
+        "title": "AI Engineer @ Nofluff Corp",
+        "url": "https://nofluffjobs.com/pl/job/ai-engineer-nofluff-corp-remote-xyz",
+        "description": "LLM work, remote poland, 25 000 - 30 000 PLN"
+      },
+      {
+        "title": "Ten tips for hiring AI engineers",
+        "url": "https://example.com/blog/hiring-ai-engineers",
+        "description": "A blog post, not a job posting."
+      }
+    ]
+  }
+}
