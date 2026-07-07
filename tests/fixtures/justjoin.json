@@ -1,0 +1,70 @@
+{
+  "data": [
+    {
+      "title": "Senior Python Engineer",
+      "companyName": "Acme Sp. z o.o.",
+      "workplaceType": "remote",
+      "city": "Warszawa",
+      "slug": "acme-senior-python-engineer",
+      "publishedAt": "2026-07-01T10:00:00.000Z",
+      "employmentTypes": [
+        {
+          "type": "b2b",
+          "unit": "month",
+          "from": 25000,
+          "to": 32000,
+          "currency": "pln",
+          "fromUsd": 6200,
+          "toUsd": 7900
+        },
+        {
+          "type": "permanent",
+          "unit": "month",
+          "from": 20000,
+          "to": 26000,
+          "currency": "pln",
+          "fromUsd": 5000,
+          "toUsd": 6400
+        }
+      ]
+    },
+    {
+      "title": "On-site Java Developer",
+      "companyName": "OnSite Corp",
+      "workplaceType": "office",
+      "city": "Kraków",
+      "slug": "onsite-java-developer",
+      "publishedAt": "2026-07-02T08:00:00.000Z",
+      "employmentTypes": [
+        {
+          "type": "permanent",
+          "unit": "month",
+          "from": 18000,
+          "to": 22000,
+          "currency": "pln",
+          "fromUsd": 4400,
+          "toUsd": 5400
+        }
+      ]
+    },
+    {
+      "title": "LLM Platform Contractor",
+      "companyName": "HourlyWorks",
+      "workplaceType": "hybrid",
+      "city": "Wrocław",
+      "slug": "hourlyworks-llm-platform-contractor",
+      "publishedAt": "2026-07-03T09:00:00.000Z",
+      "employmentTypes": [
+        {
+          "type": "b2b",
+          "unit": "hour",
+          "from": 200,
+          "to": 250,
+          "currency": "pln",
+          "fromUsd": 50,
+          "toUsd": 62
+        }
+      ]
+    }
+  ]
+}
