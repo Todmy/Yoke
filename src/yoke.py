@@ -69,6 +69,24 @@ def select_sources(sources_meta, preselected, input_fn=input):
             print(f"  {m['name']} is unavailable ({m['reason']}) — cannot enable")
 
 
+def _default_selection(sources_meta, state, profile):
+    """Consent-backed default: saved selection → profile sources.enabled
+    (explicit config counts as consent, filtered to available) → available
+    FREE sources only. A cost!="free" source never enters by mere availability.
+    """
+    saved = state.get("last_selection")
+    if saved:
+        return saved
+    available = {m["name"] for m in sources_meta if m["available"]}
+    enabled = [
+        s for s in profile.get("sources", {}).get("enabled", []) if s in available
+    ]
+    if enabled:
+        return enabled
+    return [m["name"] for m in sources_meta
+            if m["available"] and m["cost"] == "free"]
+
+
 def _load_index():
     path = home() / "_index.json"
     try:
@@ -107,15 +125,13 @@ def _run(args, input_fn):
         sources_meta.append(
             {"name": mod.NAME, "cost": mod.COST, "available": bool(ok), "reason": reason}
         )
-    available = [m["name"] for m in sources_meta if m["available"]]
-
     if args.sources:
         selected = [s.strip() for s in args.sources.split(",") if s.strip()]
     elif args.yes:
-        selected = state.get("last_selection") or available
+        selected = _default_selection(sources_meta, state, profile)
     else:
         selected = select_sources(
-            sources_meta, state.get("last_selection") or available, input_fn
+            sources_meta, _default_selection(sources_meta, state, profile), input_fn
         )
 
     print("Collecting:")

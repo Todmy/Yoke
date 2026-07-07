@@ -144,6 +144,44 @@ class TestRun(unittest.TestCase):
         self.assertEqual(state["last_selection"], ["fake1"])
         self.assertIn("SHORTLIST", buf.getvalue())
 
+    def test_first_run_yes_never_selects_keyed_source(self):
+        """I3: --yes with no saved selection and no profile.sources.enabled
+        must fall back to FREE sources only — an available cost="key" source
+        needs explicit consent (saved selection, profile, --sources, or menu)."""
+        free_mod, free_calls = _fake_source("freefake", self._jobs("freefake"))
+        key_mod, key_calls = _fake_source("keyfake", self._jobs("keyfake"))
+        key_mod.COST = "key"  # available (key present) but never consented to
+        with mock.patch.object(collect, "load_sources",
+                               return_value=[free_mod, key_mod]), \
+                mock.patch.object(yoke.llm, "get_backend",
+                                  side_effect=AssertionError("real backend constructed")), \
+                redirect_stdout(io.StringIO()):
+            rc = yoke.main(["run", "--mock", "--yes"], input_fn=_no_input)
+        self.assertEqual(rc, 0)
+        self.assertEqual(free_calls, ["freefake"])
+        self.assertEqual(key_calls, [])  # keyed source fetch never called
+
+    def test_first_run_yes_profile_enabled_counts_as_consent(self):
+        """Explicit profile.sources.enabled is consent: a keyed source listed
+        there is selected on a first --yes run; unlisted sources are not."""
+        profile = dict(PROFILE)
+        profile["sources"] = {"enabled": ["keyfake"]}
+        (paths.home() / "profile.json").write_text(
+            json.dumps(profile), encoding="utf-8"
+        )
+        free_mod, free_calls = _fake_source("freefake", self._jobs("freefake"))
+        key_mod, key_calls = _fake_source("keyfake", self._jobs("keyfake"))
+        key_mod.COST = "key"
+        with mock.patch.object(collect, "load_sources",
+                               return_value=[free_mod, key_mod]), \
+                mock.patch.object(yoke.llm, "get_backend",
+                                  side_effect=AssertionError("real backend constructed")), \
+                redirect_stdout(io.StringIO()):
+            rc = yoke.main(["run", "--mock", "--yes"], input_fn=_no_input)
+        self.assertEqual(rc, 0)
+        self.assertEqual(key_calls, ["keyfake"])
+        self.assertEqual(free_calls, [])  # profile list is authoritative
+
     def test_aged_out_scored_role_not_wiped(self):
         """C1 regression: a role scored A on an earlier run, now outside the
         14-day window, must keep its tier/fit when a later run brings new roles.
