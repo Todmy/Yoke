@@ -48,6 +48,13 @@ class TestNormalize(unittest.TestCase):
         self.assertEqual(out["usd_min_mo"], 6300)
         self.assertEqual(out["usd_max_mo"], 8400)
 
+    def test_raw_b2b_suffix_not_max(self):
+        # digits embedded in words ("b2b") must not be read as the max
+        out = comp.normalize({"raw": "12 000 USD/month B2B"})
+        self.assertEqual(out["usd_min_mo"], 12000)
+        self.assertEqual(out["usd_max_mo"], 12000)
+        self.assertEqual(out["floor_verdict"], "above")
+
     def test_floor_verdicts(self):
         # above: both ends >= floor
         above = comp.normalize(

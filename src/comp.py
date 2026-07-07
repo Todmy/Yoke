@@ -42,7 +42,11 @@ def _to_month(value, unit):
 def _parse_raw(raw):
     """Best-effort: pull a min-max, currency, unit, type from a free string."""
     s = (raw or "").lower()
-    nums = [float(n.replace(" ", "")) for n in re.findall(r"\d[\d ]*\d|\d", s)]
+    # digits embedded in words ("b2b", "k8s") are not amounts
+    nums = [
+        float(n.replace(" ", ""))
+        for n in re.findall(r"(?<![a-z\d])(?:\d[\d ]*\d|\d)(?![a-z\d])", s)
+    ]
     lo = nums[0] if nums else None
     hi = nums[1] if len(nums) > 1 else lo
     cur = next((c for c in FX_TO_USD if c in s or (c == "pln" and "zł" in s)), "usd")
