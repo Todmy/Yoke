@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">
+  <channel>
+    <title>We Work Remotely: Remote Programming Jobs</title>
+    <link>https://weworkremotely.com/categories/remote-programming-jobs</link>
+    <description>Latest remote programming jobs</description>
+    <item>
+      <title><![CDATA[Acme Robotics: Senior Backend Engineer]]></title>
+      <region><![CDATA[Anywhere in the World]]></region>
+      <category><![CDATA[remote programming jobs]]></category>
+      <link>https://weworkremotely.com/remote-jobs/acme-robotics-senior-backend-engineer</link>
+      <description><![CDATA[<p>Build APIs in Python for our logistics platform.</p>]]></description>
+      <pubDate>Sat, 05 Jul 2026 10:00:00 +0000</pubDate>
+    </item>
+    <item>
+      <title>Globex: Machine Learning Engineer</title>
+      <region>Europe Only</region>
+      <link>https://weworkremotely.com/remote-jobs/globex-machine-learning-engineer</link>
+      <description>LLM fine-tuning and evaluation pipelines.</description>
+      <pubDate>Fri, 04 Jul 2026 09:30:00 +0000</pubDate>
+    </item>
+    <item>
+      <title><![CDATA[Standalone Role Without Company Prefix]]></title>
+      <link>https://weworkremotely.com/remote-jobs/standalone-role</link>
+      <pubDate>Thu, 03 Jul 2026 08:00:00 +0000</pubDate>
+    </item>
+  </channel>
+</rss>

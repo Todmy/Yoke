@@ -1,0 +1,27 @@
+[
+  {
+    "url": "https://www.workingnomads.com/jobs/senior-backend-engineer-acme-robotics",
+    "title": "Senior Backend Engineer",
+    "company_name": "Acme Robotics",
+    "category_name": "Development",
+    "tags": "python,django,aws",
+    "location": "Europe",
+    "pub_date": "2026-07-05T10:00:00",
+    "description": "<p>Build <b>APIs</b> in Python for our logistics platform.</p>"
+  },
+  {
+    "url": "https://www.workingnomads.com/jobs/machine-learning-engineer-globex",
+    "title": "Machine Learning Engineer",
+    "company_name": "Globex",
+    "category_name": "Development",
+    "tags": "python,llm",
+    "location": "Remote",
+    "pub_date": "2026-07-04T09:30:00",
+    "description": "LLM fine-tuning and evaluation pipelines."
+  },
+  {
+    "url": "https://www.workingnomads.com/jobs/untitled-posting",
+    "company_name": "NoTitle Inc",
+    "location": "Worldwide"
+  }
+]
