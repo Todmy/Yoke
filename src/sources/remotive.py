@@ -8,7 +8,7 @@ import json
 import urllib.parse
 import urllib.request
 
-from src.collect import norm
+from src.collect import JD_MAX_CHARS, norm, strip_html
 
 NAME = "remotive"
 TAGS = {"domain": "it", "country": "intl"}
@@ -52,6 +52,7 @@ def _parse(payload, profile):
                 j.get("title"), j.get("company_name"),
                 j.get("candidate_required_location", "Remote"),
                 j.get("url"), NAME, j.get("publication_date", ""),
+                jd=strip_html(j.get("description"))[:JD_MAX_CHARS],
             )
         )
     return out

@@ -5,6 +5,7 @@ exposing NAME / TAGS / COST / available() / fetch(profile). run_collect is
 error-isolated per source: one failing plugin never kills the scan.
 """
 
+import html
 import importlib
 import json
 import pkgutil
@@ -16,6 +17,22 @@ from src.paths import ensure_home
 
 PRUNE_DAYS = 45  # drop index entries unseen this long (role closed)
 REQUIRED_ATTRS = ("NAME", "TAGS", "COST", "available", "fetch")
+JD_MAX_CHARS = 8000  # plugins cap jd at this — keeps _index.json bounded
+
+_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def strip_html(text):
+    """Payload text -> plain text: unescape entities, strip tags, collapse ws.
+
+    Unescape runs BEFORE the tag-strip because greenhouse ships HTML-escaped
+    HTML ("&lt;p&gt;..."); for already-plain text both steps are no-ops.
+    """
+    if not text:
+        return ""
+    plain = html.unescape(str(text))
+    plain = _TAG_RE.sub(" ", plain)
+    return re.sub(r"\s+", " ", plain).strip()
 
 # EU / non-EU location markers for the remote-geo gate (ported from prototype).
 EU_TERMS = [
@@ -42,10 +59,12 @@ NON_EU = [
 ]
 
 
-def norm(title, company, location, url, source, posted_at="", comp=None):
+def norm(title, company, location, url, source, posted_at="", comp=None, jd=""):
     """Common record shape every source fetcher must emit.
 
     comp passes through untouched: structured dict, raw string, or None.
+    jd is plain JD text; plugins strip_html + cap at JD_MAX_CHARS before
+    passing it in ("" when the payload carries no full text).
     """
     return {
         "title": (title or "").strip(),
@@ -55,6 +74,7 @@ def norm(title, company, location, url, source, posted_at="", comp=None):
         "source": source,
         "posted_at": posted_at,
         "comp": comp,
+        "jd": jd or "",
     }
 
 
@@ -157,7 +177,7 @@ def update_index(jobs, index):
                 "location": j["location"], "url": j["url"],
                 "source": j["source"], "posted_at": j.get("posted_at", ""),
                 "comp": j.get("comp"), "score": j.get("_score", 0),
-                "role_key": role_key(j),
+                "jd": j.get("jd", ""), "role_key": role_key(j),
                 "first_seen": now_iso, "last_seen": now_iso,
             }
         else:
@@ -166,6 +186,7 @@ def update_index(jobs, index):
             entry["location"] = j["location"] or entry.get("location", "")
             if j.get("comp") is not None:
                 entry["comp"] = j["comp"]
+            entry["jd"] = j.get("jd") or entry.get("jd", "")
 
     cutoff = _now_utc() - timedelta(days=PRUNE_DAYS)
     for k in list(index):

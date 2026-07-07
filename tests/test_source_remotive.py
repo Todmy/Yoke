@@ -38,10 +38,15 @@ class TestRemotiveSource(unittest.TestCase):
                 "source": "remotive",
                 "posted_at": "2026-07-04T09:30:00",
                 "comp": None,
+                "jd": "Own the ML platform end to end.",
             },
         )
         # second job omits candidate_required_location — defaults to Remote
         self.assertEqual(jobs[1]["location"], "Remote")
+        # HTML description arrives tag-stripped, non-empty
+        for j in jobs:
+            self.assertTrue(j["jd"])
+            self.assertNotIn("<", j["jd"])
 
     def test_parse_bad_payload(self):
         self.assertEqual(remotive._parse(None, {}), [])

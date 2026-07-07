@@ -39,8 +39,13 @@ class TestRemoteokSource(unittest.TestCase):
                 "source": "remoteok",
                 "posted_at": "2026-07-05T10:00:00+00:00",
                 "comp": None,
+                "jd": "Build LLM-powered products for a distributed team.",
             },
         )
+        # jd captured as non-empty plain text for every fixture job
+        for j in jobs:
+            self.assertTrue(j["jd"])
+            self.assertNotIn("<", j["jd"])
 
     def test_parse_non_list_payload(self):
         self.assertEqual(remoteok._parse(None, {}), [])

@@ -52,8 +52,16 @@ class TestHNSource(unittest.TestCase):
                 "source": "hn",
                 "posted_at": "2026-06-02T15:01:00.000Z",
                 "comp": None,
+                "jd": (
+                    "Acme Corp | Senior Backend Engineer | Remote (EU) | "
+                    "$8k-10k/mo Python, LLM pipelines. Apply: jobs@acme.example"
+                ),
             },
         )
+        # the comment text IS the jd — full plain text, no tags
+        for j in jobs:
+            self.assertTrue(j["jd"])
+            self.assertNotIn("<", j["jd"])
 
     def test_comments_parse_empty_payload(self):
         self.assertEqual(hn._parse_comments({}, {}), [])

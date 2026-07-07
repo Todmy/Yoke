@@ -49,6 +49,8 @@ class TestBraveSource(unittest.TestCase):
                 "source": "dork:job-boards.greenhouse.io",
                 "posted_at": "",
                 "comp": None,
+                # search snippets aren't the JD — full JD needs per-offer fetch (M1)
+                "jd": "",
             },
         )
 

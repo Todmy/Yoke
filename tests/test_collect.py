@@ -47,12 +47,46 @@ class TestCollect(unittest.TestCase):
                 "source": "fake",
                 "posted_at": "",
                 "comp": None,
+                "jd": "",
             },
         )
         # comp passes through untouched: dict or str
         comp = {"min": 50, "max": 60, "currency": "usd", "unit": "hour"}
         self.assertEqual(collect.norm("t", "c", "l", "u", "s", comp=comp)["comp"], comp)
         self.assertEqual(collect.norm("t", "c", "l", "u", "s", comp="$5k/mo")["comp"], "$5k/mo")
+        # jd is optional plain text; defaults "" and passes through
+        self.assertEqual(collect.norm("t", "c", "l", "u", "s", jd="Build things.")["jd"], "Build things.")
+        self.assertEqual(collect.norm("t", "c", "l", "u", "s", jd=None)["jd"], "")
+
+    def test_strip_html_and_jd_cap(self):
+        # tags stripped, entities unescaped, whitespace collapsed
+        self.assertEqual(
+            collect.strip_html("<p>Build   <b>APIs</b> &amp; pipelines.</p>"),
+            "Build APIs & pipelines.",
+        )
+        # greenhouse ships HTML-escaped HTML — unescape happens BEFORE tag-strip
+        self.assertEqual(
+            collect.strip_html("&lt;p&gt;Build backend systems.&lt;/p&gt;"),
+            "Build backend systems.",
+        )
+        self.assertEqual(collect.strip_html(None), "")
+        self.assertEqual(collect.strip_html(""), "")
+        # convention: plugins cap jd at JD_MAX_CHARS to keep _index.json bounded
+        self.assertEqual(collect.JD_MAX_CHARS, 8000)
+        capped = collect.strip_html("<p>" + "x" * 9000 + "</p>")[: collect.JD_MAX_CHARS]
+        self.assertEqual(len(capped), 8000)
+
+    def test_update_index_carries_jd(self):
+        j = collect.norm("Backend Engineer", "Acme", "Remote, Europe",
+                         "https://x.com/1", "s", jd="Build backend systems.")
+        index = collect.update_index([j], {})
+        entry = index[collect.job_key(j)]
+        self.assertEqual(entry["jd"], "Build backend systems.")
+        # a later jd-less sighting must not wipe the stored jd
+        bare = collect.norm("Backend Engineer", "Acme", "Remote, Europe",
+                            "https://x.com/1", "s")
+        index = collect.update_index([bare], index)
+        self.assertEqual(index[collect.job_key(j)]["jd"], "Build backend systems.")
 
     def test_job_key_url_and_fallback(self):
         j = collect.norm("T", "C", "L", "https://X.com/Job-1", "s")

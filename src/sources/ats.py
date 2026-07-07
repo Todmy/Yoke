@@ -9,7 +9,7 @@ import json
 import sys
 import urllib.request
 
-from src.collect import norm
+from src.collect import JD_MAX_CHARS, norm, strip_html
 
 NAME = "ats"
 TAGS = {"domain": "it", "country": "any"}
@@ -50,6 +50,7 @@ def _parse_greenhouse(payload, company):
             (j.get("location") or {}).get("name", ""),
             j.get("absolute_url"), f"ats:greenhouse:{slug}",
             j.get("updated_at", ""),
+            jd=strip_html(j.get("content"))[:JD_MAX_CHARS],
         ))
     return out
 
@@ -71,6 +72,7 @@ def _parse_lever(payload, company):
             j.get("text"), _name(company), cats.get("location", ""),
             j.get("hostedUrl"), f"ats:lever:{slug}",
             str(j.get("createdAt", "")), comp,
+            jd=strip_html(j.get("descriptionPlain") or j.get("description"))[:JD_MAX_CHARS],
         ))
     return out
 
@@ -86,6 +88,7 @@ def _parse_ashby(payload, company):
             j.get("title"), _name(company), j.get("location", ""),
             j.get("jobUrl"), f"ats:ashby:{slug}",
             j.get("publishedAt", ""), comp,
+            jd=strip_html(j.get("descriptionPlain") or j.get("descriptionHtml"))[:JD_MAX_CHARS],
         ))
     return out
 

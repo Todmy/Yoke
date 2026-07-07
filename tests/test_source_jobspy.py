@@ -39,6 +39,7 @@ def _rows():
             "interval": "hourly",
             "currency": "USD",
             "job_type": "contract",
+            "description": "<p>Own backend systems end to end.</p>",
         },
         {
             "site": "linkedin",
@@ -98,6 +99,9 @@ class TestJobspySource(unittest.TestCase):
         self.assertEqual(j["url"], "https://indeed.com/viewjob?jk=abc123")
         self.assertEqual(j["source"], "jobspy:indeed")
         self.assertEqual(j["posted_at"], "2026-07-01")
+        # description column → plain-text jd, tags stripped
+        self.assertEqual(j["jd"], "Own backend systems end to end.")
+        self.assertNotIn("<", j["jd"])
         self.assertEqual(
             j["comp"],
             {
@@ -121,6 +125,8 @@ class TestJobspySource(unittest.TestCase):
         # No salary data → comp is None (never an empty dict/string).
         self.assertIsNone(norms[2]["comp"])
         self.assertEqual(norms[2]["posted_at"], "")
+        # no description column → jd stays ""
+        self.assertEqual(norms[2]["jd"], "")
 
 
 if __name__ == "__main__":

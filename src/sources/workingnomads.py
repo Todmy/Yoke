@@ -7,7 +7,7 @@ a real location field, so the geo gate works well on it.
 import json
 import urllib.request
 
-from src.collect import norm
+from src.collect import JD_MAX_CHARS, norm, strip_html
 
 NAME = "workingnomads"
 TAGS = {"domain": "it", "country": "intl"}
@@ -48,6 +48,7 @@ def _parse(payload, profile):
                 j.get("url"),
                 NAME,
                 j.get("pub_date", ""),
+                jd=strip_html(j.get("description"))[:JD_MAX_CHARS],
             )
         )
     return out

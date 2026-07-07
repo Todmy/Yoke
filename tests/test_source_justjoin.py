@@ -48,6 +48,8 @@ class TestJustjoin(unittest.TestCase):
                     "unit": "month",
                     "type": "b2b",
                 },
+                # list payload has no full text — full JD needs per-offer fetch (M1)
+                "jd": "",
             },
         )
 

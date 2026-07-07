@@ -6,10 +6,9 @@ skips the lane-keyword-in-title rule and gates on tech hits instead.
 """
 
 import json
-import re
 import urllib.request
 
-from src.collect import norm
+from src.collect import JD_MAX_CHARS, norm, strip_html
 
 NAME = "hn"
 TAGS = {"domain": "it", "country": "intl"}
@@ -50,12 +49,12 @@ def _parse_comments(payload, profile):
         txt = c.get("text") or ""
         if not txt or "remote" not in txt.lower():
             continue
-        plain = re.sub(r"<[^>]+>", " ", txt)
-        plain = re.sub(r"\s+", " ", plain).strip()
+        plain = strip_html(txt)
         url = f"https://news.ycombinator.com/item?id={c.get('id')}"
         out.append(
             norm(plain[:160], "(HN who-is-hiring)", "see post", url, NAME,
-                 str(c.get("created_at") or ""))
+                 str(c.get("created_at") or ""),
+                 jd=plain[:JD_MAX_CHARS])  # the comment text IS the jd
         )
     return out
 

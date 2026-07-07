@@ -42,8 +42,13 @@ class TestAtsSource(unittest.TestCase):
                 "source": "ats:greenhouse:acme",
                 "posted_at": "2026-07-01T10:00:00Z",
                 "comp": None,
+                "jd": "Build backend systems.",
             },
         )
+        # jd is plain text: escaped HTML unwrapped, no tags survive
+        self.assertNotIn("<", jobs[0]["jd"])
+        # empty content field → jd stays ""
+        self.assertEqual(jobs[1]["jd"], "")
         # malformed payload → empty list, never a raise
         self.assertEqual(ats._parse_greenhouse({}, company), [])
         self.assertEqual(ats._parse_greenhouse(None, company), [])
@@ -62,10 +67,14 @@ class TestAtsSource(unittest.TestCase):
                 "source": "ats:lever:acme",
                 "posted_at": "1750000000000",
                 "comp": "USD90000-120000",
+                "jd": "Build the platform.",
             },
         )
         # salaryDescriptionPlain fallback when no structured range
         self.assertEqual(jobs[1]["comp"], "EUR 80k-100k per year")
+        # descriptionPlain preferred; HTML description falls back tag-stripped
+        self.assertEqual(jobs[1]["jd"], "Train models.")
+        self.assertNotIn("<", jobs[1]["jd"])
         # lever payload is a list — anything else parses to empty
         self.assertEqual(ats._parse_lever({"error": "nope"}, company), [])
 
@@ -83,10 +92,14 @@ class TestAtsSource(unittest.TestCase):
                 "source": "ats:ashby:acme",
                 "posted_at": "2026-06-15T00:00:00Z",
                 "comp": "$150K – $180K • Offers Equity",
+                "jd": "Own the architecture.",
             },
         )
         # job without compensation block → comp None
         self.assertIsNone(jobs[1]["comp"])
+        # descriptionHtml fallback comes out tag-stripped
+        self.assertEqual(jobs[1]["jd"], "Keep it up.")
+        self.assertNotIn("<", jobs[1]["jd"])
         self.assertEqual(ats._parse_ashby({}, company), [])
 
 

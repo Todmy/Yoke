@@ -5,7 +5,7 @@ both available() and fetch() import it lazily so the plugin registry can
 load this module without the dependency installed.
 """
 
-from ..collect import norm
+from ..collect import JD_MAX_CHARS, norm, strip_html
 
 NAME = "jobspy"
 TAGS = {"domain": "any", "country": "any"}
@@ -64,6 +64,7 @@ def _rows_to_norms(rows, profile):
                 f"jobspy:{site}",
                 str(g("date_posted")),
                 comp,
+                jd=strip_html(g("description"))[:JD_MAX_CHARS],
             )
         )
     return out

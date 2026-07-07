@@ -38,8 +38,13 @@ class TestWorkingNomads(unittest.TestCase):
                 "source": "workingnomads",
                 "posted_at": "2026-07-05T10:00:00",
                 "comp": None,
+                "jd": "Build APIs in Python for our logistics platform.",
             },
         )
+        # description HTML tag-stripped into plain-text jd
+        for j in jobs:
+            self.assertTrue(j["jd"])
+            self.assertNotIn("<", j["jd"])
 
     def test_parse_garbage_payload(self):
         self.assertEqual(workingnomads._parse("not json at all", {}), [])

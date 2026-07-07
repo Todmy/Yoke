@@ -138,5 +138,6 @@ def _parse(payload, query):
                 continue  # generic host we can't attribute — not a job board hit
         desc = (r.get("description") or "").lower()
         loc = next((w.title() for w in EU_TERMS + NON_EU if w.strip() and w in desc), "")
+        # jd stays empty: search snippets aren't the JD — full JD needs per-offer fetch — M1
         out.append(norm(title, company, loc, link, f"dork:{host or 'dork'}"))
     return out

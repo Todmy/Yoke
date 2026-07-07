@@ -7,7 +7,7 @@ notice dict (no "position" key) — _parse skips any element without one.
 import json
 import urllib.request
 
-from src.collect import norm
+from src.collect import JD_MAX_CHARS, norm, strip_html
 
 NAME = "remoteok"
 TAGS = {"domain": "it", "country": "intl"}
@@ -42,6 +42,7 @@ def _parse(payload, profile):
             norm(
                 j.get("position"), j.get("company"), j.get("location", "Remote"),
                 j.get("url"), NAME, j.get("date", ""),
+                jd=strip_html(j.get("description"))[:JD_MAX_CHARS],
             )
         )
     return out

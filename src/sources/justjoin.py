@@ -84,7 +84,7 @@ def _parse(payload, profile):
         loc = "Remote (Poland)" if wt == "remote" else f"{city}, Poland".strip(", ")
         url = f"https://justjoin.it/job-offer/{o.get('slug') or ''}"
         out.append(
-            collect.norm(
+            collect.norm(  # jd stays empty: full JD needs per-offer fetch — M1
                 o.get("title"),
                 o.get("companyName"),
                 loc,

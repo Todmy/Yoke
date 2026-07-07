@@ -8,7 +8,7 @@ defusedxml is not stdlib. The feed is a trusted fixed shape with
 import re
 import urllib.request
 
-from src.collect import norm
+from src.collect import JD_MAX_CHARS, norm, strip_html
 
 NAME = "wwr"
 TAGS = {"domain": "it", "country": "intl"}
@@ -48,5 +48,8 @@ def _parse(payload, profile):
         region = _tag(block, "region") or "Remote"
         company = title.split(":")[0].strip() if ":" in title else ""
         role = title.split(":", 1)[1].strip() if ":" in title else title
-        out.append(norm(role, company, region, link, NAME, _tag(block, "pubDate")))
+        out.append(norm(
+            role, company, region, link, NAME, _tag(block, "pubDate"),
+            jd=strip_html(_tag(block, "description"))[:JD_MAX_CHARS],
+        ))
     return out

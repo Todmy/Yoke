@@ -38,8 +38,12 @@ class TestWWR(unittest.TestCase):
                 "source": "wwr",
                 "posted_at": "Sat, 05 Jul 2026 10:00:00 +0000",
                 "comp": None,
+                "jd": "Build APIs in Python for our logistics platform.",
             },
         )
+        # CDATA description HTML tag-stripped into plain-text jd
+        self.assertNotIn("<", jobs[0]["jd"])
+        self.assertEqual(jobs[1]["jd"], "LLM fine-tuning and evaluation pipelines.")
         # plain (non-CDATA) tags parse too
         self.assertEqual(jobs[1]["company"], "Globex")
         self.assertEqual(jobs[1]["location"], "Europe Only")
@@ -48,6 +52,8 @@ class TestWWR(unittest.TestCase):
         self.assertEqual(jobs[2]["title"], "Standalone Role Without Company Prefix")
         self.assertEqual(jobs[2]["company"], "")
         self.assertEqual(jobs[2]["location"], "Remote")
+        # missing <description> → jd stays ""
+        self.assertEqual(jobs[2]["jd"], "")
 
     def test_parse_empty_payload(self):
         self.assertEqual(wwr._parse("", {}), [])
