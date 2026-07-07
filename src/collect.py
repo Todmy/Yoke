@@ -1,0 +1,235 @@
+"""Collect spine: normalize, dedup keys, profile gate, source registry, index.
+
+No fetchers live here — sources are plugin modules under src/sources/, each
+exposing NAME / TAGS / COST / available() / fetch(profile). run_collect is
+error-isolated per source: one failing plugin never kills the scan.
+"""
+
+import importlib
+import json
+import pkgutil
+import re
+import sys
+from datetime import datetime, timedelta, timezone
+
+from src.paths import ensure_home
+
+PRUNE_DAYS = 45  # drop index entries unseen this long (role closed)
+REQUIRED_ATTRS = ("NAME", "TAGS", "COST", "available", "fetch")
+
+# EU / non-EU location markers for the remote-geo gate (ported from prototype).
+EU_TERMS = [
+    "europe", "emea", "eu ", " eu", "(eu", "eu,", "eu)", "anywhere", "worldwide",
+    "global", "distributed", "poland", "warsaw", "germany", "berlin", "munich",
+    "netherlands", "amsterdam", "spain", "madrid", "barcelona", "portugal",
+    "lisbon", "france", "paris", "ireland", "dublin", "italy", "milan", "rome",
+    "denmark", "copenhagen", "sweden", "stockholm", "finland", "helsinki",
+    "norway", "oslo", "austria", "vienna", "belgium", "brussels", "czech",
+    "prague", "romania", "bucharest", "estonia", "lithuania", "latvia",
+    "remote europe", "remote - eu", "remote eu",
+]
+# Non-EU country markers — reject if present AND no EU term alongside.
+NON_EU = [
+    "united states", "u.s.", "usa", "us remote", "remote - us", "remote (us",
+    "remote, us", "us-based", "us based", "(us)", "canada", "toronto", "india",
+    "bangalore", "singapore", "israel", "tel aviv", "australia", "sydney",
+    "brazil", "latam", "apac", "japan", "tokyo", "united kingdom", " uk", "uk ",
+    "(uk", "uk)", "london", "mexico", "argentina", "philippines", "north america",
+    "north american", "us/canada", "us & canada", "americas only",
+    "california", "arizona", "texas", "new york", "washington", "oregon",
+    "colorado", "florida", "illinois", "georgia", "virginia", "massachusetts",
+    "north carolina", "san francisco", "seattle", "austin",
+]
+
+
+def norm(title, company, location, url, source, posted_at="", comp=None):
+    """Common record shape every source fetcher must emit.
+
+    comp passes through untouched: structured dict, raw string, or None.
+    """
+    return {
+        "title": (title or "").strip(),
+        "company": (company or "").strip(),
+        "location": (location or "").strip(),
+        "url": (url or "").strip(),
+        "source": source,
+        "posted_at": posted_at,
+        "comp": comp,
+    }
+
+
+def job_key(job):
+    """Dedup key: URL when present, else company|title. Lowercased."""
+    return (job["url"] or f"{job['company']}|{job['title']}").strip().lower()
+
+
+def role_key(job):
+    """Collapse the same role posted across several locations into one."""
+    t = re.sub(r"[^a-z0-9 ]", "", (job["title"] or "").lower())
+    t = re.sub(r"\s+", " ", t).strip()
+    return f"{job['company'].lower()}|{t}"
+
+
+def matches_profile(job, profile, bypass_lane=False):
+    """Deterministic gate: (keep, match_score). Match score ≠ fit score.
+
+    bypass_lane skips the title-keyword requirement (e.g. HN comment threads
+    lack clean titles); such jobs must still score via tech terms.
+    """
+    t = (job["title"] or "").lower()
+    loc = (job["location"] or "").lower()
+    blob = f"{t} {loc} {job['company']}".lower()
+
+    lane = profile.get("lane", {})
+    keywords = [k.lower() for k in lane.get("keywords", [])]
+    anti = [a.lower() for a in lane.get("anti", [])]
+    block = [b.lower() for b in profile.get("geo", {}).get("block", [])]
+    tech = [x.lower() for x in profile.get("tech", {}).get("primary", [])]
+
+    # hard geo block (instant reject)
+    if any(b in blob for b in block):
+        return False, 0
+
+    # reject a non-EU marker unless an EU term sits alongside; aggregator hits
+    # often carry a blank location with the geo in the title, so fall back to it
+    geo = loc if loc else t
+    has_eu = any(g in geo for g in EU_TERMS)
+    has_non_eu = any(b in geo for b in NON_EU)
+    if has_non_eu and not has_eu:
+        return False, 0
+
+    # anti-lane hit rejects outright
+    if any(a in blob for a in anti):
+        return False, 0
+
+    # lane keyword required in title unless the source bypasses the lane rule
+    lane_hits = sum(1 for k in keywords if k in t)
+    if lane_hits == 0 and not bypass_lane:
+        return False, 0
+
+    score = 2 * lane_hits + sum(1 for x in tech if x in blob)
+    if bypass_lane and score == 0:
+        return False, 0
+    return True, score
+
+
+def load_sources():
+    """Import every plugin under src/sources; skip+warn malformed modules."""
+    import src.sources as sources_pkg
+
+    mods = []
+    for info in pkgutil.iter_modules(sources_pkg.__path__):
+        qualname = f"{sources_pkg.__name__}.{info.name}"
+        try:
+            mod = importlib.import_module(qualname)
+        except Exception as e:  # noqa: BLE001 — one bad plugin must not kill the registry
+            print(f"WARN source {info.name}: import failed: {e}", file=sys.stderr)
+            continue
+        missing = [a for a in REQUIRED_ATTRS if not hasattr(mod, a)]
+        if missing:
+            print(
+                f"WARN source {info.name}: missing {', '.join(missing)} — skipped",
+                file=sys.stderr,
+            )
+            continue
+        mods.append(mod)
+    return mods
+
+
+def _now_utc():
+    return datetime.now(timezone.utc)
+
+
+def update_index(jobs, index):
+    """Merge jobs into the index; stamp first/last_seen; prune stale entries.
+
+    New keys get first_seen = last_seen = now. Existing keys keep their
+    (earliest) first_seen, refresh last_seen and mutable fields. Entries
+    unseen for PRUNE_DAYS are dropped. Returns the updated index.
+    """
+    now_iso = _now_utc().isoformat()
+    for j in jobs:
+        k = job_key(j)
+        entry = index.get(k)
+        if entry is None:
+            index[k] = {
+                "title": j["title"], "company": j["company"],
+                "location": j["location"], "url": j["url"],
+                "source": j["source"], "posted_at": j.get("posted_at", ""),
+                "comp": j.get("comp"), "score": j.get("_score", 0),
+                "role_key": role_key(j),
+                "first_seen": now_iso, "last_seen": now_iso,
+            }
+        else:
+            entry["last_seen"] = now_iso
+            entry["score"] = j.get("_score", entry.get("score", 0))
+            entry["location"] = j["location"] or entry.get("location", "")
+            if j.get("comp") is not None:
+                entry["comp"] = j["comp"]
+
+    cutoff = _now_utc() - timedelta(days=PRUNE_DAYS)
+    for k in list(index):
+        try:
+            last_seen = datetime.fromisoformat(
+                index[k].get("last_seen", "").replace("Z", "+00:00")
+            )
+        except ValueError:
+            continue  # unparseable stamp — keep, never destroy data on a bug
+        if last_seen < cutoff:
+            del index[k]
+    return index
+
+
+def run_collect(profile, selected, log):
+    """Fetch selected sources, gate through matches_profile, persist index.
+
+    Returns per-source status: "N roles" / "SKIP (reason)" / "ERROR (msg)".
+    Writes home()/_index.json and a scans/<ts>.json snapshot of this run.
+    """
+    root = ensure_home()
+    index_path = root / "_index.json"
+    try:
+        index = json.loads(index_path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        index = {}
+
+    registry = {getattr(m, "NAME", ""): m for m in load_sources()}
+    results = {}
+    snapshot = []
+    for name in selected:
+        mod = registry.get(name)
+        if mod is None:
+            results[name] = "SKIP (unknown source)"
+            log(f"  {name}: {results[name]}")
+            continue
+        ok, reason = mod.available()
+        if not ok:
+            results[name] = f"SKIP ({reason})"
+            log(f"  {name}: {results[name]}")
+            continue
+        try:
+            jobs = mod.fetch(profile)
+        except Exception as e:  # noqa: BLE001 — a raising source must not kill the run
+            results[name] = f"ERROR ({e})"
+            log(f"  {name}: {results[name]}")
+            continue
+        bypass = bool(getattr(mod, "bypass_lane", False))
+        matched = []
+        for j in jobs:
+            keep, score = matches_profile(j, profile, bypass_lane=bypass)
+            if keep:
+                j["_score"] = score
+                matched.append(j)
+        index = update_index(matched, index)
+        snapshot.extend(matched)
+        results[name] = f"{len(matched)} roles"
+        log(f"  {name}: {results[name]}")
+
+    index_path.write_text(
+        json.dumps(index, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    ts = _now_utc().strftime("%Y-%m-%d-%H-%M-%S")
+    (root / "scans" / f"{ts}.json").write_text(
+        json.dumps(snapshot, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    return results
