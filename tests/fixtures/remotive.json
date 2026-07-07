@@ -1,0 +1,33 @@
+{
+  "0-legal-notice": "Remotive API Legal Notice: you may access this API for personal use; re-publication of job posts requires a link back to the Remotive job page.",
+  "job-count": 2,
+  "jobs": [
+    {
+      "id": 1902938,
+      "url": "https://remotive.com/remote-jobs/software-dev/machine-learning-engineer-1902938",
+      "title": "Machine Learning Engineer",
+      "company_name": "Nimbus Labs",
+      "company_logo": "https://remotive.com/job/1902938/logo",
+      "category": "Software Development",
+      "tags": ["python", "machine learning"],
+      "job_type": "full_time",
+      "publication_date": "2026-07-04T09:30:00",
+      "candidate_required_location": "Europe",
+      "salary": "$100,000 - $130,000",
+      "description": "<p>Own the ML platform end to end.</p>"
+    },
+    {
+      "id": 1903777,
+      "url": "https://remotive.com/remote-jobs/software-dev/ai-solutions-architect-1903777",
+      "title": "AI Solutions Architect",
+      "company_name": "Vector Systems",
+      "company_logo": "https://remotive.com/job/1903777/logo",
+      "category": "Software Development",
+      "tags": ["ai", "architecture"],
+      "job_type": "contract",
+      "publication_date": "2026-07-05T14:00:00",
+      "salary": "",
+      "description": "<p>Design AI systems for enterprise clients.</p>"
+    }
+  ]
+}

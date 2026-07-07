@@ -1,0 +1,38 @@
+[
+  {
+    "legal": "API Terms of Service: reproduction of RemoteOK data is prohibited unless you link back to the original job post. Affiliation with RemoteOK is not implied.",
+    "info": "This first element is a legal notice, not a job."
+  },
+  {
+    "slug": "senior-ai-engineer-acme-ai-123456",
+    "id": "123456",
+    "epoch": 1751709600,
+    "date": "2026-07-05T10:00:00+00:00",
+    "company": "Acme AI",
+    "company_logo": "https://remoteok.com/assets/img/jobs/acme.png",
+    "position": "Senior AI Engineer",
+    "tags": ["python", "llm", "engineer"],
+    "logo": "",
+    "description": "Build LLM-powered products for a distributed team.",
+    "location": "Remote - Europe",
+    "salary_min": 90000,
+    "salary_max": 120000,
+    "apply_url": "https://remoteok.com/remote-jobs/123456/apply",
+    "url": "https://remoteok.com/remote-jobs/123456"
+  },
+  {
+    "slug": "backend-engineer-nimbus-654321",
+    "id": "654321",
+    "epoch": 1751623200,
+    "date": "2026-07-04T10:00:00+00:00",
+    "company": "Nimbus",
+    "position": "Backend Engineer",
+    "tags": ["go", "backend"],
+    "description": "Distributed systems work.",
+    "location": "Worldwide",
+    "salary_min": 70000,
+    "salary_max": 100000,
+    "apply_url": "https://remoteok.com/remote-jobs/654321/apply",
+    "url": "https://remoteok.com/remote-jobs/654321"
+  }
+]
