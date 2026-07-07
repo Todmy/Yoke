@@ -125,7 +125,10 @@ def _run(args, input_fn):
         return 0
 
     cards = prepare.build_cards(profile, _load_index(), state)
-    needy = [c for c in cards if c.get("needs_ai")]
+    # Only in-window cards may reach analyze/board: out-of-window roles keep
+    # their earlier board records instead of being re-emitted as C/0 skeletons.
+    in_window = [c for c in cards if c.get("in_window")]
+    needy = [c for c in in_window if c.get("needs_ai")]
     if not needy:
         print("nothing new in window")
         return 0
@@ -142,7 +145,7 @@ def _run(args, input_fn):
             print("analysis declined — nothing spent")
             return 0
 
-    records = analyze.analyze_cards(cards, profile, backend, print)
+    records = analyze.analyze_cards(in_window, profile, backend, print)
     stats = board.upsert(records)
     shortlist_path = board.render(profile)
     _print_summary(records, stats, shortlist_path)

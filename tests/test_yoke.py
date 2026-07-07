@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
@@ -142,6 +143,55 @@ class TestRun(unittest.TestCase):
         self.assertIn("last_run", state)
         self.assertEqual(state["last_selection"], ["fake1"])
         self.assertIn("SHORTLIST", buf.getvalue())
+
+    def test_aged_out_scored_role_not_wiped(self):
+        """C1 regression: a role scored A on an earlier run, now outside the
+        14-day window, must keep its tier/fit when a later run brings new roles.
+        Out-of-window cards must never reach analyze/board."""
+        old_key = "https://x.com/fake1/old"
+        old_iso = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+        index = {
+            old_key: {
+                "title": "Backend Engineer Old", "company": "Acme",
+                "location": "Remote, Europe", "url": old_key, "source": "fake1",
+                "posted_at": "", "comp": None, "score": 2,
+                "role_key": "acme|backend engineer old",
+                "first_seen": old_iso, "last_seen": old_iso,
+            }
+        }
+        (paths.home() / "_index.json").write_text(json.dumps(index), encoding="utf-8")
+        board = {
+            "roles": {
+                old_key: {
+                    "key": old_key, "role_key": "acme|backend engineer old",
+                    "company": "Acme", "title": "Backend Engineer Old",
+                    "url": old_key, "location": "Remote, Europe",
+                    "source": "fake1", "fit": 88, "tier": "A", "features": {},
+                    "geo_certainty": "remote_confirmed", "red_flags": [],
+                    "note": "scored on an earlier run", "comp_display": "—",
+                    "date_added": "2026-06-01", "last_refreshed": "2026-06-01",
+                }
+            },
+            "applied": [], "dropped": [],
+        }
+        (paths.home() / "_board.json").write_text(json.dumps(board), encoding="utf-8")
+
+        mod, calls = _fake_source("fake1", self._jobs("fake1"))
+        with mock.patch.object(collect, "load_sources", return_value=[mod]), \
+                mock.patch.object(yoke.llm, "get_backend",
+                                  side_effect=AssertionError("real backend constructed")), \
+                redirect_stdout(io.StringIO()):
+            rc = yoke.main(["run", "--mock", "--yes", "--sources", "fake1"],
+                           input_fn=_no_input)
+        self.assertEqual(rc, 0)
+
+        after = json.loads((paths.home() / "_board.json").read_text(encoding="utf-8"))
+        rec = after["roles"][old_key]
+        self.assertEqual(rec["tier"], "A")   # NOT wiped to C
+        self.assertEqual(rec["fit"], 88)     # NOT wiped to 0
+        self.assertEqual(rec["last_refreshed"], "2026-06-01")  # untouched
+        # the genuinely new role still landed on the board
+        self.assertIn("https://x.com/fake1/1", after["roles"])
 
     def test_deselected_source_never_fetched(self):
         mod1, calls1 = _fake_source("fake1", self._jobs("fake1"))

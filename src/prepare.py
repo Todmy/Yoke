@@ -130,8 +130,10 @@ def _apply_gates(job, profile, comp_norm):
 def build_cards(profile, index, state):
     """Feature cards for every index entry; writes home()/_cards.json.
 
-    needs_ai = (new in window) AND (zero failed gates) — analyze structurally
-    receives only that slice. Gate-failed cards ship with tier "C" pre-set.
+    in_window marks new-in-window cards explicitly — only that slice may ever
+    reach analyze/board (out-of-window cards keep their earlier board records).
+    needs_ai = in_window AND (zero failed gates) — analyze structurally spends
+    only on that slice. Gate-failed cards ship with tier "C" pre-set.
     """
     window_keys = {e["key"] for e in window_slice(index, state.get("last_run"))}
     cards = []
@@ -140,13 +142,15 @@ def build_cards(profile, index, state):
         comp_norm = _comp_norm(entry, profile)
         gates_failed = _apply_gates(entry, profile, comp_norm)
         _, friction = _geo(entry, profile)
+        in_window = k in window_keys
         card = {
             "key": k,
             **entry,
             "comp_norm": comp_norm,
             "gates_failed": gates_failed,
             "frictions": [friction] if friction else [],
-            "needs_ai": k in window_keys and not gates_failed,
+            "in_window": in_window,
+            "needs_ai": in_window and not gates_failed,
         }
         if gates_failed:
             card["tier"] = "C"

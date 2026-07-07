@@ -122,6 +122,20 @@ class TestPrepare(unittest.TestCase):
         self.assertFalse(cards["stale"]["needs_ai"])
         self.assertNotIn("tier", cards["stale"])  # stale-but-clean is not tier C
 
+    def test_build_cards_sets_in_window(self):
+        now = datetime.now(timezone.utc)
+        index = {
+            "fresh": _entry(url="https://x.com/f"),
+            "stale": _entry(url="https://x.com/s", first_seen=_iso(now - timedelta(days=30))),
+            "gated-fresh": _entry(url="https://x.com/gf", location="Moscow, Russia"),
+        }
+        cards = {c["key"]: c for c in prepare.build_cards(_profile(), index, {})}
+        self.assertTrue(cards["fresh"]["in_window"])
+        self.assertFalse(cards["stale"]["in_window"])
+        # gate-failed but new: in window (visible as tier C), never needs_ai
+        self.assertTrue(cards["gated-fresh"]["in_window"])
+        self.assertFalse(cards["gated-fresh"]["needs_ai"])
+
     def test_cards_dump_written(self):
         index = {
             "str-comp": _entry(url="https://x.com/sc", comp="12 000 USD/month"),
