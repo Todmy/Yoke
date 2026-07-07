@@ -24,8 +24,8 @@ analyze   the model fills a few features; a weighted formula computes fit + tier
    ↓
 board     a live, self-pruning shortlist + a local web UI to triage
    ↓
-eval      score the model vs a reference (safety gates dominate)
-tune      refit the scoring weights to your real applied/rejected decisions
+eval      score the model vs a reference (safety gates dominate) (roadmap)
+tune      refit the scoring weights to your real applied/rejected decisions (roadmap)
 ```
 
 The model surface is deliberately small: it extracts features and writes a one-line note, nothing more. Everything around it — windowing, dedup, scoring math, the board, the labels — is ordinary code you can audit.
@@ -38,9 +38,9 @@ Yoke is a job-search harness — but the scoring loop inside it carries the kind
 - **A regression gate, not vibes.** Before trusting a cheaper or faster model you run the golden set and read the numbers. The model gets downgraded on evidence, not hope.
 - **Deterministic core, thin AI surface.** About a quarter of roles are decided by rules and never call a model. The model fills a fixed feature schema; a weighted formula you can read turns those features into the score — so the score is stable and auditable, not a black box.
 - **The tuner closes the loop.** Your real apply/reject labels refit the formula weights to maximise balanced accuracy at the "worth pursuing" threshold — a deterministic grid-search, zero model calls.
-- **Plain, inspectable state.** SQLite in WAL mode, idempotent board operations, a sidecar cache for job descriptions. No hidden magic.
+- **Plain, inspectable state.** Flat JSON files (`_index.json`, `_board.json`) plus a rendered `SHORTLIST.md`, idempotent board operations. No hidden magic.
 
-The reasoning behind these choices lives as ADRs in [`docs/adr/`](docs/adr/); the full pipeline is in [`docs/architecture.md`](docs/architecture.md).
+The reasoning behind these choices lives as ADRs in [`docs/adr/`](docs/adr/); the domain glossary is in [`CONTEXT.md`](CONTEXT.md).
 
 ## Providers
 
@@ -57,12 +57,13 @@ Pick a backend with `YOKE_PROVIDER` (or let it default to your Claude subscripti
 ## Quickstart
 
 ```bash
-git clone https://github.com/Todmy/Yoke && cd Yoke && ./yoke
+git clone https://github.com/Todmy/Yoke && cd Yoke
+mkdir -p ~/.yoke && cp profile.example.yml ~/.yoke/profile.yml   # then edit it with your CV/prefs
+pip install pyyaml                                               # or write ~/.yoke/profile.json instead
+./yoke run
 ```
 
-That opens a local control panel in your browser. From there: pick your AI provider (or a local model — no key needed), paste your CV, hit **Run**, and optionally **Schedule** a twice-daily cron. No config files to edit by hand.
-
-Prefer the terminal? `./yoke run all` to score now, `./yoke serve` for the board, `./setup.sh` for an unattended cron install. Run `./yoke help` for everything.
+`yoke run` walks you through a sources menu, then asks before it spends a model call. Your shortlist lands at `~/.yoke/SHORTLIST.md`. Useful flags: `--yes` (skip the prompts, use your remembered selection), `--dry-run` (stop after collect), `--mock` (no real model call, deterministic fake).
 
 ## Status
 
