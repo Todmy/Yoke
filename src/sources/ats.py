@@ -6,6 +6,7 @@ straight into the parsers — no network in tests.
 """
 
 import json
+import sys
 import urllib.request
 
 from src.collect import norm
@@ -103,6 +104,10 @@ def fetch(profile):
         slug = company.get("slug")
         if parser is None or not slug:
             continue  # unknown ATS or missing slug — skip, don't kill the scan
-        payload = _get_json(_URLS[company["ats"]].format(slug=slug))
+        try:
+            payload = _get_json(_URLS[company["ats"]].format(slug=slug))
+        except Exception as exc:  # one dead slug must not kill the other companies
+            print(f"ats: {slug} SKIP ({exc})", file=sys.stderr)
+            continue
         out.extend(parser(payload, company))
     return out

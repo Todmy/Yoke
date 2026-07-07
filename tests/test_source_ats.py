@@ -90,5 +90,33 @@ class TestAtsSource(unittest.TestCase):
         self.assertEqual(ats._parse_ashby({}, company), [])
 
 
+class TestFetchIsolation(unittest.TestCase):
+    def test_one_dead_slug_does_not_kill_the_source(self):
+        import io
+        import json as _json
+        from contextlib import redirect_stderr
+        from unittest import mock
+
+        good_payload = {"jobs": [{"title": "AI Engineer",
+                                  "absolute_url": "https://boards.greenhouse.io/good/1",
+                                  "location": {"name": "Remote"},
+                                  "updated_at": "2026-07-01"}]}
+
+        def fake_get(url):
+            if "dead" in url:
+                raise OSError("HTTP Error 404: Not Found")
+            return good_payload
+
+        profile = {"sources": {"companies": [
+            {"slug": "dead", "ats": "greenhouse"},
+            {"slug": "good", "ats": "greenhouse"},
+        ]}}
+        with mock.patch.object(ats, "_get_json", side_effect=fake_get):
+            with redirect_stderr(io.StringIO()):
+                jobs = ats.fetch(profile)
+        self.assertEqual(len(jobs), 1)
+        self.assertEqual(jobs[0]["company"], "good")
+
+
 if __name__ == "__main__":
     unittest.main()
