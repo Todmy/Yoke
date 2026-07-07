@@ -1,50 +1,17 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# Constitution: Yoke
+Version: 1.0.0 | Ratified: 2026-07-07
 
-## Core Principles
+## Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+1. **Local-first** — MUST: the user's CV, labels, and decisions never leave their machine; the tool works with local models too. Trust is the product's stance.
+2. **Deterministic core, thin AI surface** — MUST: the model only fills a fixed feature schema in `analyze`; a readable formula computes the score; anything decidable by rules never calls a model. The score must be auditable and stable.
+3. **Flat files** — MUST: state lives in flat, inspectable files (`_index.json`, `SHORTLIST`); no SQLite/DB. The old Yoke died of heaviness; the README's SQLite mention is stale.
+4. **Concrete with seams** — MUST: code is written for today's case (IT+PL, one profile.yml); extension happens only through seams (tags, registry, plugins), never speculative abstraction; a new core module only if it belongs to a ROADMAP milestone. Fourteen modules was exactly that mistake.
+5. **Sources are plugins** — MUST: each source is a self-contained plugin ("tool search over a site") in an appendable registry, easy for outsiders to add; heavy dependencies live at the plugin edge, the core stays stdlib-lean. The source list grows forever — the core must not.
+6. **Core test-first, fetchers on fixtures** — MUST: deterministic logic is written test-first; fetchers get contract tests on recorded fixtures; no live network call in tests. The core is provable; the web is not.
+7. **No paid call without consent** — MUST: paid sources/LLM run only after explicit per-run selection in a menu showing the price; `analyze` scores only the new-in-window slice, never the whole index. The user's money; DoD check #3 punishes violations.
+8. **Moat barrier & small commits** — MUST: `.private/`, the profile, and labels are never committed; commits are small and discrete (one logical change each); push only with explicit permission. A public OSS repo sits next to private strategy.
+9. **Competitor ban-list** — MUST NOT: WebSearch-only collection, keyword tier-classifier, LaTeX CV pipeline, headless-loop LinkedIn apply, SQLite/TUI heaviness. Consensus failure modes from the 6-repo analysis.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
-
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
-
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
-
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
-
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
-
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
-
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
-
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
-
-## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
-
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
-
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+## Amendment log
+- 1.0.0 (2026-07-07) — initial ratification (grilled setup, feature: yoke-v0)
