@@ -44,6 +44,7 @@ EU_TERMS = [
     "norway", "oslo", "austria", "vienna", "belgium", "brussels", "czech",
     "prague", "romania", "bucharest", "estonia", "lithuania", "latvia",
     "remote europe", "remote - eu", "remote eu",
+    "ukraine", "kyiv", "lviv",
 ]
 # Non-EU country markers — reject if present AND no EU term alongside.
 NON_EU = [
@@ -57,6 +58,19 @@ NON_EU = [
     "colorado", "florida", "illinois", "georgia", "virginia", "massachusetts",
     "north carolina", "san francisco", "seattle", "austin",
 ]
+
+
+def _has_geo_marker(text, markers):
+    """Boundary-aware marker match: 'uk' must not fire inside 'ukraine'.
+
+    The padded list variants (' uk', '(uk', 'uk)') collapse to one token;
+    letters may not touch a marker on either side.
+    """
+    for m in markers:
+        token = m.strip().strip("(),")
+        if token and re.search(rf"(?<![a-z]){re.escape(token)}(?![a-z])", text):
+            return True
+    return False
 
 
 def norm(title, company, location, url, source, posted_at="", comp=None, jd=""):
@@ -113,8 +127,8 @@ def matches_profile(job, profile, bypass_lane=False):
     # reject a non-EU marker unless an EU term sits alongside; aggregator hits
     # often carry a blank location with the geo in the title, so fall back to it
     geo = loc if loc else t
-    has_eu = any(g in geo for g in EU_TERMS)
-    has_non_eu = any(b in geo for b in NON_EU)
+    has_eu = _has_geo_marker(geo, EU_TERMS)
+    has_non_eu = _has_geo_marker(geo, NON_EU)
     if has_non_eu and not has_eu:
         return False, 0
 

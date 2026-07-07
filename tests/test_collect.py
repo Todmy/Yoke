@@ -106,6 +106,16 @@ class TestCollect(unittest.TestCase):
         self.assertFalse(ok)
         self.assertEqual(score, 0)
 
+    def test_matches_profile_ukraine_not_uk(self):
+        # " uk" marker must not fire inside "ukraine" (word-boundary matching)
+        p = _profile()
+        for loc in ("Kyiv, Ukraine", "Remote, Ukraine"):
+            j = collect.norm("Backend Engineer", "Acme", loc, "u://" + loc, "s")
+            self.assertTrue(collect.matches_profile(j, p)[0], loc)
+        # real UK-only stays rejected
+        uk = collect.norm("Backend Engineer", "Acme", "London, UK", "u2", "s")
+        self.assertFalse(collect.matches_profile(uk, p)[0])
+
     def test_matches_profile_lane_required(self):
         p = _profile()
         miss = collect.norm("Accountant", "Acme", "Remote, Europe", "u", "s")
