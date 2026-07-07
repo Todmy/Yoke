@@ -1,0 +1,60 @@
+# Yoke profile template.
+# Copy to $YOKE_HOME/profile.yml (default ~/.yoke/profile.yml) and fill in.
+# The real profile lives OUTSIDE the repo and is never committed.
+# Data lives here; logic lives in code (weights feed scoring.fit, tiers are code constants).
+
+name: Jane Doe
+headline: Senior Software Engineer
+resume: |
+  Paste your CV text inline here, or put a file path instead.
+
+output_language: en # en | uk (uk switches SHORTLIST.md headers)
+
+lane:
+  keywords: # title must hit at least one of these
+    - software engineer
+    - backend
+  anti: # any hit rejects the role outright
+    - intern
+    - unpaid
+
+comp:
+  floor_net_usd_mo: 5000 # minimum acceptable net USD per month
+
+geo:
+  allow: # acceptable work geographies
+    - remote-eu
+    - remote-global
+    - pl
+  block: # hard geo blocks (instant reject)
+    - us-only
+    - onsite-other-continent
+
+tech:
+  primary: # your core stack (scores lane/tech match)
+    - python
+    - typescript
+  avoid_primary: # reject if this is the role's PRIMARY stack
+    - cobol
+
+language_levels: # your working languages and levels
+  en: b2
+
+stage_rules: # startup-stage gate terms (empty = no stage gate)
+  - no pre-seed
+
+scoring:
+  # Model-scored features (personal, profile-declared). desc is the
+  # instruction the model sees when scoring 0-100.
+  features:
+    - { name: hire_probability, weight: 40, desc: "How likely is this candidate to get hired for this role?" }
+    - { name: work_model, weight: 20, desc: "How well does the work model (remote/hybrid) fit?" }
+    - { name: visa_compat, weight: 10, desc: "Is the role compatible with the candidate's work permit?" }
+  # Code-computed features (comp.py), same additive sum.
+  deterministic:
+    - { name: comp_vs_floor, weight: 30 }
+  # All weights above (features + deterministic) MUST sum to 100.
+
+sources:
+  enabled: [] # remembered consent selection, e.g. [hn, remoteok]
+  companies: [] # ATS boards, e.g. [{slug: examplecorp, ats: greenhouse}]
