@@ -1,0 +1,33 @@
+{
+  "id": 44000001,
+  "title": "Ask HN: Who is hiring? (June 2026)",
+  "type": "story",
+  "author": "whoishiring",
+  "created_at": "2026-06-02T15:00:00.000Z",
+  "children": [
+    {
+      "id": 44001001,
+      "type": "comment",
+      "author": "acmehr",
+      "created_at": "2026-06-02T15:01:00.000Z",
+      "text": "Acme Corp | Senior Backend Engineer | Remote (EU) | $8k-10k/mo<p>Python, LLM pipelines. Apply: jobs@acme.example</p>",
+      "children": []
+    },
+    {
+      "id": 44001002,
+      "type": "comment",
+      "author": "widgetco",
+      "created_at": "2026-06-02T16:20:00.000Z",
+      "text": "WidgetCo | Platform Engineer | REMOTE worldwide<p>Go and Kubernetes on bare metal.</p>",
+      "children": []
+    },
+    {
+      "id": 44001003,
+      "type": "comment",
+      "author": "onsiteinc",
+      "created_at": "2026-06-02T17:05:00.000Z",
+      "text": "Onsite Inc | Office Manager | New York, onsite only",
+      "children": []
+    }
+  ]
+}

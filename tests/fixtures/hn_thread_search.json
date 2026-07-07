@@ -1,0 +1,17 @@
+{
+  "hits": [
+    {
+      "objectID": "44000001",
+      "title": "Ask HN: Who is hiring? (June 2026)",
+      "author": "whoishiring",
+      "created_at": "2026-06-02T15:00:00.000Z",
+      "points": 412,
+      "num_comments": 318,
+      "_tags": ["story", "author_whoishiring", "story_44000001", "ask_hn"]
+    }
+  ],
+  "nbHits": 187,
+  "page": 0,
+  "hitsPerPage": 1,
+  "query": "\"Ask HN: Who is hiring?\""
+}
