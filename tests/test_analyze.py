@@ -306,5 +306,21 @@ class TestRedFlagPenalty(unittest.TestCase):
         )
 
 
+class TestExampleProfileRedFlags(unittest.TestCase):
+    def test_example_profile_has_red_flag_map(self):
+        from src import paths
+        example = Path(_REPO_ROOT) / "profile.example.yml"
+        profile = paths.load_profile(example)
+        scoring = profile["scoring"]
+        self.assertIsInstance(scoring["red_flags"], dict)
+        self.assertEqual(scoring["red_flag_cap"], 0.5)
+        self.assertEqual(len(scoring["red_flags"]), len(analyze.RED_FLAG_CATEGORIES))
+        # features + deterministic STILL sum to 100 (red_flags live outside it)
+        weights = sum(
+            e["weight"] for e in scoring["features"] + scoring["deterministic"]
+        )
+        self.assertEqual(weights, 100)
+
+
 if __name__ == "__main__":
     unittest.main()

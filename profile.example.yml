@@ -56,6 +56,20 @@ scoring:
   deterministic:
     - { name: comp_vs_floor, weight: 30 }
   # All weights above (features + deterministic) MUST sum to 100.
+  # Red-flag penalty (WS1) — lives OUTSIDE the additive sum above. Each flag
+  # the model classifies (or code detects) strips this fraction of the fit;
+  # stacked penalties are capped at red_flag_cap. 0 disables a category.
+  red_flag_cap: 0.5
+  red_flags:
+    scam_signal: 0.5
+    unrealistic_requirements: 0.15
+    legal_risk: 0.3
+    comp_opacity: 0.1
+    culture_flag: 0.1
+    stale_posting: 0.15
+    repost_churn: 0.2
+    untrusted_apply_domain: 0.4
+    confidential_employer: 0.1
 
 sources:
   enabled: [] # remembered consent selection, e.g. [hn, remoteok]
