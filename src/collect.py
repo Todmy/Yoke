@@ -19,6 +19,7 @@ from src.paths import ensure_home
 PRUNE_DAYS = 45  # drop index entries unseen this long (role closed)
 REQUIRED_ATTRS = ("NAME", "TAGS", "COST", "available", "fetch")
 JD_MAX_CHARS = 8000  # plugins cap jd at this — keeps _index.json bounded
+DEFAULT_DEDUP_RATIO = 0.90  # WS4 near-duplicate title-similarity threshold
 
 _TAG_RE = re.compile(r"<[^>]+>")
 
@@ -220,19 +221,42 @@ def _now_utc():
     return datetime.now(timezone.utc)
 
 
-def update_index(jobs, index):
+def _find_dupe(new_entry, index, ratio):
+    """job_key of the canonical near-duplicate for new_entry, or None (WS4).
+
+    Same normalized company only — never across companies ("Backend Engineer"
+    is identical across many firms). The earliest first_seen wins as canonical.
+    Augments role_key/applied-ledger, never replaces them; any error is a
+    non-match (best-effort). Empty/confidential companies never dedup-merge.
+    """
+    company = (new_entry.get("company") or "").strip().lower()
+    if not company:
+        return None
+    matches = [
+        (key, e) for key, e in index.items()
+        if (e.get("company") or "").strip().lower() == company
+        and _title_similar(new_entry["title"], e.get("title", ""), ratio)
+    ]
+    if not matches:
+        return None
+    return min(matches, key=lambda ke: ke[1].get("first_seen", ""))[0]
+
+
+def update_index(jobs, index, dedup_ratio=DEFAULT_DEDUP_RATIO):
     """Merge jobs into the index; stamp first/last_seen; prune stale entries.
 
     New keys get first_seen = last_seen = now. Existing keys keep their
-    (earliest) first_seen, refresh last_seen and mutable fields. Entries
-    unseen for PRUNE_DAYS are dropped. Returns the updated index.
+    (earliest) first_seen, refresh last_seen and mutable fields. A new entry
+    that is a same-company near-duplicate of an existing one is tagged
+    dupe_of=<canonical job_key> (WS4). Entries unseen for PRUNE_DAYS are
+    dropped. Returns the updated index.
     """
     now_iso = _now_utc().isoformat()
     for j in jobs:
         k = job_key(j)
         entry = index.get(k)
         if entry is None:
-            index[k] = {
+            new_entry = {
                 "title": j["title"], "company": j["company"],
                 "location": j["location"], "url": j["url"],
                 "source": j["source"], "posted_at": j.get("posted_at", ""),
@@ -240,6 +264,10 @@ def update_index(jobs, index):
                 "jd": j.get("jd", ""), "role_key": role_key(j),
                 "first_seen": now_iso, "last_seen": now_iso,
             }
+            dupe = _find_dupe(new_entry, index, dedup_ratio)
+            if dupe is not None:
+                new_entry["dupe_of"] = dupe
+            index[k] = new_entry
         else:
             entry["last_seen"] = now_iso
             entry["score"] = j.get("_score", entry.get("score", 0))
@@ -275,6 +303,7 @@ def run_collect(profile, selected, log):
         index = {}
 
     registry = {getattr(m, "NAME", ""): m for m in load_sources()}
+    dedup_ratio = profile.get("dedup", {}).get("title_ratio", DEFAULT_DEDUP_RATIO)
     results = {}
     snapshot = []
     for name in selected:
@@ -301,7 +330,7 @@ def run_collect(profile, selected, log):
             if keep:
                 j["_score"] = score
                 matched.append(j)
-        index = update_index(matched, index)
+        index = update_index(matched, index, dedup_ratio)
         snapshot.extend(matched)
         results[name] = f"{len(matched)} roles"
         log(f"  {name}: {results[name]}")

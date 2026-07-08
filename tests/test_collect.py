@@ -221,6 +221,49 @@ class TestCollect(unittest.TestCase):
     def test_dissimilar_false(self):
         self.assertFalse(collect._title_similar("Backend Engineer", "Data Scientist", 0.9))
 
+    def test_same_company_title_variant_gets_dupe_of(self):
+        a = collect.norm("Senior Backend Engineer", "Acme", "Berlin", "https://x.com/a", "s")
+        b = collect.norm("Backend Engineer", "Acme", "Warsaw", "https://x.com/b", "s")
+        index = collect.update_index([a], {})
+        ka = collect.job_key(a)
+        index[ka]["first_seen"] = (
+            datetime.now(timezone.utc) - timedelta(days=1)
+        ).isoformat()  # make a the earliest → canonical
+        index = collect.update_index([b], index)
+        kb = collect.job_key(b)
+        self.assertNotIn("dupe_of", index[ka])       # canonical unmarked
+        self.assertEqual(index[kb]["dupe_of"], ka)   # variant points at canonical
+
+    def test_same_title_different_company_no_dupe_of(self):
+        a = collect.norm("Backend Engineer", "Acme", "Berlin", "https://x.com/a", "s")
+        b = collect.norm("Backend Engineer", "Globex", "Berlin", "https://x.com/b", "s")
+        index = collect.update_index([a], {})
+        index = collect.update_index([b], index)
+        self.assertNotIn("dupe_of", index[collect.job_key(b)])  # never across companies
+
+    def test_role_key_and_first_seen_preserved(self):
+        a = collect.norm("Senior Backend Engineer", "Acme", "Berlin", "https://x.com/a", "s")
+        b = collect.norm("Backend Engineer", "Acme", "Warsaw", "https://x.com/b", "s")
+        index = collect.update_index([a], {})
+        ka = collect.job_key(a)
+        index[ka]["first_seen"] = (
+            datetime.now(timezone.utc) - timedelta(days=1)
+        ).isoformat()
+        fs_a = index[ka]["first_seen"]
+        index = collect.update_index([b], index)
+        kb = collect.job_key(b)
+        self.assertEqual(index[ka]["first_seen"], fs_a)          # canonical untouched
+        self.assertEqual(index[ka]["role_key"], collect.role_key(a))
+        self.assertEqual(index[kb]["role_key"], collect.role_key(b))  # role_key never replaced
+        self.assertIn("dupe_of", index[kb])
+
+    def test_exact_dup_still_by_job_key(self):
+        a = collect.norm("Backend Engineer", "Acme", "Berlin", "https://x.com/same", "s")
+        b = collect.norm("Backend Engineer", "Acme", "Warsaw", "https://x.com/same", "s")
+        index = collect.update_index([a, b], {})
+        self.assertEqual(len(index), 1)  # same job_key collapses, existing behavior
+        self.assertNotIn("dupe_of", index[collect.job_key(a)])
+
     def test_run_collect_source_error_isolated(self):
         good_jobs = [
             collect.norm("Backend Engineer", "Acme", "Remote, Europe", "https://x.com/1", "good")
