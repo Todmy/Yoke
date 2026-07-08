@@ -71,6 +71,9 @@ scoring:
     untrusted_apply_domain: 0.4
     confidential_employer: 0.1
 
+dedup:
+  title_ratio: 0.90 # WS4 near-duplicate threshold: same-company titles this similar collapse
+
 sources:
   enabled: [] # remembered consent selection, e.g. [hn, remoteok]
   companies: [] # ATS boards, e.g. [{slug: examplecorp, ats: greenhouse}]

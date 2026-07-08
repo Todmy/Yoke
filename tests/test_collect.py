@@ -264,6 +264,11 @@ class TestCollect(unittest.TestCase):
         self.assertEqual(len(index), 1)  # same job_key collapses, existing behavior
         self.assertNotIn("dupe_of", index[collect.job_key(a)])
 
+    def test_example_profile_has_dedup_ratio(self):
+        example = Path(_REPO_ROOT) / "profile.example.yml"
+        profile = paths.load_profile(example)
+        self.assertEqual(profile["dedup"]["title_ratio"], 0.90)
+
     def test_run_collect_source_error_isolated(self):
         good_jobs = [
             collect.norm("Backend Engineer", "Acme", "Remote, Europe", "https://x.com/1", "good")

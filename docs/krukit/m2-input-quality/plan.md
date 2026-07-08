@@ -36,7 +36,7 @@
 - [x] T2.2 comp precedence + soft estimate (WS2)
 - [x] T4.1 title normalization + similarity (WS4) [P]
 - [x] T4.2 update_index attaches dupe_of (WS4)
-- [ ] T4.3 profile dedup config (WS4) [mechanical]
+- [x] T4.3 profile dedup config (WS4) [mechanical]
 - [ ] T4.4 build_cards skips dupe_of entries (WS4)
 - [ ] T5.1 parity harness tools/parity_check.py (DoD)
 
