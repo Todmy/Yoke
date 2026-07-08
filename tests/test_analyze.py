@@ -91,6 +91,35 @@ class FakeBackend:
         return r
 
 
+class TestAnalysisSchema(unittest.TestCase):
+    def test_version_is_2(self):
+        self.assertEqual(analyze.ANALYSIS_SCHEMA_VERSION, 2)
+
+    def test_schema_accepts_classified_red_flags(self):
+        items = analyze.ANALYSIS_SCHEMA["properties"]["red_flags"]["items"]
+        self.assertEqual(items["type"], "object")
+        self.assertEqual(
+            items["properties"]["category"]["enum"], list(analyze.RED_FLAG_CATEGORIES)
+        )
+        self.assertIn("category", items["required"])
+        self.assertIn("evidence", items["required"])
+        # red_flags stays a top-level required field
+        self.assertIn("red_flags", analyze.ANALYSIS_SCHEMA["required"])
+
+    def test_schema_rejects_unknown_category(self):
+        # the enum is exactly the fixed set — any other value is out of contract
+        enum = analyze.ANALYSIS_SCHEMA["properties"]["red_flags"]["items"][
+            "properties"
+        ]["category"]["enum"]
+        self.assertNotIn("totally_made_up", enum)
+        self.assertEqual(tuple(enum), analyze.RED_FLAG_CATEGORIES)
+
+    def test_mock_fill_still_valid(self):
+        result = analyze.mock_fill({"key": "k"}, ["hire_probability"])
+        self.assertEqual(result["red_flags"], [])  # empty list stays valid
+        self.assertTrue(analyze._schema_ok(result))
+
+
 class TestAnalyze(unittest.TestCase):
     def test_only_needs_ai_calls_backend(self):
         backend = FakeBackend([_response()])
