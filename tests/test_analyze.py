@@ -365,6 +365,17 @@ class TestRedFlagPenalty(unittest.TestCase):
         rec = analyze.analyze_cards([card], _profile(), backend)[0]
         self.assertEqual(rec["fit"], 46)  # capped: 92*0.5, not 92*0.1=9
 
+    def test_penalty_deduped_by_category(self):
+        # model flags a category the card's ghost signal also detects → the
+        # category penalizes ONCE, not once per source (no double-count).
+        backend = FakeBackend([_response(
+            red_flags=[{"category": "untrusted_apply_domain", "evidence": "shortener"}]
+        )])
+        card = _card(ghost_flags=["untrusted_apply_domain"])  # same category, code-detected
+        rec = analyze.analyze_cards([card], _profile(), backend)[0]
+        # 0.4 once → round(92*0.6)=55, NOT round(92*(1-min(0.8,0.5)))=46
+        self.assertEqual(rec["fit"], 55)
+
     def test_ghost_flags_field_penalizes(self):
         # clean model output, but a code-detected ghost flag on the card
         backend = FakeBackend([_response()])

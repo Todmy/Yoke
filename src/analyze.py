@@ -272,12 +272,16 @@ def analyze_cards(cards, profile, backend, log=None):
             {"category": c, "evidence": f"detected: {c}"}
             for c in (card.get("ghost_flags") or []) if c
         ]
-        penalties = []
+        penalties, seen = [], set()
         for rf in red_flags:
             cat = rf["category"]
-            penalties.append(red_flag_map.get(cat, 0.0))
             if cat not in red_flag_map:
                 log(f"  unknown red-flag category '{cat}' — penalty 0 (fail-open)")
+                continue
+            if cat in seen:
+                continue  # a category penalizes once, even if model + ghost both flag it
+            seen.add(cat)
+            penalties.append(red_flag_map[cat])
 
         fit_base = scoring.fit(scores, weights)
         fit = scoring.penalized_fit(fit_base, penalties, red_flag_cap)
