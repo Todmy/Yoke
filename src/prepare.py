@@ -9,12 +9,19 @@ the model confirms remoteness; determinism only rejects what it can prove.
 
 import json
 from datetime import datetime, timedelta, timezone
+from urllib.parse import urlparse
 
 from src import comp
 from src.collect import EU_TERMS, NON_EU
 from src.paths import ensure_home
 
 WINDOW_DAYS = 14
+# Ghost/liveness signals (WS3): apply-URL shorteners, posting-age thresholds,
+# and confidential-employer markers. All pure metadata checks — no network.
+SHORTENER_HOSTS = {"bit.ly", "tinyurl.com", "forms.gle", "goo.gl", "t.co", "rb.gy"}
+STALE_DAYS = 30       # posted_at older than this → stale_posting
+EVERGREEN_DAYS = 30   # first→last_seen span beyond this → repost_churn
+CONFIDENTIAL_MARKERS = {"", "confidential", "undisclosed", "stealth", "n/a"}
 REMOTE_TERMS = [
     "remote", "anywhere", "worldwide", "global", "distributed",
     "work from home", "wfh",
@@ -34,6 +41,38 @@ def _parse_ts(s):
     if ts.tzinfo is None:
         ts = ts.replace(tzinfo=timezone.utc)
     return ts
+
+
+def ghost_flags(entry, now=None):
+    """Deterministic ghost/liveness red-flag categories from card metadata (WS3).
+
+    Pure, no network — these feed the same WS1 penalty seam analyze applies.
+    Returns a subset of {stale_posting, repost_churn, untrusted_apply_domain,
+    confidential_employer}. Missing or unparseable fields contribute nothing
+    (flag-never-drop: a false heuristic must never delete a real role).
+    """
+    now = now or datetime.now(timezone.utc)
+    flags = []
+
+    posted = _parse_ts(entry.get("posted_at"))
+    if posted is not None and posted < now - timedelta(days=STALE_DAYS):
+        flags.append("stale_posting")
+
+    first = _parse_ts(entry.get("first_seen"))
+    last = _parse_ts(entry.get("last_seen"))
+    if first and last and last - first > timedelta(days=EVERGREEN_DAYS):
+        flags.append("repost_churn")
+
+    host = urlparse(entry.get("url") or "").netloc.lower()
+    if host.startswith("www."):
+        host = host[4:]
+    if host in SHORTENER_HOSTS:
+        flags.append("untrusted_apply_domain")
+
+    if (entry.get("company") or "").strip().lower() in CONFIDENTIAL_MARKERS:
+        flags.append("confidential_employer")
+
+    return flags
 
 
 def window_slice(index, last_run, days=WINDOW_DAYS):

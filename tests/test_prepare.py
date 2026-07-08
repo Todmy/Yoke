@@ -147,5 +147,64 @@ class TestPrepare(unittest.TestCase):
         self.assertEqual(cards[0]["comp_norm"]["floor_verdict"], "above")
 
 
+class TestGhostFlags(unittest.TestCase):
+    def test_clean_entry_no_flags(self):
+        self.assertEqual(prepare.ghost_flags(_entry()), [])
+
+    def test_stale_posting_fires(self):
+        now = datetime.now(timezone.utc)
+        e = _entry()
+        e["posted_at"] = _iso(now - timedelta(days=40))
+        self.assertIn("stale_posting", prepare.ghost_flags(e, now=now))
+
+    def test_stale_uses_injected_now(self):
+        now = datetime(2026, 6, 1, tzinfo=timezone.utc)
+        e = _entry()
+        e["posted_at"] = _iso(now - timedelta(days=40))
+        self.assertIn("stale_posting", prepare.ghost_flags(e, now=now))
+        # a recent posting relative to the SAME injected now must not fire
+        e["posted_at"] = _iso(now - timedelta(days=10))
+        self.assertNotIn("stale_posting", prepare.ghost_flags(e, now=now))
+
+    def test_repost_churn_fires(self):
+        now = datetime.now(timezone.utc)
+        e = _entry(first_seen=_iso(now - timedelta(days=45)))
+        e["last_seen"] = _iso(now)  # 45-day span > 30-day evergreen
+        self.assertIn("repost_churn", prepare.ghost_flags(e, now=now))
+        # a short-lived sighting does not
+        fresh = _entry()
+        self.assertNotIn("repost_churn", prepare.ghost_flags(fresh))
+
+    def test_untrusted_apply_domain_fires(self):
+        self.assertIn(
+            "untrusted_apply_domain", prepare.ghost_flags(_entry(url="https://bit.ly/xyz"))
+        )
+        self.assertNotIn(
+            "untrusted_apply_domain",
+            prepare.ghost_flags(_entry(url="https://jobs.acme.com/1")),
+        )
+
+    def test_shortener_matched_case_insensitive(self):
+        self.assertIn(
+            "untrusted_apply_domain", prepare.ghost_flags(_entry(url="https://BIT.LY/AbC"))
+        )
+
+    def test_www_prefix_stripped(self):
+        self.assertIn(
+            "untrusted_apply_domain",
+            prepare.ghost_flags(_entry(url="https://www.forms.gle/abc")),
+        )
+
+    def test_confidential_employer_fires(self):
+        for name in ("", "Confidential", "Stealth", "n/a"):
+            self.assertIn(
+                "confidential_employer", prepare.ghost_flags(_entry(company=name)), name
+            )
+
+    def test_missing_fields_no_crash(self):
+        # empty entry: only the empty company reads as confidential, no crash
+        self.assertEqual(prepare.ghost_flags({}), ["confidential_employer"])
+
+
 if __name__ == "__main__":
     unittest.main()
