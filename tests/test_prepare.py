@@ -147,6 +147,28 @@ class TestPrepare(unittest.TestCase):
         self.assertEqual(cards[0]["comp_norm"]["floor_verdict"], "above")
 
 
+class TestBuildCardsGhostFlags(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        os.environ["YOKE_HOME"] = self._tmp.name
+
+    def tearDown(self):
+        self._tmp.cleanup()
+        os.environ["YOKE_HOME"] = _TMP
+
+    def test_card_carries_ghost_flags(self):
+        cards = prepare.build_cards(_profile(), {"k": _entry()}, {})
+        self.assertIn("ghost_flags", cards[0])
+        self.assertEqual(cards[0]["ghost_flags"], [])
+
+    def test_stale_entry_card_has_stale_posting(self):
+        now = datetime.now(timezone.utc)
+        e = _entry()
+        e["posted_at"] = _iso(now - timedelta(days=40))
+        cards = prepare.build_cards(_profile(), {"k": e}, {})
+        self.assertIn("stale_posting", cards[0]["ghost_flags"])
+
+
 class TestGhostFlags(unittest.TestCase):
     def test_clean_entry_no_flags(self):
         self.assertEqual(prepare.ghost_flags(_entry()), [])

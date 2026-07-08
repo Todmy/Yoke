@@ -187,6 +187,7 @@ def build_cards(profile, index, state):
             **entry,
             "comp_norm": comp_norm,
             "gates_failed": gates_failed,
+            "ghost_flags": ghost_flags(entry),
             "frictions": [friction] if friction else [],
             "in_window": in_window,
             "needs_ai": in_window and not gates_failed,
