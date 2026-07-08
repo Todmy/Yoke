@@ -7,7 +7,7 @@ Task: M2 "Input quality" (ROADMAP.md) — 4 workstreams: (1) scoring formula = r
 - [x] 4 plan — done 2026-07-08, artifact: plan.md
 - [x] 5 act — done 2026-07-08, artifact: plan.md
 - [x] 6 verify — done 2026-07-08, artifact: verify.md
-- [ ] 7 review
+- [x] 7 review — done 2026-07-08, artifact: flow-state.md
 
 ## Routing evidence (Stage 0)
 > "M2 'scoring-depth' scope = Whole M2 input-quality" + "Route = full (Recommended)" — 2026-07-08 (AskUserQuestion, verbatim option selections)
@@ -38,3 +38,16 @@ Pre-route recon finding: windowing (`prepare.window_slice`/`build_cards`) and ap
 ## Design gate evidence (Stage 3)
 - DoD choice: parity-comparison with prototype included.
 > "+" — 2026-07-08 (design approved as-is; fixed-universal red-flag enum accepted, defaults cap=0.5 / dedup ratio=0.90 accepted)
+
+## Review summary (Stage 7)
+
+Independent fresh-eyes review of the full m2 diff (1173 lines, 12 files). 7 findings resolved on merits — **4 fixed, 2 declined, 1 addressed**:
+
+- **#1 CRITICAL (fixed)** — `build_cards` dropped a live role when its `dupe_of` canonical was pruned; now fails open on a dangling canonical (commit a893b3c).
+- **#3/#5 IMPORTANT+MINOR (fixed)** — seniority stripping merged distinct senior/junior roles, and empty-normalized titles matched at ratio 1.0; added a seniority-level discriminator + empty guard (commit f4bb55a).
+- **#4 IMPORTANT (fixed)** — a red-flag category could double-count across model+ghost; penalties deduped per category (commit 6c02206).
+- **#2 IMPORTANT (declined)** — earliest-`first_seen` canonical is required for WS3 `repost_churn` + windowing (freshest would corrupt the span); role still surfaces via canonical; not re-scoring dupes is the design's intended cost-saving.
+- **#6 MINOR (declined)** — estimate feeding `fit_base` is the design's soft behavior, capped at B by the "estimated comp" friction.
+- **#7 MINOR (addressed)** — the pruned-canonical / dedup-edge test gap is closed by the new fix tests.
+
+Invariants re-confirmed by the reviewer (fit purity, hard-C independence, prepare purity, no third-party module import, 8-key norm, WS2 gate-safety). **Final suite: 207 tests green.** Branch outcome: **pushed to origin/main** (fast-forward `b59b472..6c02206`, explicit user permission). Knowledge: 2 Valis entries (proposed) — parity deferral + fuzzy-dedup lifecycle lessons.
