@@ -278,6 +278,53 @@ class TestAnalyze(unittest.TestCase):
         self.assertNotIn("analysis_failed", records[0])
 
 
+def _comp(mn, mx, unit="month"):
+    return {"min": mn, "max": mx, "currency": "usd", "unit": unit, "type": "b2b"}
+
+
+class TestCompPrecedence(unittest.TestCase):
+    def test_precedence_source_over_parsed_over_estimated(self):
+        # all three present → source (card.comp_norm) wins, no ≈ marker
+        resp = _response(comp_parsed=_comp(100, 100), comp_estimated=_comp(1, 1))
+        rec = analyze.analyze_cards([_card()], _profile(), FakeBackend([resp]))[0]
+        self.assertEqual(rec["comp_display"], "$8,400–10,100/mo net")  # the source band
+
+    def test_precedence_parsed_over_estimated(self):
+        # no source; parsed present beats estimate
+        resp = _response(comp_parsed=_comp(8000, 9000), comp_estimated=_comp(1, 1))
+        rec = analyze.analyze_cards([_card(comp_norm=None)], _profile(), FakeBackend([resp]))[0]
+        self.assertEqual(rec["comp_display"], "$8,000–9,000/mo net")  # parsed, not ≈1
+
+    def test_estimated_below_not_tier_c(self):
+        # below-floor estimate lowers the comp score but never forces Tier C
+        resp = _response(comp_estimated=_comp(2000, 3000))
+        rec = analyze.analyze_cards([_card(comp_norm=None)], _profile(), FakeBackend([resp]))[0]
+        self.assertEqual(rec["features"]["comp_vs_floor"]["score"], 0)  # below → 0
+        self.assertNotEqual(rec["tier"], "C")  # estimate keeps comp_ok True
+        self.assertEqual(rec["tier"], "B")
+
+    def test_estimated_sets_friction_and_display(self):
+        resp = _response(comp_estimated=_comp(8000, 9000))
+        rec = analyze.analyze_cards([_card(comp_norm=None)], _profile(), FakeBackend([resp]))[0]
+        self.assertTrue(rec["comp_display"].startswith("≈ "))  # estimate marked
+        self.assertEqual(rec["comp_display"], "≈ $8,000–9,000/mo net")
+        self.assertEqual(rec["tier"], "B")  # "estimated comp" friction demotes A→B
+
+    def test_unknown_still_50_when_no_estimate(self):
+        # no source, no parsed, no estimate → unchanged comp-unknown path
+        rec = analyze.analyze_cards([_card(comp_norm=None)], _profile(), FakeBackend([_response()]))[0]
+        self.assertEqual(rec["features"]["comp_vs_floor"]["score"], 50)
+        self.assertEqual(rec["fit"], 77)
+        self.assertEqual(rec["comp_display"], "—")
+
+    def test_unnormalizable_estimate_falls_to_unknown(self):
+        # an estimate with no figures normalizes to unknown → comp-unknown path
+        resp = _response(comp_estimated={"currency": "usd"})
+        rec = analyze.analyze_cards([_card(comp_norm=None)], _profile(), FakeBackend([resp]))[0]
+        self.assertEqual(rec["features"]["comp_vs_floor"]["score"], 50)
+        self.assertEqual(rec["comp_display"], "—")
+
+
 class TestRedFlagPenalty(unittest.TestCase):
     def test_penalty_lowers_fit_and_tier(self):
         backend = FakeBackend([_response(

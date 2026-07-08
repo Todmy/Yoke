@@ -129,8 +129,12 @@ def build_card_prompt(card, profile):
     return _SYSTEM, "\n".join(lines)
 
 
-def comp_display(comp_norm):
-    """Human comp string from a normalized dict, '—' when unknown."""
+def comp_display(comp_norm, is_estimated=False):
+    """Human comp string from a normalized dict, '—' when unknown.
+
+    Model-estimated comp (WS2) is prefixed '≈ ' so the board reads it as a
+    guess, not a stated figure.
+    """
     if not comp_norm:
         return "—"
     lo, hi = comp_norm.get("usd_min_mo"), comp_norm.get("usd_max_mo")
@@ -138,9 +142,10 @@ def comp_display(comp_norm):
     hi = hi if hi is not None else lo
     if lo is None:
         return "—"
+    prefix = "≈ " if is_estimated else ""
     if lo == hi:
-        return f"${lo:,}/mo net"
-    return f"${lo:,}–{hi:,}/mo net"
+        return f"{prefix}${lo:,}/mo net"
+    return f"{prefix}${lo:,}–{hi:,}/mo net"
 
 
 def mock_fill(card, feature_names=None):
@@ -220,12 +225,23 @@ def analyze_cards(cards, profile, backend, log=None):
             records.append(rec)
             continue
 
+        # Comp precedence (WS2): source (collect) → JD-parsed verbatim → model
+        # estimate. The estimate is soft — it never forces Tier C and never
+        # touches prepare's hard comp_floor gate (which only sees source comp).
         frictions = list(card.get("frictions") or [])
         comp_norm = card.get("comp_norm")
+        is_estimated = False
         if comp_norm is None and result.get("comp_parsed"):
             comp_norm = comp.normalize(result["comp_parsed"], floor)
+        if comp_norm is None and result.get("comp_estimated"):
+            est = comp.normalize(result["comp_estimated"], floor)
+            if est.get("floor_verdict") != "unknown":  # un-normalizable → unknown path
+                comp_norm, is_estimated = est, True
         verdict = (comp_norm or {}).get("floor_verdict", "unknown")
-        if verdict == "unknown" and "comp unknown" not in frictions:
+        if is_estimated:
+            if "estimated comp" not in frictions:
+                frictions.append("estimated comp")
+        elif verdict == "unknown" and "comp unknown" not in frictions:
             frictions.append("comp unknown")
 
         geo = result["geo_certainty"]
@@ -265,16 +281,17 @@ def analyze_cards(cards, profile, backend, log=None):
 
         fit_base = scoring.fit(scores, weights)
         fit = scoring.penalized_fit(fit_base, penalties, red_flag_cap)
+        comp_ok = True if is_estimated else (verdict != "below")
         if geo == "onsite" or result["lane"] == "off":
             tier = "C"  # hard fail, never friction-demoted B
         else:
-            tier = scoring.tier_of(fit, True, verdict != "below", frictions)
+            tier = scoring.tier_of(fit, True, comp_ok, frictions)
 
         rec.update({
             "fit": fit, "tier": tier, "features": features, "geo_certainty": geo,
             "red_flags": red_flags,
             "note": str(result.get("note") or ""),
-            "comp_display": comp_display(comp_norm),
+            "comp_display": comp_display(comp_norm, is_estimated),
         })
         records.append(rec)
     return records
