@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workzag-jobs>
+  <position>
+    <id>2334688</id>
+    <subcompany>getquin GmbH</subcompany>
+    <office>Berlin</office>
+    <department>Business Development</department>
+    <recruitingCategory>FTE - General</recruitingCategory>
+    <name>Business Development Manager (f/m/d)</name>
+    <jobDescriptions>
+      <jobDescription>
+        <name><![CDATA[Was wir tun]]></name>
+        <value><![CDATA[<p>At getquin, we’re on a mission to empower everyone to build wealth.</p>]]></value>
+      </jobDescription>
+    </jobDescriptions>
+    <employmentType>permanent</employmentType>
+    <seniority>experienced</seniority>
+    <schedule>full-time</schedule>
+    <createdAt>2025-09-12T18:32:55+00:00</createdAt>
+  </position>
+  <position>
+    <id>2067052</id>
+    <subcompany>getquin GmbH</subcompany>
+    <office>Berlin</office>
+    <department>Business Development</department>
+    <recruitingCategory>FTE - General</recruitingCategory>
+    <name>Finanzberater (w/m/d)</name>
+    <jobDescriptions>
+      <jobDescription>
+        <name><![CDATA[Was wir tun]]></name>
+        <value><![CDATA[<p>Bei getquin verfolgen wir die Mission, Menschen dabei zu unterstützen, bessere Investoren zu werden!</p>]]></value>
+      </jobDescription>
+    </jobDescriptions>
+    <employmentType>permanent</employmentType>
+    <seniority>entry-level</seniority>
+    <schedule>full-time</schedule>
+    <createdAt>2025-04-22T22:04:54+00:00</createdAt>
+  </position>
+</workzag-jobs>

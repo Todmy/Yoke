@@ -1,0 +1,50 @@
+{
+  "name": "Zego",
+  "description": "<p>Zego is a commercial motor insurance provider.</p>",
+  "jobs": [
+    {
+      "title": "Claims Data Analyst",
+      "shortcode": "2446BEA4E2",
+      "code": "",
+      "employment_type": "Full-time",
+      "telecommuting": false,
+      "department": "Claims and Fraud",
+      "url": "https://apply.workable.com/j/2446BEA4E2",
+      "shortlink": "https://apply.workable.com/j/2446BEA4E2",
+      "application_url": "https://apply.workable.com/j/2446BEA4E2/apply",
+      "published_on": "2026-07-06",
+      "created_at": "2025-02-06",
+      "country": "United Kingdom",
+      "city": "London",
+      "state": "England",
+      "experience": "Mid-Senior level",
+      "function": "Data Analyst",
+      "industry": "Insurance",
+      "locations": [
+        {"country": "United Kingdom", "countryCode": "GB", "city": "London", "region": "England", "hidden": false}
+      ]
+    },
+    {
+      "title": "Claims Handler - Third Party",
+      "shortcode": "450EC5C378",
+      "code": "",
+      "employment_type": "Full-time",
+      "telecommuting": false,
+      "department": "Claims and Fraud",
+      "url": "https://apply.workable.com/j/450EC5C378",
+      "shortlink": "https://apply.workable.com/j/450EC5C378",
+      "application_url": "https://apply.workable.com/j/450EC5C378/apply",
+      "published_on": "2025-09-04",
+      "created_at": "2025-09-04",
+      "country": "United Kingdom",
+      "city": "Halifax",
+      "state": "England",
+      "experience": "Associate",
+      "function": "Other",
+      "industry": "Insurance",
+      "locations": [
+        {"country": "United Kingdom", "countryCode": "GB", "city": "Halifax", "region": "England", "hidden": false}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!DOCTYPE lolz [
+  <!ENTITY lol "lol">
+  <!ENTITY lol1 "&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;">
+  <!ENTITY lol2 "&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;">
+  <!ENTITY lol3 "&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;">
+]>
+<workzag-jobs>
+  <position>
+    <id>1</id>
+    <office>Berlin</office>
+    <name>&lol3;</name>
+    <createdAt>2026-01-01T00:00:00+00:00</createdAt>
+  </position>
+</workzag-jobs>

@@ -1,0 +1,43 @@
+{
+  "offset": 0,
+  "limit": 100,
+  "totalFound": 2,
+  "content": [
+    {
+      "id": "744000133907678",
+      "name": "Sr. Manager",
+      "refNumber": "REF97395W",
+      "company": {"identifier": "Visa", "name": "Visa"},
+      "releasedDate": "2026-06-24T10:00:11.853Z",
+      "location": {
+        "city": "Austin",
+        "region": "TX",
+        "country": "us",
+        "remote": false,
+        "hybrid": false,
+        "fullLocation": "Austin, TX, United States"
+      },
+      "typeOfEmployment": {"id": "permanent", "label": "Full-time"},
+      "experienceLevel": {"id": "mid_senior_level", "label": "Mid-Senior Level"},
+      "visibility": "PUBLIC"
+    },
+    {
+      "id": "744000129971988",
+      "name": "Director",
+      "refNumber": "REF95012Q",
+      "company": {"identifier": "Visa", "name": "Visa"},
+      "releasedDate": "2026-06-03T11:08:12.368Z",
+      "location": {
+        "city": "Bengaluru",
+        "region": "KA",
+        "country": "in",
+        "remote": false,
+        "hybrid": false,
+        "fullLocation": "Bengaluru, KA, India"
+      },
+      "typeOfEmployment": {"id": "permanent", "label": "Full-time"},
+      "experienceLevel": {"id": "director", "label": "Director"},
+      "visibility": "PUBLIC"
+    }
+  ]
+}

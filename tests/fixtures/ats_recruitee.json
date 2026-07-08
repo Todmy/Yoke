@@ -1,0 +1,52 @@
+{
+  "offers": [
+    {
+      "id": 2666791,
+      "title": "Head of Trust & Transparency",
+      "slug": "head-of-trust-transparency",
+      "careers_url": "https://careers.bunq.com/o/head-of-trust-transparency",
+      "careers_apply_url": "https://careers.bunq.com/o/head-of-trust-transparency/c/new",
+      "location": "Amsterdam, Noord-Holland, Netherlands",
+      "city": "Amsterdam",
+      "country": "Netherlands",
+      "country_code": "NL",
+      "department": "Legal",
+      "employment_type_code": "fulltime_permanent",
+      "published_at": "2026-07-03 16:23:27 UTC",
+      "created_at": "2026-07-03 15:57:43 UTC",
+      "min_hours": 40,
+      "max_hours": 40,
+      "remote": false,
+      "hybrid": true,
+      "salary": {"min": null, "max": null, "period": null, "currency": null},
+      "description": "<p>At bunq 🌈, users trust us with her money across 30+ countries.</p>",
+      "locations": [
+        {"id": 39979, "name": "Amsterdam", "state": "Noord-Holland", "country": "Netherlands", "city": "Amsterdam"}
+      ]
+    },
+    {
+      "id": 2666546,
+      "title": "Medior Legal Counsel",
+      "slug": "medior-legal-counsel-4",
+      "careers_url": "https://careers.bunq.com/o/medior-legal-counsel-4",
+      "careers_apply_url": "https://careers.bunq.com/o/medior-legal-counsel-4/c/new",
+      "location": "Amsterdam, Noord-Holland, Netherlands",
+      "city": "Amsterdam",
+      "country": "Netherlands",
+      "country_code": "NL",
+      "department": "Legal",
+      "employment_type_code": "fulltime_permanent",
+      "published_at": "2026-07-03 15:47:28 UTC",
+      "created_at": "2026-07-03 15:30:00 UTC",
+      "min_hours": 40,
+      "max_hours": 40,
+      "remote": false,
+      "hybrid": true,
+      "salary": {"min": null, "max": null, "period": null, "currency": null},
+      "description": "<p>At bunq 🌈, we move fast, launching products, entering new markets, and onboarding partners across the globe.</p>",
+      "locations": [
+        {"id": 39979, "name": "Amsterdam", "state": "Noord-Holland", "country": "Netherlands", "city": "Amsterdam"}
+      ]
+    }
+  ]
+}
