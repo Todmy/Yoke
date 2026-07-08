@@ -129,6 +129,32 @@ class TestAnalysisSchema(unittest.TestCase):
         self.assertTrue(analyze._schema_ok(result))
 
 
+class TestCompEstimatedSchema(unittest.TestCase):
+    def test_schema_accepts_comp_estimated(self):
+        props = analyze.ANALYSIS_SCHEMA["properties"]
+        self.assertIn("comp_estimated", props)
+        # same field shape as the verbatim comp_parsed
+        self.assertEqual(
+            set(props["comp_estimated"]["properties"]),
+            set(props["comp_parsed"]["properties"]),
+        )
+        self.assertIn("null", props["comp_estimated"]["type"])
+
+    def test_schema_valid_without_comp_estimated(self):
+        # optional field — the mock (which omits it) stays valid
+        result = analyze.mock_fill({"key": "k"}, ["hire_probability"])
+        self.assertNotIn("comp_estimated", result)
+        self.assertTrue(analyze._schema_ok(result))
+        self.assertNotIn("comp_estimated", analyze.ANALYSIS_SCHEMA["required"])
+
+    def test_prompt_includes_target_market(self):
+        profile = _profile()
+        profile["countries"] = ["de", "pl"]
+        _, prompt = analyze.build_card_prompt(_card(), profile)
+        self.assertIn("de, pl", prompt)
+        self.assertIn("comp_estimated", analyze._SYSTEM)  # estimate-when-absent
+
+
 class TestAnalyze(unittest.TestCase):
     def test_only_needs_ai_calls_backend(self):
         backend = FakeBackend([_response()])

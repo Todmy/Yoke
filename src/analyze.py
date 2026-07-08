@@ -72,6 +72,17 @@ ANALYSIS_SCHEMA = {
                 "type": {"enum": ["b2b", "permanent", "uop"]},
             },
         },
+        "comp_estimated": {
+            "type": ["object", "null"],
+            "description": "estimated band when the posting states no pay, else null",
+            "properties": {
+                "min": {"type": ["number", "null"]},
+                "max": {"type": ["number", "null"]},
+                "currency": {"type": "string"},
+                "unit": {"enum": ["hour", "day", "month", "year"]},
+                "type": {"enum": ["b2b", "permanent", "uop"]},
+            },
+        },
     },
     "required": ["features", "geo_certainty", "lane", "red_flags", "note", "comp_parsed"],
 }
@@ -80,8 +91,11 @@ _SYSTEM = (
     "You score one job posting for one candidate.\n"
     "Score each requested feature 0-100 (integer) with one line of evidence. "
     "Judge only from the card fields and posting text provided.\n"
-    "Never do compensation arithmetic or unit conversion — if the posting states "
-    "pay, copy its numbers verbatim into comp_parsed; otherwise set it to null.\n"
+    "Never do compensation arithmetic or unit conversion. If the posting states "
+    "pay, copy its numbers verbatim into comp_parsed and leave comp_estimated "
+    "null. If pay is absent, leave comp_parsed null and fill comp_estimated with "
+    "your best band for THIS company in the candidate's target market — never "
+    "fill both.\n"
     "geo_certainty: remote_confirmed only when the posting clearly allows the "
     "candidate's geography; verify when unclear; onsite when presence is required.\n"
     "lane: on / adjacent / off relative to the requested features' framing.\n"
@@ -102,6 +116,14 @@ def build_card_prompt(card, profile):
     lines += ["", "Job card:"]
     for field in ("company", "title", "location", "source", "url", "posted_at"):
         lines.append(f"{field}: {card.get(field, '')}")
+    countries = profile.get("countries", [])
+    market = ", ".join(countries) if countries else "remote EU"
+    floor = profile.get("comp", {}).get("floor_net_usd_mo", comp.DEFAULT_FLOOR)
+    lines += [
+        "",
+        f"If pay is absent, estimate comp_estimated for this company in the "
+        f"candidate's target market ({market}); reference net floor ${floor}/mo.",
+    ]
     jd = (card.get("jd") or card.get("description") or "")[:JD_MAX_CHARS]
     lines += ["", "<job_posting>", jd, "</job_posting>"]
     return _SYSTEM, "\n".join(lines)

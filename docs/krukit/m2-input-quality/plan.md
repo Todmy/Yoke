@@ -32,7 +32,7 @@
 - [x] T3.1 prepare.ghost_flags (WS3)
 - [x] T3.2 attach ghost_flags in build_cards (WS3)
 - [x] T3.3 ghost penalty flows through analyze (WS3) [P]
-- [ ] T2.1 comp_estimated schema + market-aware prompt (WS2)
+- [x] T2.1 comp_estimated schema + market-aware prompt (WS2)
 - [ ] T2.2 comp precedence + soft estimate (WS2)
 - [ ] T4.1 title normalization + similarity (WS4) [P]
 - [ ] T4.2 update_index attaches dupe_of (WS4)
