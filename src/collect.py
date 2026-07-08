@@ -5,6 +5,7 @@ exposing NAME / TAGS / COST / available() / fetch(profile). run_collect is
 error-isolated per source: one failing plugin never kills the scan.
 """
 
+import difflib
 import html
 import importlib
 import json
@@ -115,6 +116,32 @@ def role_key(job):
     t = re.sub(r"[^a-z0-9 ]", "", (job["title"] or "").lower())
     t = re.sub(r"\s+", " ", t).strip()
     return f"{job['company'].lower()}|{t}"
+
+
+# Seniority tokens dropped before near-duplicate comparison (WS4).
+_SENIORITY = {"senior", "sr", "junior", "jr", "mid", "middle", "lead", "staff",
+              "principal"}
+
+
+def _normalize_title(title):
+    """Lowercase, drop seniority tokens, unify js/node aliases, strip punctuation.
+
+    Feeds the WS4 near-duplicate check — collapses cosmetic title variance so
+    reposts of one role read as one. Aliases are unified BEFORE punctuation is
+    stripped (node.js carries a dot). Pure, stdlib only.
+    """
+    t = (title or "").lower()
+    t = re.sub(r"\bnode\.?js\b", "nodejs", t)
+    t = re.sub(r"\bjavascript\b", "js", t)
+    t = re.sub(r"[^a-z0-9 ]", " ", t)
+    return " ".join(w for w in t.split() if w not in _SENIORITY)
+
+
+def _title_similar(a, b, ratio):
+    """True when two titles are near-duplicates after normalization (WS4)."""
+    return difflib.SequenceMatcher(
+        None, _normalize_title(a), _normalize_title(b)
+    ).ratio() >= ratio
 
 
 def matches_profile(job, profile, bypass_lane=False):

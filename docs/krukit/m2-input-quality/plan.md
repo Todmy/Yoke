@@ -34,7 +34,7 @@
 - [x] T3.3 ghost penalty flows through analyze (WS3) [P]
 - [x] T2.1 comp_estimated schema + market-aware prompt (WS2)
 - [x] T2.2 comp precedence + soft estimate (WS2)
-- [ ] T4.1 title normalization + similarity (WS4) [P]
+- [x] T4.1 title normalization + similarity (WS4) [P]
 - [ ] T4.2 update_index attaches dupe_of (WS4)
 - [ ] T4.3 profile dedup config (WS4) [mechanical]
 - [ ] T4.4 build_cards skips dupe_of entries (WS4)

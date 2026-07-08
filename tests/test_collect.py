@@ -201,6 +201,26 @@ class TestCollect(unittest.TestCase):
         self.assertNotIn("stale-key", index)
         self.assertIn(k, index)
 
+    def test_normalize_strips_seniority(self):
+        self.assertEqual(collect._normalize_title("Senior Node.js Engineer"), "nodejs engineer")
+        self.assertEqual(collect._normalize_title("Staff Backend Engineer"), "backend engineer")
+        # the seniority-stripped pair is similar enough to dedup
+        self.assertTrue(collect._title_similar("Senior Node.js Engineer", "Node Engineer", 0.9))
+
+    def test_js_javascript_unified(self):
+        self.assertEqual(
+            collect._normalize_title("JavaScript Developer"),
+            collect._normalize_title("JS Developer"),
+        )
+
+    def test_similar_true_above_ratio(self):
+        # a near-identical variant clears a 0.9 bar but not a strict 0.99 one
+        self.assertTrue(collect._title_similar("Backend Engineer", "Backend Engineers", 0.9))
+        self.assertFalse(collect._title_similar("Backend Engineer", "Backend Engineers", 0.99))
+
+    def test_dissimilar_false(self):
+        self.assertFalse(collect._title_similar("Backend Engineer", "Data Scientist", 0.9))
+
     def test_run_collect_source_error_isolated(self):
         good_jobs = [
             collect.norm("Backend Engineer", "Acme", "Remote, Europe", "https://x.com/1", "good")
