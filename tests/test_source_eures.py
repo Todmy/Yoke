@@ -96,6 +96,21 @@ class TestEuresSource(unittest.TestCase):
             eures.fetch({"countries": ["all-eu"], "lane": {"keywords": ["x"]}})
         self.assertEqual(captured["body"]["locationCodes"], [])
 
+    def test_fetch_returns_empty_on_blocked(self):
+        # Contract: a fetcher never raises past its own fetch — a cooled-down
+        # host degrades to [] (run_collect's outer isolation is only a backstop).
+        profile = {"countries": ["de"], "lane": {"keywords": ["x"]}}
+        with mock.patch.object(
+            eures.http, "fetch_bytes", side_effect=eures.http.Blocked("cooldown")
+        ):
+            self.assertEqual(eures.fetch(profile), [])
+
+    def test_fetch_returns_empty_on_bad_json(self):
+        with mock.patch.object(
+            eures.http, "fetch_bytes", return_value=b"<html>not json</html>"
+        ):
+            self.assertEqual(eures.fetch({"lane": {"keywords": ["x"]}}), [])
+
 
 if __name__ == "__main__":
     unittest.main()

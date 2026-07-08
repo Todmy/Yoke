@@ -65,13 +65,16 @@ def _body(profile):
 
 def fetch(profile):
     body = _body(profile)
-    payload = json.loads(
-        http.fetch_bytes(
-            SEARCH_URL,
-            data=json.dumps(body).encode(),
-            headers={"Content-Type": "application/json"},
+    try:
+        payload = json.loads(
+            http.fetch_bytes(
+                SEARCH_URL,
+                data=json.dumps(body).encode(),
+                headers={"Content-Type": "application/json"},
+            )
         )
-    )
+    except Exception:
+        return []  # Blocked / HTTP / decode error → graceful skip (never raise past fetch)
     return _parse(payload, profile)
 
 

@@ -78,6 +78,12 @@ class TestGermanyBaSource(unittest.TestCase):
         self.assertEqual(len(jobs), 4)
         self.assertEqual(jobs[0]["source"], "germany_ba")
 
+    def test_fetch_returns_empty_on_blocked(self):
+        # Contract: never raises past its own fetch — a cooled-down host → [].
+        profile = {"countries": ["de"], "lane": {"keywords": ["python"]}}
+        with mock.patch.object(http, "fetch_bytes", side_effect=http.Blocked("cooldown")):
+            self.assertEqual(germany_ba.fetch(profile), [])
+
 
 if __name__ == "__main__":
     unittest.main()

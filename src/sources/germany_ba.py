@@ -36,7 +36,12 @@ def fetch(profile):
     keywords = profile.get("lane", {}).get("keywords") or []
     was = " ".join(keywords)
     query = urllib.parse.urlencode({"was": was, "wo": "Deutschland", "size": PAGE_SIZE})
-    payload = json.loads(http.fetch_bytes(f"{API_URL}?{query}", headers={"X-API-Key": API_KEY}))
+    try:
+        payload = json.loads(
+            http.fetch_bytes(f"{API_URL}?{query}", headers={"X-API-Key": API_KEY})
+        )
+    except Exception:
+        return []  # Blocked / HTTP / decode error → graceful skip (never raise past fetch)
     return _parse(payload, profile)
 
 
