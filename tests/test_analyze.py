@@ -2,6 +2,7 @@ import os
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 
 _TMP = tempfile.mkdtemp(prefix="yoke-test-analyze-")
@@ -11,7 +12,7 @@ _REPO_ROOT = str(Path(__file__).resolve().parent.parent)
 if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
 
-from src import analyze  # noqa: E402
+from src import analyze, prepare  # noqa: E402
 
 BOARD_KEYS = {
     "key", "role_key", "company", "title", "url", "location", "source",
@@ -304,6 +305,54 @@ class TestRedFlagPenalty(unittest.TestCase):
              "evidence": "detected: untrusted_apply_domain"},
             rec["red_flags"],
         )
+
+
+class TestGhostSeamIntegration(unittest.TestCase):
+    """WS3→WS1 seam: prepare.build_cards attaches ghost_flags; analyze penalizes."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        os.environ["YOKE_HOME"] = self._tmp.name
+
+    def tearDown(self):
+        self._tmp.cleanup()
+        os.environ["YOKE_HOME"] = _TMP
+
+    def _index_entry(self, url):
+        now = datetime.now(timezone.utc).isoformat()
+        return {
+            "title": "Backend Engineer", "company": "Acme",
+            "location": "Remote, EU", "url": url, "source": "fake",
+            "posted_at": "", "score": 2, "role_key": "acme|backend engineer",
+            "comp": {"min": 9000, "max": 10000, "currency": "usd",
+                     "unit": "month", "type": "b2b"},
+            "first_seen": now, "last_seen": now,
+        }
+
+    def test_ghost_flag_penalizes_via_seam(self):
+        card = prepare.build_cards(
+            _profile(), {"k": self._index_entry("https://bit.ly/apply")}, {}
+        )[0]
+        self.assertIn("untrusted_apply_domain", card["ghost_flags"])  # prepare set it
+        self.assertTrue(card["needs_ai"])
+        rec = analyze.analyze_cards([card], _profile(), FakeBackend([_response()]))[0]
+        # clean model output, but the ghost flag strips 0.4: round(92*0.6) = 55
+        self.assertEqual(rec["fit"], 55)
+        self.assertEqual(rec["tier"], "B")
+        self.assertIn(
+            {"category": "untrusted_apply_domain",
+             "evidence": "detected: untrusted_apply_domain"},
+            rec["red_flags"],
+        )
+
+    def test_no_ghost_flags_identity(self):
+        card = prepare.build_cards(
+            _profile(), {"k": self._index_entry("https://jobs.acme.com/1")}, {}
+        )[0]
+        self.assertEqual(card["ghost_flags"], [])
+        rec = analyze.analyze_cards([card], _profile(), FakeBackend([_response()]))[0]
+        self.assertEqual(rec["fit"], 92)  # unaffected
+        self.assertEqual(rec["tier"], "A")
 
 
 class TestExampleProfileRedFlags(unittest.TestCase):
