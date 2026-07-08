@@ -7,7 +7,35 @@ Task: M1 "thicken collection" — 5 collect units in one flow (anti-bot HTTP mix
 - [x] 4 plan — done 2026-07-08, artifact: plan.md
 - [x] 5 act — done 2026-07-08, artifact: plan.md (7 commits 1586b04..f8fb91e; full suite 142 OK)
 - [x] 6 verify — done 2026-07-08, artifact: verify.md (143 tests OK; live dry-run all free sources; 1 HIGH a16z-marker fixed in 12a019d; 0 CRITICAL)
-- [ ] 7 review
+- [x] 7 review — done 2026-07-08, artifact: flow-state.md (fresh-eyes review; 2 IMPORTANT fixed under TDD; merged to main; 147 tests OK)
+
+## Review summary (2026-07-08)
+
+Independent fresh-eyes review (subagent, no session context) of the full
+16-commit feature diff vs design/plan/constitution. Verdict: solid, disciplined
+implementation — plugin boundaries, fetch/parse splits, norm()-only records, and
+the defusedxml XXE mitigation all correct; tests genuinely fixture-driven.
+
+**Findings: 0 CRITICAL, 2 IMPORTANT (both FIXED under TDD), 1 MINOR (deferred).**
+- **R1 (IMPORTANT, fixed `ca8ce30`)** — `http.py` pacing self-disabled after any
+  failed request: `state["last"]` was set only on success, so a non-429/403
+  failure left it stale and the next same-host call skipped throttling (worst in
+  the vc probe fan-out, mostly 404s). Moved the assignment into `finally` so a
+  failed attempt still counts. Regression test added (red→green).
+- **R2 (IMPORTANT, fixed `00c7844`)** — `eures`/`germany_ba` `fetch()` let
+  Blocked/decode errors escape, breaking design's "never raises past its own
+  fetch" contract (run_collect was the only backstop). Wrapped fetch+decode
+  (not `_parse`) in graceful `[]`, matching the ats/vc precedent. Tests added.
+- **R3 (MINOR, deferred)** — `tests/fixtures/vc_yc.json` is an orphan (same class
+  as V5's `vc_a16z.json`); candidate for a `_load_yc` extraction test or removal.
+
+Carried MEDIUM/LOW from verify: **V2** (vc slug-probe real-yield is structurally
+low), **V3/V4** (stale design prose), **V5/R3** (orphan fixtures), **V6**
+(test_http ResourceWarning cleanup). None blocking; backlog for follow-ups.
+
+**Branch outcome:** merged into `main` (fast-forward, 16 commits), full suite
+re-run on merged result (147 OK), feature branch deleted. Knowledge captured to
+Valis (a16z-marker lesson + review-value lesson, both proposed).
 
 ## Route gate evidence (2026-07-08)
 Task selection + structure decided across two AskUserQuestion rounds:
