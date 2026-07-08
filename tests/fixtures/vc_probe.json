@@ -1,0 +1,85 @@
+{
+  "jobs": [
+    {
+      "absolute_url": "https://stripe.com/jobs/search?gh_jid=7954688",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3453698,
+      "location": {
+        "name": "San Francisco, CA"
+      },
+      "metadata": null,
+      "id": 7954688,
+      "updated_at": "2026-06-26T17:05:44-04:00",
+      "requisition_id": "See Opening ID",
+      "title": "Account Executive, AI Sales (Grower)",
+      "company_name": "Stripe",
+      "first_published": "2026-06-02T08:58:57-04:00",
+      "language": "en",
+      "application_deadline": null
+    },
+    {
+      "absolute_url": "https://stripe.com/jobs/search?gh_jid=8042978",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3486109,
+      "location": {
+        "name": "Japan"
+      },
+      "metadata": null,
+      "id": 8042978,
+      "updated_at": "2026-07-02T21:13:43-04:00",
+      "requisition_id": "See Opening ID",
+      "title": "Account Executive, Commercial Grower (Japanese Fluency)",
+      "company_name": "Stripe",
+      "first_published": "2026-07-02T03:24:50-04:00",
+      "language": "ja",
+      "application_deadline": null
+    },
+    {
+      "absolute_url": "https://stripe.com/jobs/search?gh_jid=7789539",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3407094,
+      "location": {
+        "name": "Japan"
+      },
+      "metadata": null,
+      "id": 7789539,
+      "updated_at": "2026-07-02T21:14:52-04:00",
+      "requisition_id": "See Opening ID",
+      "title": "Account Executive, Commercial Hunter (Japanese Fluency)",
+      "company_name": "Stripe",
+      "first_published": "2026-04-17T00:47:42-04:00",
+      "language": "ja",
+      "application_deadline": null
+    }
+  ],
+  "meta": {
+    "total": 497
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "maxErgebnisse": 2835,
+  "page": 1,
+  "size": 5,
+  "woOutput": {
+    "bereinigterOrt": "Deutschland",
+    "suchmodus": "LANDSUCHE"
+  },
+  "stellenangebote": [
+    {
+      "beruf": "Frontend-Entwickler/in",
+      "titel": "Python Entwickler (m/w/d)",
+      "refnr": "19301-952981419-S",
+      "arbeitsort": {
+        "plz": "65189",
+        "ort": "Wiesbaden",
+        "ortsteil": "Wiesbaden",
+        "adresszusatz": "Abraham-Lincoln-Straße",
+        "strasse": "Abraham-Lincoln-Straße 65189",
+        "region": "Hessen",
+        "land": "Deutschland",
+        "koordinaten": {
+          "lat": 50.0689293,
+          "lon": 8.263326
+        }
+      },
+      "arbeitgeber": "R+V Allgemeine Versicherung AG",
+      "aktuelleVeroeffentlichungsdatum": "2026-06-22",
+      "modifikationsTimestamp": "2026-06-23T07:03:02.501",
+      "eintrittsdatum": "2026-08-01",
+      "kundennummerHash": "GV69Eo1u519yIKmsG-egH1A2U6FvpU8G_6yRdi7bKpY="
+    },
+    {
+      "beruf": "Anwendungsprogrammierer/in",
+      "titel": "Python-Entwickler (w/m/d)",
+      "refnr": "13644-265788-S",
+      "arbeitsort": {
+        "plz": "22085",
+        "ort": "Hamburg",
+        "strasse": "null",
+        "region": "Hamburg",
+        "land": "Deutschland",
+        "koordinaten": {
+          "lat": 53.574048,
+          "lon": 10.0168264
+        }
+      },
+      "arbeitgeber": "IT Schmoldt",
+      "aktuelleVeroeffentlichungsdatum": "2026-07-03",
+      "modifikationsTimestamp": "2026-07-03T07:02:54.77",
+      "eintrittsdatum": "2026-07-03",
+      "externeUrl": "https://www.get-in-it.de/jobsuche/p265788?utm_source=arbeitsagentur&utm_medium=organic&utm_campaign=launch-basic"
+    },
+    {
+      "beruf": "Softwareentwickler/in",
+      "titel": "Softwareentwickler Python/C# (m/w/d)",
+      "refnr": "12265-271357_JB5177396-S",
+      "arbeitsort": {
+        "plz": "88046",
+        "ort": "Friedrichshafen",
+        "strasse": "null",
+        "region": "Baden-Württemberg",
+        "land": "Deutschland",
+        "koordinaten": {
+          "lat": 47.676075426,
+          "lon": 9.509004006
+        }
+      },
+      "arbeitgeber": "FERCHAU GmbH Niederlassung Friedrichshafen",
+      "aktuelleVeroeffentlichungsdatum": "2026-06-22",
+      "modifikationsTimestamp": "2026-06-22T07:51:20.605",
+      "eintrittsdatum": "2026-06-22",
+      "kundennummerHash": "IEmRAmmdcwCJ2UADe6gXdCpJsYW9a6DAalpdm99Z2F8="
+    },
+    {
+      "beruf": "Softwareentwickler/in",
+      "titel": "Softwareentwickler (m/w/d) Python",
+      "refnr": "10000-1202439398-S",
+      "arbeitsort": {
+        "plz": "52134",
+        "ort": "Herzogenrath",
+        "strasse": "Kaiserstr. 100",
+        "region": "Nordrhein-Westfalen",
+        "land": "Deutschland",
+        "koordinaten": {
+          "lat": 50.8286265,
+          "lon": 6.0801729
+        }
+      },
+      "arbeitgeber": "Eurogard GmbH",
+      "aktuelleVeroeffentlichungsdatum": "2025-05-08",
+      "modifikationsTimestamp": "2026-07-06T09:03:16.748",
+      "eintrittsdatum": "2026-06-30",
+      "kundennummerHash": "RzUAHEZRetrmNTnlVgyOQtZN9T3lhUNKzoa2cojCMEo="
+    }
+  ]
+}

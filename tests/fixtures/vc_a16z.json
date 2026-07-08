@@ -1,0 +1,412 @@
+[
+  {
+    "id": "14981",
+    "name": "SpaceX",
+    "post_title": "SpaceX",
+    "display_name": "",
+    "tag": "IPO: SPCX",
+    "title": "IPO: SPCX",
+    "status": "Exits",
+    "website_current_status": "Exits",
+    "stages": [
+      "IPO"
+    ],
+    "is_initial": false,
+    "logo": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2023/09/logo_0011E00001g4FcH-20230418063526.svg",
+    "logo_width": null,
+    "url": "https://spacex.com",
+    "permalink": "https://a16z.com/companies/spacex/",
+    "external_url": "https://spacex.com",
+    "jobs": 1114,
+    "initial_a16z_date_funded": "2021-03-24 00:00:00",
+    "initials": "S",
+    "tags": [
+      "stg_exit",
+      "cat_american dynamism",
+      "cat_growth",
+      "stgi_growth",
+      "sts_exits",
+      "stgc_exit",
+      "american dynamism",
+      "growth",
+      "aviation & space"
+    ],
+    "filter_by": "stg_exit;cat_American Dynamism;cat_Growth;stgi_Growth;sts_Exits;stgc_Exit",
+    "verticals": "American Dynamism;Growth",
+    "search_haystack": "spacex spacex",
+    "website_description": "SpaceX designs, builds and launches advanced, reusable rockets and spacecraft with the goal of making human life multiplanetary.",
+    "overview": "",
+    "socials": [
+      {
+        "constants.select.social_icons": {
+          "value": "icon-twitter",
+          "label": "X"
+        },
+        "url": "https://twitter.com/spacex"
+      },
+      {
+        "constants.select.social_icons": {
+          "value": "icon-linkedin",
+          "label": "LinkedIn"
+        },
+        "url": "https://www.linkedin.com/company/spacex/"
+      }
+    ],
+    "company_url": "https://spacex.com",
+    "email": "",
+    "year_founded": "2002",
+    "investment_date": "",
+    "exit_date": "",
+    "founders_list": "Elon Musk",
+    "announcement": null,
+    "articles": [],
+    "ticker_symbol": "SPCX",
+    "acquirer": "",
+    "number_of_jobs": "1114",
+    "website_supercategory": "",
+    "focus_areas": [
+      "American Dynamism",
+      "Growth"
+    ]
+  },
+  {
+    "id": "372153",
+    "name": "Airbnb",
+    "post_title": "Airbnb",
+    "display_name": "Airbnb",
+    "tag": "IPO: ABNB",
+    "title": "IPO: ABNB",
+    "status": "Exits",
+    "website_current_status": "Exits",
+    "stages": [
+      "IPO"
+    ],
+    "is_initial": false,
+    "logo": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2024/10/logo_0018000000fy5m7-20230417183510.svg",
+    "logo_width": null,
+    "url": "https://airbnb.com",
+    "permalink": "https://a16z.com/companies/airbnb/",
+    "external_url": "https://airbnb.com",
+    "jobs": 0,
+    "initial_a16z_date_funded": "2011-07-22 00:00:00",
+    "initials": "A",
+    "tags": [
+      "stg_exit",
+      "cat_consumer",
+      "stgi_venture",
+      "stgi_growth",
+      "sts_exits",
+      "stgc_exit",
+      "consumer",
+      "food",
+      "beverage",
+      "hospitality",
+      "marketplaces"
+    ],
+    "filter_by": "stg_exit;cat_Consumer;stgi_Venture;stgi_Growth;sts_Exits;stgc_Exit",
+    "verticals": "Consumer",
+    "search_haystack": "airbnb airbnb airbnb",
+    "website_description": "Airbnb is an online community marketplace for people to list, discover, and book accommodations through mobile phones or the internet.",
+    "overview": "",
+    "socials": [
+      {
+        "constants.select.social_icons": {
+          "value": "icon-facebook-a",
+          "label": "Facebook"
+        },
+        "url": "http://www.facebook.com/airbnb"
+      },
+      {
+        "constants.select.social_icons": {
+          "value": "icon-twitter",
+          "label": "X"
+        },
+        "url": "https://twitter.com/airbnb"
+      },
+      {
+        "constants.select.social_icons": {
+          "value": "icon-linkedin",
+          "label": "LinkedIn"
+        },
+        "url": "http://www.linkedin.com/company/airbnb"
+      },
+      {
+        "constants.select.social_icons": {
+          "value": "icon-instagram",
+          "label": "Instagram"
+        },
+        "url": "https://www.instagram.com/airbnb/"
+      }
+    ],
+    "company_url": "https://airbnb.com",
+    "email": "",
+    "year_founded": "",
+    "investment_date": "",
+    "exit_date": "",
+    "founders_list": "Nathan Blecharczyk, Brian Chesky, Joe Gebbia",
+    "announcement": {
+      "excerpt": "Talk about a business with humble roots. Brian Chesky and Joe Gebbia met at the Rhode Island School of Design and became roommates in San Francisco in 2007. A prominent design conference was coming to town and the nearby...",
+      "permalink": "https://a16z.com/announcement/meet-our-newest-portfolio-company-airbnb/"
+    },
+    "articles": [],
+    "ticker_symbol": "ABNB",
+    "acquirer": "",
+    "number_of_jobs": "",
+    "website_supercategory": "",
+    "focus_areas": [
+      "Consumer"
+    ]
+  },
+  {
+    "id": "371477",
+    "name": "Lyft",
+    "post_title": "Lyft",
+    "display_name": "Lyft",
+    "tag": "IPO: LYFT",
+    "title": "IPO: LYFT",
+    "status": "Exits",
+    "website_current_status": "Exits",
+    "stages": [
+      "IPO"
+    ],
+    "is_initial": false,
+    "logo": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2024/10/logo_0018000000j8puYAAQ-20240628193547.svg",
+    "logo_width": null,
+    "url": "https://lyft.com",
+    "permalink": "https://a16z.com/companies/lyft/",
+    "external_url": "https://lyft.com",
+    "jobs": 0,
+    "initial_a16z_date_funded": "2013-05-22 00:00:00",
+    "initials": "L",
+    "tags": [
+      "stg_exit",
+      "cat_consumer",
+      "stgi_growth",
+      "sts_exits",
+      "stgc_exit",
+      "consumer",
+      "other"
+    ],
+    "filter_by": "stg_exit;cat_Consumer;stgi_Growth;sts_Exits;stgc_Exit",
+    "verticals": "Consumer",
+    "search_haystack": "lyft lyft lyft",
+    "website_description": "Lyft designs, markets, and operates a mobile application that matches drivers with passengers who request rides, and also allows payment through the app. It also allows riders to schedule rides up to …[trimmed]",
+    "overview": "",
+    "socials": [
+      {
+        "constants.select.social_icons": {
+          "value": "icon-facebook-a",
+          "label": "Facebook"
+        },
+        "url": "https://www.facebook.com/lyft?ref=profile"
+      },
+      {
+        "constants.select.social_icons": {
+          "value": "icon-twitter",
+          "label": "X"
+        },
+        "url": "https://twitter.com/lyft"
+      },
+      {
+        "constants.select.social_icons": {
+          "value": "icon-linkedin",
+          "label": "LinkedIn"
+        },
+        "url": "https://www.linkedin.com/company/2620735"
+      }
+    ],
+    "company_url": "https://lyft.com",
+    "email": "",
+    "year_founded": "",
+    "investment_date": "",
+    "exit_date": "",
+    "founders_list": "Logan Green, John Zimmer",
+    "announcement": {
+      "excerpt": "When I first met Logan Green and John Zimmer nearly a year ago, I was struck by the authenticity of Lyft’s founding. Originally called Zimride, everyone assumed the company was named after John but it’s actually a much b...",
+      "permalink": "https://a16z.com/announcement/its-time-for-lyft-off/"
+    },
+    "articles": [],
+    "ticker_symbol": "LYFT",
+    "acquirer": "",
+    "number_of_jobs": "",
+    "website_supercategory": "",
+    "focus_areas": [
+      "Consumer"
+    ]
+  },
+  {
+    "id": "14997",
+    "name": "Figma",
+    "post_title": "Figma",
+    "display_name": "",
+    "tag": "IPO: FIG",
+    "title": "IPO: FIG",
+    "status": "Active",
+    "website_current_status": "Active",
+    "stages": [
+      "IPO"
+    ],
+    "is_initial": false,
+    "logo": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2026/05/logo_00180000016B6EHAA0-20260526133836.svg",
+    "logo_width": null,
+    "url": "https://figma.com",
+    "permalink": "https://a16z.com/companies/figma/",
+    "external_url": "https://figma.com",
+    "jobs": 68,
+    "initial_a16z_date_funded": "2020-04-29 00:00:00",
+    "initials": "F",
+    "tags": [
+      "stg_exit",
+      "cat_enterprise",
+      "cat_growth",
+      "cat_clf",
+      "stgi_growth",
+      "sts_active",
+      "stgc_exit",
+      "cultural leadership fund",
+      "enterprise",
+      "growth",
+      "saas",
+      "software development"
+    ],
+    "filter_by": "stg_exit;cat_Enterprise;cat_Growth;cat_CLF;stgi_Growth;sts_Active;stgc_Exit",
+    "verticals": "Cultural Leadership Fund;Enterprise;Growth",
+    "search_haystack": "figma figma",
+    "website_description": "Figma is a multiplayer design system for collaboration: designers, developers, marketing teams and end users work in continuous fashion in Figma, drawing mockups, building prototypes, and testing with…[trimmed]",
+    "overview": "",
+    "socials": [
+      {
+        "constants.select.social_icons": {
+          "value": "icon-twitter",
+          "label": "X"
+        },
+        "url": "https://twitter.com/figma"
+      },
+      {
+        "constants.select.social_icons": {
+          "value": "icon-linkedin",
+          "label": "LinkedIn"
+        },
+        "url": "https://www.linkedin.com/company/figma/"
+      },
+      {
+        "constants.select.social_icons": {
+          "value": "icon-github",
+          "label": "GitHub"
+        },
+        "url": "https://github.com/figma"
+      }
+    ],
+    "company_url": "https://figma.com",
+    "email": "",
+    "year_founded": "2012",
+    "investment_date": "",
+    "exit_date": "",
+    "founders_list": "Dylan Field, Evan Wallace",
+    "announcement": {
+      "excerpt": "I’ve always been interested in investing in companies and founders who take an old, staid technology category and turn it on its head, often reinventing an entirely new category (and inventing new behaviors) in the proce...",
+      "permalink": "https://a16z.com/announcement/investing-in-figma-the-decade-of-design/"
+    },
+    "articles": [],
+    "ticker_symbol": "FIG",
+    "acquirer": "",
+    "number_of_jobs": "68",
+    "website_supercategory": "",
+    "focus_areas": [
+      "Enterprise",
+      "Growth",
+      "CLF"
+    ]
+  },
+  {
+    "id": "371954",
+    "name": "Roblox",
+    "post_title": "Roblox",
+    "display_name": "",
+    "tag": "IPO: RBLX",
+    "title": "IPO: RBLX",
+    "status": "Exits",
+    "website_current_status": "Exits",
+    "stages": [
+      "IPO"
+    ],
+    "is_initial": false,
+    "logo": "https://d1lamhf6l6yk6d.cloudfront.net/uploads/2024/10/logo_0018000000xG0JVAA0-20230509231157.svg",
+    "logo_width": null,
+    "url": "http://corp.roblox.com",
+    "permalink": "https://a16z.com/companies/roblox/",
+    "external_url": "http://corp.roblox.com",
+    "jobs": 0,
+    "initial_a16z_date_funded": "2020-02-27 00:00:00",
+    "initials": "R",
+    "tags": [
+      "stg_exit",
+      "cat_growth",
+      "cat_games",
+      "stgi_growth",
+      "sts_exits",
+      "stgc_exit",
+      "growth",
+      "social",
+      "media",
+      "and entertainment",
+      "games x consumer",
+      "consumer",
+      "games"
+    ],
+    "filter_by": "stg_exit;cat_Growth;cat_Games;stgi_Growth;sts_Exits;stgc_Exit",
+    "verticals": "Growth",
+    "search_haystack": "roblox roblox",
+    "website_description": "Roblox is a global platform where people come together in real time to connect, create, and express themselves through immersive, interactive shared experiences.",
+    "overview": "",
+    "socials": [
+      {
+        "constants.select.social_icons": {
+          "value": "icon-facebook-a",
+          "label": "Facebook"
+        },
+        "url": "https://www.facebook.com/Roblox/"
+      },
+      {
+        "constants.select.social_icons": {
+          "value": "icon-twitter",
+          "label": "X"
+        },
+        "url": "https://twitter.com/Roblox"
+      },
+      {
+        "constants.select.social_icons": {
+          "value": "icon-linkedin",
+          "label": "LinkedIn"
+        },
+        "url": "https://www.linkedin.com/company/roblox/"
+      },
+      {
+        "constants.select.social_icons": {
+          "value": "icon-github",
+          "label": "GitHub"
+        },
+        "url": "https://github.com/Roblox"
+      }
+    ],
+    "company_url": "http://corp.roblox.com",
+    "email": "",
+    "year_founded": "2004",
+    "investment_date": "",
+    "exit_date": "",
+    "founders_list": "David Baszucki, Erik Cassel",
+    "announcement": {
+      "excerpt": "Gaming has gone from a niche hobby to a massive global industry across all demographics and well beyond outdated, narrow stereotypes of “gamers”. In fact, games are not even just “games” any longer, but a form of enterta...",
+      "permalink": "https://a16z.com/announcement/investing-in-roblox/"
+    },
+    "articles": [],
+    "ticker_symbol": "RBLX",
+    "acquirer": "",
+    "number_of_jobs": "",
+    "website_supercategory": "",
+    "focus_areas": [
+      "Growth",
+      "Games"
+    ]
+  }
+]

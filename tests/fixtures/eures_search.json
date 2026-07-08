@@ -1,0 +1,126 @@
+{
+  "numberRecords": 9718,
+  "jvs": [
+    {
+      "title": "Technischer Produktdesigner (m/w/d) (IT-Tester/in)",
+      "description": "Für den Standort Ismaning suchen wir:<br><br>Technischer Produktdesigner (m/w/d)<br><br>Ihre Aufgaben:<br><br>- Erstellung normgerechter Produktspezifikationen und Produktdatenpflege im PDM-System<br>- Durchführung von Änderungen und Anpassungen an bestehenden 3D-Konstruktionen<br>- Umsetzung von Fe…[trimmed]",
+      "id": "MTM0MTAtazEzNTcyLjE1ODA3LVMgMQ",
+      "creationDate": 1783465210973,
+      "lastModificationDate": 1783465210973,
+      "numberOfPosts": 1,
+      "locationMap": {
+        "DE": [
+          "DE21H"
+        ]
+      },
+      "euresFlag": false,
+      "jobCategoriesCodes": [
+        "http://data.europa.eu/esco/isco/C2519"
+      ],
+      "positionScheduleCodes": [],
+      "positionOfferingCode": "directhire",
+      "employer": {
+        "name": "Guldberg GmbH",
+        "legalID": null,
+        "organisationSizeCode": null,
+        "organisationOwnershipTypeCode": null,
+        "website": null,
+        "sectorCodes": [],
+        "description": null
+      },
+      "availableLanguages": [
+        "de"
+      ],
+      "score": null,
+      "translationType": "FIRST_LANGUAGE",
+      "translations": {
+        "de": {
+          "title": "Technischer Produktdesigner (m/w/d) (IT-Tester/in)",
+          "description": "Für den Standort Ismaning suchen wir:<br><br>Technischer Produktdesigner (m/w/d)<br><br>Ihre Aufgaben:<br><br>- Erstellu…[trimmed]"
+        }
+      }
+    },
+    {
+      "title": "AI Solutions Engineer (m/w/d) - LLM Integration, AI Agents & Automation (Softwareentwickler/in)",
+      "description": "Weitere Berufsbezeichnung:<br>AI Engineer;KI Spezialist;AI Integration Engineer<br><br>Stellenbeschreibung:<br>Du baust die KI-Skills, die morgen den Betrieb tragen<br>Stell dir vor, du arbeitest nicht an einem einzelnen KI-Projekt, sondern an einer ganzen Fabrik für produktive KI-Lösungen. Genau da…[trimmed]",
+      "id": "MTMzMjYtODY4NS0xNzgzMjUwLTAtUyAx",
+      "creationDate": 1783465210937,
+      "lastModificationDate": 1783465210937,
+      "numberOfPosts": 1,
+      "locationMap": {
+        "DE": [
+          "DEA11"
+        ]
+      },
+      "euresFlag": false,
+      "jobCategoriesCodes": [
+        "http://data.europa.eu/esco/occupation/f2b15a0e-e65a-438a-affb-29b9d50b77d1"
+      ],
+      "positionScheduleCodes": [
+        "fulltime"
+      ],
+      "positionOfferingCode": "directhire",
+      "employer": {
+        "name": "FlexIT Consulting GmbH",
+        "legalID": null,
+        "organisationSizeCode": null,
+        "organisationOwnershipTypeCode": null,
+        "website": null,
+        "sectorCodes": [],
+        "description": null
+      },
+      "availableLanguages": [
+        "de"
+      ],
+      "score": null,
+      "translationType": "FIRST_LANGUAGE",
+      "translations": {
+        "de": {
+          "title": "AI Solutions Engineer (m/w/d) - LLM Integration, AI Agents & Automation (Softwareentwickler/in)",
+          "description": "Weitere Berufsbezeichnung:<br>AI Engineer;KI Spezialist;AI Integration Engineer<br><br>Stellenbeschreibung:<br>Du baust …[trimmed]"
+        }
+      }
+    },
+    {
+      "title": "AI Engineer (m/w/d) - LLM, Generative AI, AI Agents & DevOps (Softwareentwickler/in)",
+      "description": "Weitere Berufsbezeichnung:<br>AI Engineer;ML Engineer;AI Product Owner;Agentic AI Engineer<br><br>Stellenbeschreibung:<br>KI im Unternehmen wirksam machen - von der Idee bis zum produktiven Agenten<br>Du willst nicht nur über Künstliche Intelligenz sprechen, sondern sie wirklich bauen, skalieren und…[trimmed]",
+      "id": "MTMzMjYtODY4NC0xNzgzMjQxLTAtUyAx",
+      "creationDate": 1783465209512,
+      "lastModificationDate": 1783465209512,
+      "numberOfPosts": 1,
+      "locationMap": {
+        "DE": [
+          "DE712"
+        ]
+      },
+      "euresFlag": false,
+      "jobCategoriesCodes": [
+        "http://data.europa.eu/esco/occupation/f2b15a0e-e65a-438a-affb-29b9d50b77d1"
+      ],
+      "positionScheduleCodes": [
+        "fulltime"
+      ],
+      "positionOfferingCode": "directhire",
+      "employer": {
+        "name": "FlexIT Consulting GmbH",
+        "legalID": null,
+        "organisationSizeCode": null,
+        "organisationOwnershipTypeCode": null,
+        "website": null,
+        "sectorCodes": [],
+        "description": null
+      },
+      "availableLanguages": [
+        "de"
+      ],
+      "score": null,
+      "translationType": "FIRST_LANGUAGE",
+      "translations": {
+        "de": {
+          "title": "AI Engineer (m/w/d) - LLM, Generative AI, AI Agents & DevOps (Softwareentwickler/in)",
+          "description": "Weitere Berufsbezeichnung:<br>AI Engineer;ML Engineer;AI Product Owner;Agentic AI Engineer<br><br>Stellenbeschreibung:<b…[trimmed]"
+        }
+      }
+    }
+  ]
+}

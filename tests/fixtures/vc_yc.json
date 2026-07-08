@@ -1,0 +1,159 @@
+{
+  "companies": [
+    {
+      "id": 33838,
+      "name": "Simantic",
+      "slug": "simantic",
+      "website": "https://simantic.dev",
+      "smallLogoUrl": "https://bookface-images.s3.amazonaws.com/small_logos/12eef74104b6e57636a6f0d2305e3a2d18d5c2e5.png",
+      "oneLiner": "Firmware simulation for AI agents",
+      "longDescription": "Simantic is modernizing the embedded firmware industry with hardware simulation developed for the adoption of AI in hardware engineering. Simantic gives both humans and AI the visibility into hardware…[trimmed]",
+      "teamSize": 3,
+      "url": "https://www.ycombinator.com/companies/simantic",
+      "batch": "F26",
+      "tags": [
+        "Artificial Intelligence",
+        "Developer Tools",
+        "Hardware",
+        "Semiconductors",
+        "Electronics"
+      ],
+      "status": "Active",
+      "industries": [
+        "B2B",
+        "Engineering, Product and Design"
+      ],
+      "regions": [
+        "Canada",
+        "America / Canada"
+      ],
+      "locations": [
+        "Waterloo, ON, Canada"
+      ],
+      "badges": [
+        "isHiring"
+      ]
+    },
+    {
+      "id": 33806,
+      "name": "Experiential Labs",
+      "slug": "experiential-labs",
+      "website": "https://experientiallabs.ai",
+      "smallLogoUrl": "https://bookface-images.s3.amazonaws.com/small_logos/716e828c9efd6efe6da64574ff67dd5bfa0c2a25.png",
+      "oneLiner": "World models for agents",
+      "longDescription": "An applied AI research lab building world models for agents. We simulate reality faster and more accurately based on the technology self-driving uses to get 99.7% reconstruction fidelity.",
+      "teamSize": 2,
+      "url": "https://www.ycombinator.com/companies/experiential-labs",
+      "batch": "S26",
+      "tags": [
+        "Artificial Intelligence",
+        "Infrastructure"
+      ],
+      "status": "Active",
+      "industries": [
+        "B2B",
+        "Infrastructure"
+      ],
+      "regions": [
+        "United States of America",
+        "America / Canada"
+      ],
+      "locations": [
+        "San Francisco"
+      ],
+      "badges": []
+    },
+    {
+      "id": 33805,
+      "name": "Edviro",
+      "slug": "edviro",
+      "website": "https://edviroenergy.com",
+      "smallLogoUrl": "https://bookface-images.s3.amazonaws.com/small_logos/c179a28044a3d4a8c3ceaf2a5b8cecbf90f66aa7.png",
+      "oneLiner": "Energy world models that fix energy waste before it becomes expensive.",
+      "longDescription": "Edviro helps facilities managers at large buildings save on their energy bills. Facilities managers are overwhelmed with dashboards, alarms, and analytics for hundreds of boilers, HVAC units, and heat…[trimmed]",
+      "teamSize": 2,
+      "url": "https://www.ycombinator.com/companies/edviro",
+      "batch": "S26",
+      "tags": [
+        "Deep Learning",
+        "B2B",
+        "Energy"
+      ],
+      "status": "Active",
+      "industries": [
+        "B2B",
+        "Infrastructure"
+      ],
+      "regions": [
+        "United States of America",
+        "America / Canada"
+      ],
+      "locations": [
+        "San Francisco"
+      ],
+      "badges": []
+    },
+    {
+      "id": 33738,
+      "name": "Coasty",
+      "slug": "coasty",
+      "website": "http://coasty.ai/",
+      "smallLogoUrl": "https://bookface-images.s3.amazonaws.com/small_logos/49c533e34b6c887207ac5683dd8dfab22709a458.png",
+      "oneLiner": "The best computer use. We will kill RPA.",
+      "longDescription": "Coasty is a computer use agent that does real work inside softwares, companies already run. New web apps, old desktop tools, the legacy systems nobody wants to touch. You hand it a workflow and it own…[trimmed]",
+      "teamSize": 2,
+      "url": "https://www.ycombinator.com/companies/coasty",
+      "batch": "S26",
+      "tags": [
+        "AIOps",
+        "Developer Tools",
+        "Workflow Automation"
+      ],
+      "status": "Active",
+      "industries": [
+        "B2B"
+      ],
+      "regions": [
+        "United States of America",
+        "America / Canada"
+      ],
+      "locations": [
+        "San Francisco"
+      ],
+      "badges": []
+    },
+    {
+      "id": 33408,
+      "name": "Salem Robotics Inc",
+      "slug": "salem-robotics-inc",
+      "website": "https://salemroboticsinc.com",
+      "smallLogoUrl": "https://bookface-images.s3.amazonaws.com/small_logos/5e1ebb1f65dc65dbec9a58c2d2d505adc9e79d36.png",
+      "oneLiner": "We deploy robots for inspections in hazardous spaces, like nuclear.",
+      "longDescription": "Our software turns any robot we deploy into an everyday independent worker at your facility. They are able to walk sites, handle instruments, overcome obstacles, collect measurements, and generate aud…[trimmed]",
+      "teamSize": 2,
+      "url": "https://www.ycombinator.com/companies/salem-robotics-inc",
+      "batch": "S26",
+      "tags": [
+        "Hard Tech",
+        "Robotics",
+        "Industrial"
+      ],
+      "status": "Active",
+      "industries": [
+        "Industrials",
+        "Manufacturing and Robotics"
+      ],
+      "regions": [
+        "United States of America",
+        "America / Canada"
+      ],
+      "locations": [
+        "Austin, TX, USA"
+      ],
+      "badges": []
+    }
+  ],
+  "page": 1,
+  "totalPages": 241,
+  "nextPage": "https://api.ycombinator.com/v0.1/companies?page=2"
+}
