@@ -15,9 +15,13 @@ TAGS = {"domain": "it", "country": "intl"}
 COST = "free"
 bypass_lane = True  # comment titles aren't job titles
 
+# search_by_date (not /search) so the NEWEST thread wins, not the highest-ranked
+# one — relevance sort surfaces a years-old thread. author_whoishiring pins it to
+# the canonical monthly poster, excluding "freelance"/"wants to be hired" variants.
 SEARCH_URL = (
-    "https://hn.algolia.com/api/v1/search"
-    "?query=%22Ask%20HN%3A%20Who%20is%20hiring%3F%22&tags=story&hitsPerPage=1"
+    "https://hn.algolia.com/api/v1/search_by_date"
+    "?query=%22Ask%20HN%3A%20Who%20is%20hiring%3F%22"
+    "&tags=story,author_whoishiring&hitsPerPage=1"
 )
 ITEM_URL = "https://hn.algolia.com/api/v1/items/{id}"
 UA = "yoke/0.1"

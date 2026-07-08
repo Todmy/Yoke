@@ -35,6 +35,17 @@ class TestHNSource(unittest.TestCase):
         self.assertIsNone(hn._parse_thread_search({"hits": []}))
         self.assertIsNone(hn._parse_thread_search({}))
 
+    def test_search_url_targets_latest_canonical_thread(self):
+        # Regression: the relevance-sorted /search endpoint returns the
+        # highest-ranked (often years-old) "who is hiring" thread as hits[0].
+        # The current monthly thread must be found by recency and pinned to
+        # the canonical poster so a stale thread can never win.
+        url = hn.SEARCH_URL
+        self.assertIn("search_by_date", url)   # newest-first, not by relevance
+        self.assertNotIn("/search?", url)      # never the relevance endpoint
+        self.assertIn("author_whoishiring", url)  # canonical monthly poster only
+        self.assertIn("tags=story", url)       # a story thread, not a comment
+
     def test_comments_parse(self):
         jobs = hn._parse_comments(_load("hn_comments.json"), {})
         # 3 comments in fixture; the onsite-only one (no "remote") is dropped
