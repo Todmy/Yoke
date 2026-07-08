@@ -59,6 +59,19 @@ NON_EU = [
     "north carolina", "san francisco", "seattle", "austin",
 ]
 
+# ISO-2 country -> location terms, matched with the SAME boundary-aware matcher
+# as the geo gate. Selecting a country flattens its terms into target_markers,
+# which un-blocks an otherwise non-EU location (and signals country of interest
+# to routed sources like eures / germany_ba). "all-eu"/unknown codes -> [].
+COUNTRY_MARKERS = {
+    "uk": ["united kingdom", "uk", "london", "manchester", "edinburgh"],
+    "de": ["germany", "deutschland", "berlin", "munich", "hamburg", "frankfurt"],
+    "ca": ["canada", "toronto", "vancouver", "montreal"],
+    "us": ["united states", "usa", "us", "new york", "san francisco", "seattle", "austin"],
+    "ch": ["switzerland", "zurich", "geneva", "basel"],
+    "au": ["australia", "sydney", "melbourne"],
+}
+
 
 def _has_geo_marker(text, markers):
     """Boundary-aware marker match: 'uk' must not fire inside 'ukraine'.
@@ -129,7 +142,13 @@ def matches_profile(job, profile, bypass_lane=False):
     geo = loc if loc else t
     has_eu = _has_geo_marker(geo, EU_TERMS)
     has_non_eu = _has_geo_marker(geo, NON_EU)
-    if has_non_eu and not has_eu:
+    # a selected country un-blocks its own non-EU location (empty countries ->
+    # target_markers == [] -> has_target False -> gate identical to before).
+    target_markers = [
+        m for c in profile.get("countries", []) for m in COUNTRY_MARKERS.get(c, [])
+    ]
+    has_target = _has_geo_marker(geo, target_markers)
+    if has_non_eu and not has_eu and not has_target:
         return False, 0
 
     # anti-lane hit rejects outright

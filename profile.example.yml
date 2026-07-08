@@ -30,6 +30,8 @@ geo:
     - us-only
     - onsite-other-continent
 
+countries: [] # ISO-2 codes you'd work in / relocate to; 'all-eu' = whole EU. Drives EURES/BA + un-blocks non-EU targets.
+
 tech:
   primary: # your core stack (scores lane/tech match)
     - python

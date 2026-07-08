@@ -116,6 +116,44 @@ class TestCollect(unittest.TestCase):
         uk = collect.norm("Backend Engineer", "Acme", "London, UK", "u2", "s")
         self.assertFalse(collect.matches_profile(uk, p)[0])
 
+    def test_matches_profile_country_unblocks_uk(self):
+        # a London/UK role is rejected today (non-EU marker, no EU term alongside)
+        uk = collect.norm("Backend Engineer", "Acme", "London, UK", "u", "s")
+        self.assertFalse(collect.matches_profile(uk, _profile())[0])
+        # selecting countries=["uk"] un-blocks the same role
+        p = _profile()
+        p["countries"] = ["uk"]
+        ok, score = collect.matches_profile(uk, p)
+        self.assertTrue(ok)
+        self.assertGreaterEqual(score, 2)
+
+    def test_matches_profile_empty_countries_unchanged(self):
+        # no countries key -> a US role is still rejected (identical to today)
+        us = collect.norm("Backend Engineer", "Acme", "San Francisco, US", "u", "s")
+        self.assertFalse(collect.matches_profile(us, _profile())[0])
+        # explicit empty list behaves the same
+        p = _profile()
+        p["countries"] = []
+        self.assertFalse(collect.matches_profile(us, p)[0])
+        # the "uk" target marker must not fire inside "ukraine" (word-boundary)
+        self.assertFalse(
+            collect._has_geo_marker("kyiv, ukraine", collect.COUNTRY_MARKERS["uk"])
+        )
+        # and selecting uk does not spuriously reject a real Ukraine (EU) role
+        p["countries"] = ["uk"]
+        ua = collect.norm("Backend Engineer", "Acme", "Kyiv, Ukraine", "u", "s")
+        self.assertTrue(collect.matches_profile(ua, p)[0])
+
+    def test_country_markers_cover_queryable_countries(self):
+        markers = collect.COUNTRY_MARKERS
+        for code, terms in markers.items():
+            self.assertIsInstance(terms, list)
+            self.assertTrue(terms, code)  # non-empty
+            self.assertEqual(code, code.lower())  # lowercase
+            self.assertEqual(len(code), 2)  # ISO-2
+        self.assertIn("de", markers)  # M1 sources route on "de"
+        self.assertIn("uk", markers)  # relocation target
+
     def test_matches_profile_lane_required(self):
         p = _profile()
         miss = collect.norm("Accountant", "Acme", "Remote, Europe", "u", "s")
