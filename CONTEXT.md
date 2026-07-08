@@ -2,8 +2,8 @@
 
 Canonical terms. Design docs, code, and reviews use these exact words.
 
-- **source plugin** — a self-contained fetcher registered via `register_source(name, fetch, tags)`; emits `norm()` dicts; carries `{domain, country}` tags so future versions can suggest sources per profile/location. Adding one never touches the core.
-- **norm record** — the single 7-key contract every source plugin emits: `title, company, location, url, source, posted_at, comp`.
+- **source plugin** — a self-contained fetcher auto-discovered by `load_sources()` from `src/sources/`: a module exposing `NAME, TAGS{domain,country}, COST, available(), fetch(profile)` (no registration call); emits `norm()` dicts; carries `{domain, country}` tags so sources can be activated per the profile's countries. Adding one never touches the core.
+- **norm record** — the single 8-key contract every source plugin emits: `title, company, location, url, source, posted_at, comp, jd`.
 - **job_key / role_key** — exact-dedup key (url, else `company|title`) / repost-collapsing key (`company|normalized-title`).
 - **match score** — collect's cheap deterministic keyword/geo gate score (`matches_profile`); a noise filter, NOT the fit score.
 - **fit score** — analyze's 0–100 additive weighted sum `Σ wᵢ·featureᵢ` over scoring features; the AI-assisted "fits ME" judgment. Readable formula, weights are data.
