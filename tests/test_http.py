@@ -149,5 +149,34 @@ class HttpMixinTest(unittest.TestCase):
         self.assertEqual(http.fetch_bytes("https://b.example/y"), b"b-ok")
 
 
+    def test_pacing_survives_a_failed_request(self):
+        # A non-429/403 failure (e.g. 500) still counts as an attempt, so the
+        # NEXT same-host call must be paced. Regression: the attempt time was
+        # recorded only on success, so any failure disabled throttling for the
+        # next hit — worst in the vc probe fan-out, which is mostly 404s.
+        err = urllib.error.HTTPError("https://a.example/x", 500, "Server Error", {}, None)
+        n = {"c": 0}
+
+        def _urlopen(req, timeout=None):
+            n["c"] += 1
+            if n["c"] == 1:
+                raise err                 # first attempt fails
+            return _FakeResp(b"ok")       # second attempt succeeds
+
+        p = mock.patch("urllib.request.urlopen", new=_urlopen)
+        p.start()
+        self.addCleanup(p.stop)
+
+        with self.assertRaises(urllib.error.HTTPError):
+            http.fetch_bytes("https://a.example/1")
+        self.sleep.reset_mock()
+        http.fetch_bytes("https://a.example/2")   # paced despite the prior failure
+        paced = [c.args[0] for c in self.sleep.call_args_list]
+        self.assertTrue(
+            any(s >= http.BASE_DELAY for s in paced),
+            f"expected a pacing sleep >= {http.BASE_DELAY} after a failed request, saw {paced}",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

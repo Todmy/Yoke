@@ -58,12 +58,13 @@ def fetch_bytes(url, *, data=None, headers=None, timeout=20):
     try:
         req = urllib.request.Request(url, data=data, headers=headers or {})
         with urllib.request.urlopen(req, timeout=timeout) as resp:
-            body = resp.read()
+            return resp.read()
     except urllib.error.HTTPError as e:
         if e.code in (429, 403):
             state["cooldown_until"] = _now() + COOLDOWN_LONG
             raise Blocked(f"{host} returned {e.code}") from e
         raise
-
-    state["last"] = _now()
-    return body
+    finally:
+        # record the attempt time on EVERY path — a failed request still counts,
+        # else the next same-host call skips pacing (worst in the vc probe fan-out).
+        state["last"] = _now()
