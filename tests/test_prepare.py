@@ -169,6 +169,37 @@ class TestBuildCardsGhostFlags(unittest.TestCase):
         self.assertIn("stale_posting", cards[0]["ghost_flags"])
 
 
+class TestBuildCardsDedup(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        os.environ["YOKE_HOME"] = self._tmp.name
+
+    def tearDown(self):
+        self._tmp.cleanup()
+        os.environ["YOKE_HOME"] = _TMP
+
+    def test_dupe_of_entry_excluded_from_cards(self):
+        index = {
+            "canon": _entry(url="https://x.com/canon"),
+            "dupe": {**_entry(url="https://x.com/dupe"), "dupe_of": "canon"},
+        }
+        cards = {c["key"]: c for c in prepare.build_cards(_profile(), index, {})}
+        self.assertIn("canon", cards)
+        self.assertNotIn("dupe", cards)  # near-duplicate never becomes a card
+
+    def test_canonical_entry_present(self):
+        cards = prepare.build_cards(_profile(), {"canon": _entry(url="https://x.com/canon")}, {})
+        self.assertEqual([c["key"] for c in cards], ["canon"])
+
+    def test_no_dupe_of_unchanged(self):
+        index = {
+            "a": _entry(url="https://x.com/a"),
+            "b": _entry(url="https://x.com/b", company="Beta"),
+        }
+        cards = prepare.build_cards(_profile(), index, {})
+        self.assertEqual({c["key"] for c in cards}, {"a", "b"})
+
+
 class TestGhostFlags(unittest.TestCase):
     def test_clean_entry_no_flags(self):
         self.assertEqual(prepare.ghost_flags(_entry()), [])

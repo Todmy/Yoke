@@ -178,6 +178,8 @@ def build_cards(profile, index, state):
     cards = []
     for k in sorted(index):
         entry = index[k]
+        if entry.get("dupe_of"):
+            continue  # near-duplicate: the canonical carries this role (WS4)
         comp_norm = _comp_norm(entry, profile)
         gates_failed = _apply_gates(entry, profile, comp_norm)
         _, friction = _geo(entry, profile)

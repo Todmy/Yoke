@@ -37,7 +37,7 @@
 - [x] T4.1 title normalization + similarity (WS4) [P]
 - [x] T4.2 update_index attaches dupe_of (WS4)
 - [x] T4.3 profile dedup config (WS4) [mechanical]
-- [ ] T4.4 build_cards skips dupe_of entries (WS4)
+- [x] T4.4 build_cards skips dupe_of entries (WS4)
 - [ ] T5.1 parity harness tools/parity_check.py (DoD)
 
 ### T1.1 — `scoring.penalized_fit` (WS1)
@@ -135,6 +135,10 @@
 - **Test cases:** `perfect_agreement` (identical → overlap 1.0, no divergences); `tier_divergence_listed`; `topN_overlap_jaccard` (crafted sets); `unmatched_role_reported`.
 
 ---
+
+## Learnings
+- WS4 dedup (T4.2/T4.4) collapsed `test_yoke._jobs`' numbered same-company titles ("Backend Engineer 1/2" → 0.944 similarity). Fixed the fixture to distinct engineer roles — the test's intent is pipeline plumbing (N roles → N records), not dedup. Any synthetic fixture that numbers same-company titles will now near-dup-collapse; use genuinely distinct titles.
+- `_normalize_title` keeps digits (`[^a-z0-9 ]`), so trailing serials survive normalization and only push similarity, not identity — a numbered pair still clears the 0.90 bar.
 
 ## Self-review
 - **Spec coverage:** WS1→T1.1-T1.4; WS2→T2.1-T2.2; WS3→T3.1-T3.3; WS4→T4.1-T4.4; parity harness→T5.1; live-run = verify-stage action (no code). Schema version bump = T1.2. Every design.md requirement maps to a task.

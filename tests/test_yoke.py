@@ -92,11 +92,15 @@ class TestRun(unittest.TestCase):
         self._tmp.cleanup()
         os.environ["YOKE_HOME"] = _TMP
 
+    # Distinct engineer roles (all hit the "engineer" lane keyword) so n>1 emits
+    # genuinely different roles — a numeric suffix would read as a WS4 near-dup.
+    _TITLES = ["Backend Engineer", "Frontend Engineer", "Platform Engineer", "Data Engineer"]
+
     @staticmethod
     def _jobs(name, n=1):
         return [
             collect.norm(
-                f"Backend Engineer {i}", "Acme", "Remote, Europe",
+                TestRun._TITLES[i - 1], "Acme", "Remote, Europe",
                 f"https://x.com/{name}/{i}", name,
             )
             for i in range(1, n + 1)
