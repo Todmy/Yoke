@@ -116,5 +116,23 @@ class TestVcFetch(unittest.TestCase):
         )
 
 
+class TestVcA16zExtraction(unittest.TestCase):
+    """The a16z loader path (marker -> entity-unescape -> company array) was
+    live-mocked everywhere else, so the marker guess shipped untested. This
+    drives the real extraction against a recorded-shape portfolio page."""
+
+    def test_load_a16z_extracts_companies_from_page(self):
+        page = (FIXTURES / "vc_a16z_page.html").read_bytes()
+        with mock.patch.object(vc.http, "fetch_bytes", return_value=page):
+            companies = vc._load_a16z()
+        self.assertEqual(len(companies), 2)
+        self.assertEqual(
+            {c["slug"] for c in companies}, {"spacex", "airbnb"}
+        )
+        self.assertEqual(
+            {c["name"] for c in companies}, {"SpaceX", "Airbnb"}
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

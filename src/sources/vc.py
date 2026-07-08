@@ -32,8 +32,9 @@ YC_URL = "https://api.ycombinator.com/v0.1/companies"
 A16Z_URL = "https://a16z.com/portfolio/"
 
 # a16z has no JSON API; its /portfolio/ HTML embeds the company array as an
-# entity-escaped attribute. This marker is UNVERIFIED — confirm live in stage 6.
-_A16Z_MARKER = 'data-portfolio-companies="'
+# entity-escaped attribute. Marker confirmed live in stage 6 (2026-07-08):
+# the real attribute is data-companies (849 companies, matching key shape).
+_A16Z_MARKER = 'data-companies="'
 
 _CACHE_FILE = "vc_companies.json"
 
