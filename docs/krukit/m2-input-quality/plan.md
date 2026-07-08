@@ -38,7 +38,7 @@
 - [x] T4.2 update_index attaches dupe_of (WS4)
 - [x] T4.3 profile dedup config (WS4) [mechanical]
 - [x] T4.4 build_cards skips dupe_of entries (WS4)
-- [ ] T5.1 parity harness tools/parity_check.py (DoD)
+- [x] T5.1 parity harness tools/parity_check.py (DoD)
 
 ### T1.1 — `scoring.penalized_fit` (WS1)
 - **Files:** modify `src/scoring.py`; test `tests/test_scoring.py`.
