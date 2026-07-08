@@ -5,7 +5,7 @@ Task: M1 "thicken collection" — 5 collect units in one flow (anti-bot HTTP mix
 - [x] 2 grill — done 2026-07-08, artifact: flow-state.md
 - [x] 3 design — done 2026-07-08, artifact: design.md
 - [x] 4 plan — done 2026-07-08, artifact: plan.md
-- [ ] 5 act
+- [x] 5 act — done 2026-07-08, artifact: plan.md (7 commits 1586b04..f8fb91e; full suite 142 OK)
 - [ ] 6 verify
 - [ ] 7 review
 

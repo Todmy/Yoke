@@ -17,6 +17,15 @@ Goal: thicken `collect` with 7 units (same `norm` 8-key output). Stack: Python s
 ## Build order & dependencies
 `T1` first (all fetchers call the mixin). `T2,T3,T4,T5,T7` are **[P]** after T1 (disjoint files). `T6` after **T3** (imports `ats` parsers). Each task self-contained + committed.
 
+## Task status (act)
+- [x] T1 — anti-bot HTTP mixin `src/http.py` — done 2026-07-08 (1586b04)
+- [x] T2 — justjoin full-JD — done 2026-07-08 (a9a3458)
+- [x] T3 — +4 EU-HQ ATS — done 2026-07-08 (8c6bd55)
+- [x] T4 — EURES source — done 2026-07-08 (217abe7)
+- [x] T5 — Germany BA source — done 2026-07-08 (1774c2a)
+- [x] T6 — VC-portfolio discovery — done 2026-07-08 (f8fb91e)
+- [x] T7 — country model + geo-gate — done 2026-07-08 (5a2ea5d)
+
 ---
 
 ### T1 — anti-bot HTTP mixin `src/http.py` (NEW core module)
@@ -102,3 +111,17 @@ Goal: thicken `collect` with 7 units (same `norm` 8-key output). Stack: Python s
 - **Live-network dry-run of all new free sources is NOT here** — it belongs to stage 6 (krukit-verify), per constitution #10.
 - Every task ends with its own commit (`feat: <unit>` / `test: <unit>`), one logical change apiece (constitution #8).
 - After T1, tasks T2/T3/T4/T5/T7 may run as parallel subagents (disjoint files); T6 waits for T3.
+
+## Learnings
+- `home()` lives in `src.paths` (not `src.collect`); write-side must call `paths.ensure_home()` first (mirrors `paths.save_state`).
+- justjoin's full JD is only in the offer page's server-rendered `<script type="application/ld+json">` JobPosting `description` — the body is client-rendered React (no `__NEXT_DATA__`, no SSR div). Re-verify this selector live in stage 6.
+- justjoin's list GET was NOT migrated to the http mixin (plan migrates only `ats` getters), so offline `fetch()` tests must stub `urllib.request.urlopen` in addition to `http.fetch_bytes`.
+- **ATS comp/jd reality inverts the plan's guess:** SmartRecruiters postings-list + Workable widget carry neither salary nor description → `comp=None, jd=""`. **Recruitee** is the only new provider with structured `salary`; Personio + Recruitee are the only two with descriptions. No speculative salary/JD extraction added for fields providers never return.
+- Personio (`{slug}.jobs.personio.de/xml`) and SmartRecruiters postings-list carry **no job URL** → built from id (`.../job/{id}`, `jobs.smartrecruiters.com/{ident}/{id}`), both verified 200.
+- `defusedxml.common.EntitiesForbidden` (a `ValueError` subclass) is what `fromstring` raises on the billion-laughs DOCTYPE; the per-company `try/except` turns it into a SKIP.
+- **Stage-6 live caveats:** Workable widget returns empty `jobs:[]` for most accounts (only widget-embedding tenants populate; probing hits 429 fast); Personio `.de` 307-redirects to `.com` for many slugs (urllib follows, curl -L needed); Recruitee 404s unless the exact careers subdomain exists; empty Personio `jobDescriptions` / empty content is a valid real `jd=""`.
+- **EURES** search payload carries no structured salary and no job URL → comp `None`, detail link built from `hit.id` (`.../jv-details/{id}`); full JD needs a second detail GET (deferred). Working POST body confirmed live; `locationCodes` is the country filter, `keywords[].keyword` the query.
+- **Germany BA** search entries carry no description → `jd=""` (detail GET deferred); URL built from `refnr` (`arbeitsagentur.de/jobsuche/jobdetail/{refnr}`) when no `externeUrl`. Country-gate is in `fetch` (not `available`, which takes no profile).
+- **a16z has no JSON API** — the `/portfolio/` page (~3.5MB) embeds the company array as an entity-escaped attribute; the extraction marker `data-portfolio-companies="` is **a GUESS, unverified — MUST be confirmed live in stage 6**. Miss → `[]` (zero a16z companies), never a crash.
+- **VC probe fan-out:** `_probe` fires up to `len(ats._URLS)=7` GETs per NEW company; `CAP=40` new/scan → ≤280 probe GETs worst case (first scan), all http-mixin-paced; cache makes it one-time per slug. Emit re-GETs every cached non-`"none"` slug each scan — a growing per-scan cost worth watching live.
+- **Pre-existing test noise:** the full suite prints `ResourceWarning: Implicitly cleaning up <HTTPError 403/429>` from T1's mocked `HTTPError(fp=None)` doubles in `test_http.py`. Harmless (suite exits OK); candidate for a one-line cleanup in review — construct the doubles with a `BytesIO` fp or `addCleanup(err.close)`.
