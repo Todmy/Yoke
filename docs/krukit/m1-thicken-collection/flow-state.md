@@ -6,7 +6,7 @@ Task: M1 "thicken collection" — 5 collect units in one flow (anti-bot HTTP mix
 - [x] 3 design — done 2026-07-08, artifact: design.md
 - [x] 4 plan — done 2026-07-08, artifact: plan.md
 - [x] 5 act — done 2026-07-08, artifact: plan.md (7 commits 1586b04..f8fb91e; full suite 142 OK)
-- [ ] 6 verify
+- [x] 6 verify — done 2026-07-08, artifact: verify.md (143 tests OK; live dry-run all free sources; 1 HIGH a16z-marker fixed in 12a019d; 0 CRITICAL)
 - [ ] 7 review
 
 ## Route gate evidence (2026-07-08)
