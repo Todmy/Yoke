@@ -10,7 +10,7 @@ Most "AI job search" tools are a prompt and a hope. You paste your CV, a model s
 
 - **Local-first.** Your CV and your decisions stay on your machine. Run it against a cloud model or a local one (Ollama, LM Studio) — your call.
 - **Deterministic where it can be.** Roughly a quarter of roles are decided by plain rules (lane, geo, hard blockers) and never touch a model. The model only fills a narrow set of features; a transparent formula turns those into the score. You can read the formula.
-- **Self-improving from your labels.** You mark roles applied or rejected on a local web board. Those become the ground truth. A tuner refits the scoring weights to *your* decisions — so it converges on what you'd pick, not on what the model guesses.
+- **Self-improving from your labels.** You mark roles applied or rejected from the CLI (`yoke apply` / `yoke drop`). Those become the ground truth. A tuner refits the scoring weights to *your* decisions — so it converges on what you'd pick, not on what the model guesses. *(tuner: roadmap)*
 - **Honest about uncertainty.** An eval harness scores the model against a reference and flags geo false-positives and other unsafe calls before you waste an application on them.
 
 ## How it works
@@ -22,7 +22,7 @@ prepare   deterministic feature cards — geo / lane / comp decided by rules, no
    ↓
 analyze   the model fills a few features; a weighted formula computes fit + tier
    ↓
-board     a live, self-pruning shortlist + a local web UI to triage
+board     a live, self-pruning shortlist (SHORTLIST.md); triage from the CLI (apply / drop)
    ↓
 eval      score the model vs a reference (safety gates dominate) (roadmap)
 tune      refit the scoring weights to your real applied/rejected decisions (roadmap)
