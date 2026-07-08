@@ -4,7 +4,7 @@ Task: M2 "Input quality" (ROADMAP.md) — 4 workstreams: (1) scoring formula = r
 - [x] 1 recon — done 2026-07-08, artifact: context.md
 - [x] 2 grill — done 2026-07-08, artifact: flow-state.md
 - [x] 3 design — done 2026-07-08, artifact: design.md
-- [ ] 4 plan
+- [x] 4 plan — done 2026-07-08, artifact: plan.md
 - [ ] 5 act
 - [ ] 6 verify
 - [ ] 7 review
