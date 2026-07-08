@@ -160,9 +160,12 @@ def _schema_ok(result):
 def analyze_cards(cards, profile, backend, log=None):
     """Board records for every card; only needs_ai cards hit the backend."""
     log = log or (lambda *_: None)
-    declared = profile.get("scoring", {}).get("features", [])
-    deterministic = profile.get("scoring", {}).get("deterministic", [])
+    scoring_cfg = profile.get("scoring", {})
+    declared = scoring_cfg.get("features", [])
+    deterministic = scoring_cfg.get("deterministic", [])
     weights = {f["name"]: f["weight"] for f in declared + deterministic}
+    red_flag_map = scoring_cfg.get("red_flags", {})
+    red_flag_cap = scoring_cfg.get("red_flag_cap", 0.5)
     floor = profile.get("comp", {}).get("floor_net_usd_mo", comp.DEFAULT_FLOOR)
     now = datetime.now(timezone.utc).isoformat()
 
@@ -219,7 +222,27 @@ def analyze_cards(cards, profile, backend, log=None):
             "score": COMP_SCORE[verdict], "evidence": f"floor verdict: {verdict}",
         }
 
-        fit = scoring.fit(scores, weights)
+        # Red-flag penalty (WS1): merge model-classified flags with code-detected
+        # ghost flags (WS3), map each to a profile penalty, apply a clamped
+        # multiplier around the additive fit_base. Unknown-to-map categories are
+        # fail-open (penalty 0, logged) so a bad classification never crashes.
+        model_flags = [
+            rf for rf in (result.get("red_flags") or [])
+            if isinstance(rf, dict) and rf.get("category")
+        ]
+        red_flags = model_flags + [
+            {"category": c, "evidence": f"detected: {c}"}
+            for c in (card.get("ghost_flags") or []) if c
+        ]
+        penalties = []
+        for rf in red_flags:
+            cat = rf["category"]
+            penalties.append(red_flag_map.get(cat, 0.0))
+            if cat not in red_flag_map:
+                log(f"  unknown red-flag category '{cat}' — penalty 0 (fail-open)")
+
+        fit_base = scoring.fit(scores, weights)
+        fit = scoring.penalized_fit(fit_base, penalties, red_flag_cap)
         if geo == "onsite" or result["lane"] == "off":
             tier = "C"  # hard fail, never friction-demoted B
         else:
@@ -227,7 +250,7 @@ def analyze_cards(cards, profile, backend, log=None):
 
         rec.update({
             "fit": fit, "tier": tier, "features": features, "geo_certainty": geo,
-            "red_flags": [str(r) for r in (result.get("red_flags") or [])],
+            "red_flags": red_flags,
             "note": str(result.get("note") or ""),
             "comp_display": comp_display(comp_norm),
         })

@@ -30,6 +30,14 @@ def _profile():
                 {"name": "visa_compat", "weight": 10, "desc": "Permit compatible?"},
             ],
             "deterministic": [{"name": "comp_vs_floor", "weight": 30}],
+            # partial red-flag map: legal_risk is a valid enum category but
+            # deliberately absent here (exercises the unknown-to-map path).
+            "red_flag_cap": 0.5,
+            "red_flags": {
+                "scam_signal": 0.5,
+                "untrusted_apply_domain": 0.4,
+                "repost_churn": 0.2,
+            },
         },
     }
 
@@ -241,6 +249,61 @@ class TestAnalyze(unittest.TestCase):
                 return analyze.mock_fill(card, names)
         records = analyze.analyze_cards([card], _profile(), MockBackend())
         self.assertNotIn("analysis_failed", records[0])
+
+
+class TestRedFlagPenalty(unittest.TestCase):
+    def test_penalty_lowers_fit_and_tier(self):
+        backend = FakeBackend([_response(
+            red_flags=[{"category": "scam_signal", "evidence": "upfront fee"}]
+        )])
+        rec = analyze.analyze_cards([_card()], _profile(), backend)[0]
+        # fit_base 92, scam_signal 0.5 (== cap) → round(92*0.5) = 46 → tier C
+        self.assertEqual(rec["fit"], 46)
+        self.assertEqual(rec["tier"], "C")
+        self.assertEqual(
+            rec["red_flags"],
+            [{"category": "scam_signal", "evidence": "upfront fee"}],
+        )
+
+    def test_no_flags_is_identity(self):
+        rec = analyze.analyze_cards([_card()], _profile(), FakeBackend([_response()]))[0]
+        self.assertEqual(rec["fit"], 92)  # no flags → fit_base unchanged
+        self.assertEqual(rec["tier"], "A")
+        self.assertEqual(rec["red_flags"], [])
+
+    def test_unknown_category_ignored(self):
+        # legal_risk is a valid enum category but absent from this profile's map
+        logs = []
+        backend = FakeBackend([_response(
+            red_flags=[{"category": "legal_risk", "evidence": "arbitration clause"}]
+        )])
+        rec = analyze.analyze_cards([_card()], _profile(), backend, log=logs.append)[0]
+        self.assertEqual(rec["fit"], 92)  # unknown-to-map → penalty 0 → identity
+        self.assertEqual(rec["tier"], "A")
+        self.assertTrue(any("legal_risk" in m for m in logs))  # fail-open, logged
+
+    def test_cap_bounds_stacked_penalties(self):
+        backend = FakeBackend([_response(
+            red_flags=[{"category": "scam_signal", "evidence": "x"}]
+        )])
+        # scam_signal 0.5 + ghost untrusted_apply_domain 0.4 = 0.9, capped at 0.5
+        card = _card(ghost_flags=["untrusted_apply_domain"])
+        rec = analyze.analyze_cards([card], _profile(), backend)[0]
+        self.assertEqual(rec["fit"], 46)  # capped: 92*0.5, not 92*0.1=9
+
+    def test_ghost_flags_field_penalizes(self):
+        # clean model output, but a code-detected ghost flag on the card
+        backend = FakeBackend([_response()])
+        card = _card(ghost_flags=["untrusted_apply_domain"])  # 0.4
+        rec = analyze.analyze_cards([card], _profile(), backend)[0]
+        # round(92 * (1 - 0.4)) = 55 → tier B
+        self.assertEqual(rec["fit"], 55)
+        self.assertEqual(rec["tier"], "B")
+        self.assertIn(
+            {"category": "untrusted_apply_domain",
+             "evidence": "detected: untrusted_apply_domain"},
+            rec["red_flags"],
+        )
 
 
 if __name__ == "__main__":

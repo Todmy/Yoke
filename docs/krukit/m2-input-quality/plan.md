@@ -27,7 +27,7 @@
 ### Progress
 - [x] T1.1 penalized_fit (WS1)
 - [x] T1.2 classified red-flag schema + enum (WS1)
-- [ ] T1.3 apply penalty in analyze_cards (WS1)
+- [x] T1.3 apply penalty in analyze_cards (WS1)
 - [ ] T1.4 profile red-flag config (WS1) [mechanical]
 - [ ] T3.1 prepare.ghost_flags (WS3)
 - [ ] T3.2 attach ghost_flags in build_cards (WS3)
