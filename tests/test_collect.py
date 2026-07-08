@@ -221,6 +221,20 @@ class TestCollect(unittest.TestCase):
     def test_dissimilar_false(self):
         self.assertFalse(collect._title_similar("Backend Engineer", "Data Scientist", 0.9))
 
+    def test_different_seniority_not_merged(self):
+        # senior vs junior at the same company are DISTINCT roles, never deduped
+        self.assertFalse(
+            collect._title_similar("Senior Backend Engineer", "Junior Backend Engineer", 0.9)
+        )
+        # a seniority-omitted variant still collapses (formatting, not a level change)
+        self.assertTrue(
+            collect._title_similar("Senior Backend Engineer", "Backend Engineer", 0.9)
+        )
+
+    def test_empty_normalized_title_not_similar(self):
+        # a title that reduces to nothing (pure seniority) never matches
+        self.assertFalse(collect._title_similar("Senior", "Senior", 0.9))
+
     def test_same_company_title_variant_gets_dupe_of(self):
         a = collect.norm("Senior Backend Engineer", "Acme", "Berlin", "https://x.com/a", "s")
         b = collect.norm("Backend Engineer", "Acme", "Warsaw", "https://x.com/b", "s")

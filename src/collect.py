@@ -119,9 +119,16 @@ def role_key(job):
     return f"{job['company'].lower()}|{t}"
 
 
-# Seniority tokens dropped before near-duplicate comparison (WS4).
-_SENIORITY = {"senior", "sr", "junior", "jr", "mid", "middle", "lead", "staff",
-              "principal"}
+# Seniority tokens dropped before near-duplicate comparison (WS4), each mapped
+# to a coarse level. Stripping collapses formatting variance ("Sr" vs "Senior"),
+# but two titles with DIFFERENT explicit levels are distinct roles, not dupes.
+_SENIORITY_LEVEL = {
+    "senior": "senior", "sr": "senior",
+    "junior": "junior", "jr": "junior",
+    "mid": "mid", "middle": "mid",
+    "lead": "lead", "staff": "staff", "principal": "principal",
+}
+_SENIORITY = set(_SENIORITY_LEVEL)
 
 
 def _normalize_title(title):
@@ -138,11 +145,28 @@ def _normalize_title(title):
     return " ".join(w for w in t.split() if w not in _SENIORITY)
 
 
+def _seniority(title):
+    """Coarse seniority level of a title, or None when unspecified."""
+    for w in re.sub(r"[^a-z ]", " ", (title or "").lower()).split():
+        if w in _SENIORITY_LEVEL:
+            return _SENIORITY_LEVEL[w]
+    return None
+
+
 def _title_similar(a, b, ratio):
-    """True when two titles are near-duplicates after normalization (WS4)."""
-    return difflib.SequenceMatcher(
-        None, _normalize_title(a), _normalize_title(b)
-    ).ratio() >= ratio
+    """True when two titles are near-duplicates after normalization (WS4).
+
+    Two DIFFERENT explicit seniority levels (senior vs junior) are never
+    duplicates even at ratio 1.0 — level changes comp/fit. Titles that
+    normalize to nothing (pure seniority) never match.
+    """
+    na, nb = _normalize_title(a), _normalize_title(b)
+    if not na or not nb:
+        return False
+    la, lb = _seniority(a), _seniority(b)
+    if la and lb and la != lb:
+        return False
+    return difflib.SequenceMatcher(None, na, nb).ratio() >= ratio
 
 
 def matches_profile(job, profile, bypass_lane=False):
