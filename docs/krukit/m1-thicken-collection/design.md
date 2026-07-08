@@ -71,7 +71,7 @@ Add four providers to the existing dispatch tables (constitution #4 "extension t
 | recruitee | `https://{slug}.recruitee.com/api/offers/` | JSON |
 
 - `_URLS` gains 4 entries; `_PARSERS` gains `_parse_personio/_parse_smartrecruiters/_parse_workable/_parse_recruitee`; add `_XML_ATS = {"personio"}`.
-- **XML path**: add `_get_xml(url)` using `xml.etree.ElementTree`; `fetch()` picks `_get_xml if company["ats"] in _XML_ATS else _get_json`. Both getters route through `http.fetch_bytes` (mixin) instead of raw `urllib` — this is the one migration of existing code, justified because `ats` fans out per-company.
+- **XML path**: add `_get_xml(url)` parsing with **`defusedxml`** (lazy import at the plugin edge — stdlib `xml.etree` is XXE / billion-laughs vulnerable on untrusted network XML; Personio's feed is a user/VC-supplied subdomain). Missing `defusedxml` → clear `RuntimeError` caught by per-company isolation (skips personio, never crashes). `fetch()` picks `_get_xml if company["ats"] in _XML_ATS else _get_json`. Both getters route through `http.fetch_bytes` (mixin) instead of raw `urllib` — this is the one migration of existing code, justified because `ats` fans out per-company.
 - Per-company `try/except → SKIP` isolation reused unchanged (`ats.py:110-114`).
 - **comp structured where available** (SmartRecruiters/Workable expose salary fields → emit `{min,max,currency,unit,type}`; Personio/Recruitee often none → `None`). Never a preformatted string.
 - Slugs come from `profile.sources.companies` `[{slug, ats}]` (hand-seeded) **and** from VC-discovery (unit 6). All 4 fit the existing `{slug, ats}` shape — no schema change.
@@ -156,7 +156,7 @@ Unittest, fixtures, **no live network** (constitution #6): mixin logic (mocked t
 | 2. Deterministic core, thin AI surface | pass — collect stays zero-LLM; no model call added; sources are deterministic parsers. |
 | 3. Flat files | pass — `jd_cache.json`, `vc_companies.json`, `_index.json` are flat JSON; no DB. |
 | 4. Concrete with seams | pass — M1 roadmap milestone; exactly one new core module (`src/http.py`, the mixin unit); JD cache kept local to justjoin; sources added via the plugin seam; no speculative abstraction. |
-| 5. Sources are plugins | pass — vc/eures/germany_ba are self-contained plugins; EU-ATS extends the `ats` provider table; all deps stdlib (`urllib`/`xml.etree`/`json`) — nothing heavy at module level. |
+| 5. Sources are plugins | pass — vc/eures/germany_ba are self-contained plugins; EU-ATS extends the `ats` provider table; deps are stdlib (`urllib`/`json`) plus one optional **lazy plugin-edge** dep, `defusedxml`, for the untrusted Personio XML — nothing heavy at module level. |
 | 6. Core test-first, fetchers on fixtures | pass — mixin + gate logic test-first; every fetcher keeps fetch/parse split with fixture parse-tests; no live network in tests. |
 | 7. No paid call without consent | pass — all in-scope sources `COST="free"`; France/Poland deferred as `key`; analyze new-in-window slice untouched. |
 | 8. Moat barrier & small commits | pass — one commit per unit; `.private`/profile/labels/caches never committed (caches live under `$YOKE_HOME`); push only with permission. |
