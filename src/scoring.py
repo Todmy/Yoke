@@ -18,6 +18,19 @@ def fit(scores: dict[str, float], weights: dict[str, float]) -> int:
     return max(0, min(100, round(total)))
 
 
+def penalized_fit(fit_base: int, penalties: list[float], cap: float) -> int:
+    """Red-flag penalty layer around the additive fit (WS1).
+
+    fit_final = round(fit_base * (1 - min(sum(positive penalties), cap))),
+    clamped 0-100. The cap is the modifier-floor clamp: stacked red flags strip
+    at most `cap` of the score, never zero a strong role. Empty or all-zero
+    penalties return fit_base unchanged. The additive fit_base stays untouched
+    (ADR-0001) — this multiplier lives strictly outside the weighted sum.
+    """
+    drop = min(sum(p for p in penalties if p > 0), cap)
+    return max(0, min(100, round(fit_base * (1 - drop))))
+
+
 def tier_of(fit: int, geo_ok: bool, comp_ok: bool, frictions: list[str]) -> str:
     """Tier from fit + hard conditions.
 

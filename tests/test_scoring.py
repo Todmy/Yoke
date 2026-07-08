@@ -35,6 +35,32 @@ class TestFit(unittest.TestCase):
         self.assertEqual(scoring.fit({"lane": -50}, weights), 0)
 
 
+class TestPenalizedFit(unittest.TestCase):
+    def test_no_penalties_identity(self):
+        self.assertEqual(scoring.penalized_fit(80, [], 0.5), 80)
+
+    def test_single_penalty(self):
+        self.assertEqual(scoring.penalized_fit(80, [0.5], 0.5), 40)
+
+    def test_summed_capped(self):
+        # 0.4 + 0.4 = 0.8, capped at 0.5 → 80 * 0.5 = 40 (not 80 * 0.2 = 16)
+        self.assertEqual(scoring.penalized_fit(80, [0.4, 0.4], 0.5), 40)
+
+    def test_cap_zero_identity(self):
+        self.assertEqual(scoring.penalized_fit(80, [0.5], 0.0), 80)
+
+    def test_rounding(self):
+        # 81 * (1 - 0.1) = 72.9 → 73
+        self.assertEqual(scoring.penalized_fit(81, [0.1], 0.5), 73)
+
+    def test_clamped_0_100(self):
+        # a cap >= 1 could drive the product to 0; never below 0
+        self.assertEqual(scoring.penalized_fit(80, [1.0], 1.0), 0)
+        # base already clamped upstream, but penalized_fit must not exceed 100
+        self.assertLessEqual(scoring.penalized_fit(100, [], 0.5), 100)
+        self.assertGreaterEqual(scoring.penalized_fit(10, [0.9], 0.5), 0)
+
+
 class TestTier(unittest.TestCase):
     def test_tier_a_requires_geo_and_comp(self):
         self.assertEqual(scoring.tier_of(80, True, True, []), "A")

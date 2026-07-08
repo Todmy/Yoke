@@ -24,6 +24,22 @@
 
 ## Tasks (execution order)
 
+### Progress
+- [x] T1.1 penalized_fit (WS1)
+- [ ] T1.2 classified red-flag schema + enum (WS1)
+- [ ] T1.3 apply penalty in analyze_cards (WS1)
+- [ ] T1.4 profile red-flag config (WS1) [mechanical]
+- [ ] T3.1 prepare.ghost_flags (WS3)
+- [ ] T3.2 attach ghost_flags in build_cards (WS3)
+- [ ] T3.3 ghost penalty flows through analyze (WS3) [P]
+- [ ] T2.1 comp_estimated schema + market-aware prompt (WS2)
+- [ ] T2.2 comp precedence + soft estimate (WS2)
+- [ ] T4.1 title normalization + similarity (WS4) [P]
+- [ ] T4.2 update_index attaches dupe_of (WS4)
+- [ ] T4.3 profile dedup config (WS4) [mechanical]
+- [ ] T4.4 build_cards skips dupe_of entries (WS4)
+- [ ] T5.1 parity harness tools/parity_check.py (DoD)
+
 ### T1.1 — `scoring.penalized_fit` (WS1)
 - **Files:** modify `src/scoring.py`; test `tests/test_scoring.py`.
 - **Signature:** `def penalized_fit(fit_base: int, penalties: list[float], cap: float) -> int`
