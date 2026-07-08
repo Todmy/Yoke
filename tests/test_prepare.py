@@ -199,6 +199,13 @@ class TestBuildCardsDedup(unittest.TestCase):
         cards = prepare.build_cards(_profile(), index, {})
         self.assertEqual({c["key"] for c in cards}, {"a", "b"})
 
+    def test_dupe_of_missing_canonical_fails_open(self):
+        # a dangling dupe_of (canonical pruned away) must NOT drop the role —
+        # fail open and emit the card, never silently lose a live posting.
+        index = {"orphan": {**_entry(url="https://x.com/orphan"), "dupe_of": "gone"}}
+        cards = prepare.build_cards(_profile(), index, {})
+        self.assertEqual([c["key"] for c in cards], ["orphan"])
+
 
 class TestGhostFlags(unittest.TestCase):
     def test_clean_entry_no_flags(self):
