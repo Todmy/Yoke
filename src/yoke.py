@@ -69,13 +69,14 @@ def select_sources(sources_meta, preselected, input_fn=input):
             print(f"  {m['name']} is unavailable ({m['reason']}) — cannot enable")
 
 
-_ARROW_KEYS = {"[A": "up", "[B": "down", "OA": "up", "OB": "down"}
+_ARROW_KEYS = {"[A": "up", "[B": "down", "[C": "right",
+               "OA": "up", "OB": "down", "OC": "right"}
 
 
 def _decode_key(getch):
     """Map one keypress (getch() → one char) to a semantic token.
 
-    Returns 'up' | 'down' | 'space' | 'enter' | None (key ignored). Ctrl-C
+    Returns 'up' | 'down' | 'right' | 'space' | 'enter' | None (key ignored). Ctrl-C
     raises KeyboardInterrupt so the menu cancels like any other prompt. Split
     from terminal I/O so the mapping is unit-testable without a TTY.
     """
@@ -91,52 +92,129 @@ def _decode_key(getch):
     return None
 
 
-def _tui_frame(sources_meta, selected, cursor, first):
-    rows = []
-    for i, m in enumerate(sources_meta):
-        pointer = "❯" if i == cursor else " "
-        mark = "x" if m["name"] in selected else " "
-        status = "available" if m["available"] else f"unavailable: {m['reason']}"
-        rows.append(f" {pointer} [{mark}] {m['name']} ({m['cost']}, {status})")
-    block = ("Sources:\n" + "\n".join(rows)
-             + "\n ↑/↓ move · space toggle · enter start")
-    if first:
-        return block
-    # redraw in place: jump up over the prior block (title + rows + hint) and clear
-    return f"\x1b[{len(sources_meta) + 2}A\x1b[J" + block
+def _is_recommended(tags, countries):
+    """Country-relevance gate for menu sectioning: global (any) and remote
+    (intl) sources are always recommended; a country-pinned source only when
+    its ISO-2 is in profile.countries. 'all-eu' is not expanded to member
+    states here — a country board you didn't list sits in Other, still
+    selectable, just not surfaced first.
+    """
+    country = (tags or {}).get("country", "any")
+    return country in ("any", "intl") or country in countries
 
 
-def select_sources_tui(sources_meta, preselected, read_key, out=print):
+def _recommended_names(sources_meta, countries):
+    """Names of sources whose TAGS clear _is_recommended for profile.countries."""
+    cset = set(countries or [])
+    return {m["name"] for m in sources_meta if _is_recommended(m.get("tags"), cset)}
+
+
+_MENU_HINT = " ↑/↓ move · space toggle · enter start"
+
+
+def _menu_rows(rec, oth, expanded, selected):
+    """Flat navigable-row model: recommended sources, then an 'Other (N)'
+    control that reveals the rest when expanded. Every row is a cursor stop.
+    """
+    rows = [{"kind": "src", "meta": m, "indent": 0} for m in rec]
+    if oth:
+        on = sum(1 for m in oth if m["name"] in selected)
+        rows.append({"kind": "more", "count": len(oth), "on": on})
+        if expanded:
+            rows += [{"kind": "src", "meta": m, "indent": 1} for m in oth]
+    return rows
+
+
+def _row_text(row, is_cursor, selected, expanded):
+    pointer = "❯" if is_cursor else " "
+    if row["kind"] == "more":
+        tri = "▾" if expanded else "▸"
+        tail = f" · {row['on']} on" if (not expanded and row["on"]) else ""
+        return f" {pointer} {tri} Other ({row['count']}{tail})"
+    m = row["meta"]
+    mark = "x" if m["name"] in selected else " "
+    status = "available" if m["available"] else f"unavailable: {m['reason']}"
+    return (f" {pointer} {'  ' * row['indent']}[{mark}] "
+            f"{m['name']} ({m['cost']}, {status})")
+
+
+def _render_menu(rows, selected, cursor, top, viewport, expanded):
+    """One frame: title, a `viewport`-tall window of rows around the cursor,
+    and a hint that carries a position readout only while windowed.
+    """
+    end = min(top + viewport, len(rows))
+    lines = ["Sources:"]
+    lines += [_row_text(rows[i], i == cursor, selected, expanded)
+              for i in range(top, end)]
+    hint = _MENU_HINT
+    if len(rows) > viewport:
+        hint += f"   [{cursor + 1}/{len(rows)}]"
+    lines.append(hint)
+    return "\n".join(lines)
+
+
+def select_sources_tui(sources_meta, preselected, read_key, out=print,
+                       recommended=None, viewport=1000):
     """Arrow-key checkbox menu: up/down move, space toggles, enter confirms.
 
-    Pure over read_key/out — read_key() yields the semantic tokens from
-    _decode_key and out() renders a frame; the real terminal wiring lives in
-    _interactive_select. Unavailable sources cannot be enabled; returns the
-    selection in menu order.
+    Pure over read_key/out — read_key() yields _decode_key tokens and out()
+    renders a frame; the real terminal wiring lives in _interactive_select.
+    `recommended` (a set of names) splits the list into a recommended section
+    and a collapsed 'Other'; None keeps every source recommended (flat list).
+    `viewport` caps visible rows, windowing around the cursor for long lists.
+    Unavailable sources cannot be enabled; returns the selection with
+    recommended sources first, then Other, each in menu order.
     """
     if not sources_meta:
         return []
+    if recommended is None:
+        rec, oth = list(sources_meta), []
+    else:
+        rec = [m for m in sources_meta if m["name"] in recommended]
+        oth = [m for m in sources_meta if m["name"] not in recommended]
+    order = rec + oth
     wanted = set(preselected)
-    selected = {m["name"] for m in sources_meta if m["available"] and m["name"] in wanted}
+    selected = {m["name"] for m in order if m["available"] and m["name"] in wanted}
+    expanded = not rec  # nothing recommended → open Other so the list isn't empty
     cursor = 0
-    n = len(sources_meta)
-    out(_tui_frame(sources_meta, selected, cursor, first=True))
+    top = 0
+    rows = _menu_rows(rec, oth, expanded, selected)
+    prev = 0
+
+    def draw(first):
+        nonlocal top, prev
+        if cursor < top:
+            top = cursor
+        elif cursor >= top + viewport:
+            top = cursor - viewport + 1
+        top = max(0, min(top, max(0, len(rows) - viewport)))
+        text = _render_menu(rows, selected, cursor, top, viewport, expanded)
+        out(text if first else f"\x1b[{prev}A\x1b[J" + text)
+        prev = text.count("\n") + 1
+
+    draw(first=True)
     while True:
         key = read_key()
-        if key == "up":
-            cursor = (cursor - 1) % n
-        elif key == "down":
-            cursor = (cursor + 1) % n
-        elif key == "space":
-            m = sources_meta[cursor]
-            if m["name"] in selected:
-                selected.discard(m["name"])
-            elif m["available"]:
-                selected.add(m["name"])
-        elif key == "enter":
+        if key == "enter":
             out("")  # drop below the menu block before run output
-            return [m["name"] for m in sources_meta if m["name"] in selected]
-        out(_tui_frame(sources_meta, selected, cursor, first=False))
+            return [m["name"] for m in order if m["name"] in selected]
+        if key == "up":
+            cursor = (cursor - 1) % len(rows)
+        elif key == "down":
+            cursor = (cursor + 1) % len(rows)
+        elif key in ("space", "right"):
+            row = rows[cursor]
+            if row["kind"] == "more":
+                expanded = not expanded  # space or → works the collapse control
+            elif key == "space":  # → is a no-op on a source row; space toggles it
+                m = row["meta"]
+                if m["name"] in selected:
+                    selected.discard(m["name"])
+                elif m["available"]:
+                    selected.add(m["name"])
+        rows = _menu_rows(rec, oth, expanded, selected)
+        cursor = min(cursor, len(rows) - 1)
+        draw(first=False)
 
 
 def _interactive():
@@ -153,10 +231,12 @@ def _interactive():
     return True
 
 
-def _interactive_select(sources_meta, preselected):
+def _interactive_select(sources_meta, preselected, recommended):
     """Production wiring for select_sources_tui: cbreak + hidden cursor for the
-    life of the menu, restored on exit; reads one key at a time from stdin.
+    life of the menu, restored on exit; reads one key at a time from stdin. The
+    visible window tracks terminal height so long source lists scroll.
     """
+    import shutil
     import termios
     import tty
 
@@ -166,9 +246,11 @@ def _interactive_select(sources_meta, preselected):
     sys.stdout.flush()
     try:
         tty.setcbreak(fd)
+        viewport = max(8, shutil.get_terminal_size((80, 24)).lines - 4)
         return select_sources_tui(
             sources_meta, preselected,
             read_key=lambda: _decode_key(lambda: sys.stdin.read(1)),
+            recommended=recommended, viewport=viewport,
         )
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old)
@@ -230,7 +312,8 @@ def _run(args, input_fn):
     for mod in collect.load_sources():
         ok, reason = mod.available()
         sources_meta.append(
-            {"name": mod.NAME, "cost": mod.COST, "available": bool(ok), "reason": reason}
+            {"name": mod.NAME, "cost": mod.COST, "available": bool(ok),
+             "reason": reason, "tags": mod.TAGS}
         )
     if args.sources:
         selected = [s.strip() for s in args.sources.split(",") if s.strip()]
@@ -239,8 +322,9 @@ def _run(args, input_fn):
     else:
         default = _default_selection(sources_meta, state, profile)
         if _interactive():
+            recommended = _recommended_names(sources_meta, profile.get("countries", []))
             try:
-                selected = _interactive_select(sources_meta, default)
+                selected = _interactive_select(sources_meta, default, recommended)
             except KeyboardInterrupt:
                 print("\ncancelled — nothing fetched")
                 return 130

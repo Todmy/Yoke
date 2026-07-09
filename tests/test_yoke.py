@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import re
 import sys
 import tempfile
 import unittest
@@ -81,6 +82,27 @@ class TestSelectSources(unittest.TestCase):
         self.assertEqual(got, ["alpha"])
 
 
+class TestSourceRelevance(unittest.TestCase):
+    def test_is_recommended_country_gate(self):
+        self.assertTrue(yoke._is_recommended({"country": "any"}, {"pl"}))
+        self.assertTrue(yoke._is_recommended({"country": "intl"}, set()))
+        self.assertTrue(yoke._is_recommended({"country": "pl"}, {"pl"}))
+        self.assertFalse(yoke._is_recommended({"country": "de"}, {"pl"}))
+        self.assertTrue(yoke._is_recommended({}, {"pl"}))  # no tag → treat as any
+
+    def test_recommended_names_splits_by_tags(self):
+        meta = [
+            {**_meta("hn"), "tags": {"country": "intl"}},
+            {**_meta("justjoin"), "tags": {"country": "pl"}},
+            {**_meta("germany_ba"), "tags": {"country": "de"}},
+            {**_meta("eures"), "tags": {"country": "any"}},
+        ]
+        self.assertEqual(
+            yoke._recommended_names(meta, ["pl"]),
+            {"hn", "justjoin", "eures"},
+        )
+
+
 class TestSelectSourcesTui(unittest.TestCase):
     @staticmethod
     def _keys(*tokens):
@@ -117,12 +139,78 @@ class TestSelectSourcesTui(unittest.TestCase):
         )
         self.assertEqual(got, ["alpha"])
 
+    def test_tui_other_collapsed_hides_until_expand(self):
+        meta = [_meta("hn"), _meta("germany_ba")]
+        # germany_ba is Other, collapsed. rows = [hn, more]; down lands on the
+        # 'more' control, enter without expanding → germany_ba never selectable.
+        got = yoke.select_sources_tui(
+            meta, [], self._keys("down", "enter"),
+            out=lambda *a, **k: None, recommended={"hn"},
+        )
+        self.assertEqual(got, [])
+
+    def test_tui_expand_other_then_select(self):
+        meta = [_meta("hn"), _meta("germany_ba")]
+        # down→'more', space expands, down→germany_ba, space selects, enter.
+        got = yoke.select_sources_tui(
+            meta, [], self._keys("down", "space", "down", "space", "enter"),
+            out=lambda *a, **k: None, recommended={"hn"},
+        )
+        self.assertEqual(got, ["germany_ba"])
+
+    def test_tui_right_arrow_expands_other(self):
+        meta = [_meta("hn"), _meta("germany_ba")]
+        # right also works the collapse control: down→'more', right expands,
+        # down→germany_ba, space selects, enter.
+        got = yoke.select_sources_tui(
+            meta, [], self._keys("down", "right", "down", "space", "enter"),
+            out=lambda *a, **k: None, recommended={"hn"},
+        )
+        self.assertEqual(got, ["germany_ba"])
+
+    def test_tui_right_arrow_noop_on_source(self):
+        meta = [_meta("alpha"), _meta("beta")]
+        # right is a collapse-control key only — on a source row it does nothing
+        # (space stays the toggle). alpha preselected, right, enter → still alpha.
+        got = yoke.select_sources_tui(
+            meta, ["alpha"], self._keys("right", "enter"),
+            out=lambda *a, **k: None,
+        )
+        self.assertEqual(got, ["alpha"])
+
+    def test_tui_return_order_recommended_then_other(self):
+        meta = [_meta("germany_ba"), _meta("hn")]  # menu order ≠ section order
+        # hn recommended, germany_ba Other. Preselect both; expand to reach it.
+        # Returned order is recommended-first, then Other.
+        got = yoke.select_sources_tui(
+            meta, ["hn", "germany_ba"], self._keys("enter"),
+            out=lambda *a, **k: None, recommended={"hn"},
+        )
+        self.assertEqual(got, ["hn", "germany_ba"])
+
+    def test_tui_viewport_windows_long_list(self):
+        meta = [_meta(f"s{i}") for i in range(8)]
+        frames = []
+        keys = self._keys("down", "down", "down", "down", "down", "enter")
+        yoke.select_sources_tui(
+            meta, [], keys, out=lambda t="": frames.append(t), viewport=3,
+        )
+        for f in frames:
+            body = re.sub(r"^\x1b\[\d+A\x1b\[J", "", f)
+            if not body.startswith("Sources:"):
+                continue
+            visible = [ln for ln in body.split("\n") if "[ ]" in ln or "[x]" in ln]
+            self.assertLessEqual(len(visible), 3)  # never more than a window
+        self.assertTrue(any("/8]" in f for f in frames))  # position indicator
+
     def test_decode_key_maps_sequences(self):
         def chars(*cs):
             it = iter(cs)
             return lambda: next(it)
         self.assertEqual(yoke._decode_key(chars("\x1b", "[", "A")), "up")
         self.assertEqual(yoke._decode_key(chars("\x1b", "[", "B")), "down")
+        self.assertEqual(yoke._decode_key(chars("\x1b", "[", "C")), "right")
+        self.assertEqual(yoke._decode_key(chars("\x1b", "O", "C")), "right")
         self.assertEqual(yoke._decode_key(chars("\x1b", "O", "A")), "up")
         self.assertEqual(yoke._decode_key(chars(" ")), "space")
         self.assertEqual(yoke._decode_key(chars("\r")), "enter")
