@@ -69,6 +69,113 @@ def select_sources(sources_meta, preselected, input_fn=input):
             print(f"  {m['name']} is unavailable ({m['reason']}) — cannot enable")
 
 
+_ARROW_KEYS = {"[A": "up", "[B": "down", "OA": "up", "OB": "down"}
+
+
+def _decode_key(getch):
+    """Map one keypress (getch() → one char) to a semantic token.
+
+    Returns 'up' | 'down' | 'space' | 'enter' | None (key ignored). Ctrl-C
+    raises KeyboardInterrupt so the menu cancels like any other prompt. Split
+    from terminal I/O so the mapping is unit-testable without a TTY.
+    """
+    ch = getch()
+    if ch in ("\r", "\n"):
+        return "enter"
+    if ch == " ":
+        return "space"
+    if ch == "\x03":
+        raise KeyboardInterrupt
+    if ch == "\x1b":  # CSI/SS3 arrow: ESC + two more bytes
+        return _ARROW_KEYS.get(getch() + getch())
+    return None
+
+
+def _tui_frame(sources_meta, selected, cursor, first):
+    rows = []
+    for i, m in enumerate(sources_meta):
+        pointer = "❯" if i == cursor else " "
+        mark = "x" if m["name"] in selected else " "
+        status = "available" if m["available"] else f"unavailable: {m['reason']}"
+        rows.append(f" {pointer} [{mark}] {m['name']} ({m['cost']}, {status})")
+    block = ("Sources:\n" + "\n".join(rows)
+             + "\n ↑/↓ move · space toggle · enter start")
+    if first:
+        return block
+    # redraw in place: jump up over the prior block (title + rows + hint) and clear
+    return f"\x1b[{len(sources_meta) + 2}A\x1b[J" + block
+
+
+def select_sources_tui(sources_meta, preselected, read_key, out=print):
+    """Arrow-key checkbox menu: up/down move, space toggles, enter confirms.
+
+    Pure over read_key/out — read_key() yields the semantic tokens from
+    _decode_key and out() renders a frame; the real terminal wiring lives in
+    _interactive_select. Unavailable sources cannot be enabled; returns the
+    selection in menu order.
+    """
+    if not sources_meta:
+        return []
+    wanted = set(preselected)
+    selected = {m["name"] for m in sources_meta if m["available"] and m["name"] in wanted}
+    cursor = 0
+    n = len(sources_meta)
+    out(_tui_frame(sources_meta, selected, cursor, first=True))
+    while True:
+        key = read_key()
+        if key == "up":
+            cursor = (cursor - 1) % n
+        elif key == "down":
+            cursor = (cursor + 1) % n
+        elif key == "space":
+            m = sources_meta[cursor]
+            if m["name"] in selected:
+                selected.discard(m["name"])
+            elif m["available"]:
+                selected.add(m["name"])
+        elif key == "enter":
+            out("")  # drop below the menu block before run output
+            return [m["name"] for m in sources_meta if m["name"] in selected]
+        out(_tui_frame(sources_meta, selected, cursor, first=False))
+
+
+def _interactive():
+    """True when a real TTY is on both ends and raw-mode is importable — the
+    gate for the arrow-key menu. Pipes, CI, and Windows fall to the numbered one.
+    """
+    if not (sys.stdin.isatty() and sys.stdout.isatty()):
+        return False
+    try:
+        import termios  # noqa: F401
+        import tty  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
+def _interactive_select(sources_meta, preselected):
+    """Production wiring for select_sources_tui: cbreak + hidden cursor for the
+    life of the menu, restored on exit; reads one key at a time from stdin.
+    """
+    import termios
+    import tty
+
+    fd = sys.stdin.fileno()
+    old = termios.tcgetattr(fd)
+    sys.stdout.write("\x1b[?25l")  # hide cursor
+    sys.stdout.flush()
+    try:
+        tty.setcbreak(fd)
+        return select_sources_tui(
+            sources_meta, preselected,
+            read_key=lambda: _decode_key(lambda: sys.stdin.read(1)),
+        )
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old)
+        sys.stdout.write("\x1b[?25h")  # show cursor
+        sys.stdout.flush()
+
+
 def _default_selection(sources_meta, state, profile):
     """Consent-backed default: saved selection → profile sources.enabled
     (explicit config counts as consent, filtered to available) → available
@@ -130,9 +237,15 @@ def _run(args, input_fn):
     elif args.yes:
         selected = _default_selection(sources_meta, state, profile)
     else:
-        selected = select_sources(
-            sources_meta, _default_selection(sources_meta, state, profile), input_fn
-        )
+        default = _default_selection(sources_meta, state, profile)
+        if _interactive():
+            try:
+                selected = _interactive_select(sources_meta, default)
+            except KeyboardInterrupt:
+                print("\ncancelled — nothing fetched")
+                return 130
+        else:
+            selected = select_sources(sources_meta, default, input_fn)
 
     print("Collecting:")
     collect.run_collect(profile, selected, print)

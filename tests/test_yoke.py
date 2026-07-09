@@ -81,6 +81,57 @@ class TestSelectSources(unittest.TestCase):
         self.assertEqual(got, ["alpha"])
 
 
+class TestSelectSourcesTui(unittest.TestCase):
+    @staticmethod
+    def _keys(*tokens):
+        it = iter(tokens)
+        return lambda: next(it)
+
+    def test_tui_navigate_toggle_confirm(self):
+        meta = [_meta("alpha"), _meta("beta"), _meta("gamma")]
+        # start on alpha (preselected); down to beta, space enables it, enter starts
+        got = yoke.select_sources_tui(
+            meta, ["alpha"], self._keys("down", "space", "enter"),
+            out=lambda *a, **k: None,
+        )
+        self.assertEqual(got, ["alpha", "beta"])
+
+    def test_tui_toggle_off_and_wrap(self):
+        meta = [_meta("alpha"), _meta("beta")]
+        # up wraps to beta, enable it; up to alpha, disable it → only beta
+        got = yoke.select_sources_tui(
+            meta, ["alpha"], self._keys("up", "space", "up", "space", "enter"),
+            out=lambda *a, **k: None,
+        )
+        self.assertEqual(got, ["beta"])
+
+    def test_tui_cannot_enable_unavailable(self):
+        meta = [
+            _meta("alpha"),
+            _meta("brave", available=False, reason="key missing", cost="key"),
+        ]
+        # cursor onto brave, space is a no-op (unavailable), enter → only alpha
+        got = yoke.select_sources_tui(
+            meta, ["alpha"], self._keys("down", "space", "enter"),
+            out=lambda *a, **k: None,
+        )
+        self.assertEqual(got, ["alpha"])
+
+    def test_decode_key_maps_sequences(self):
+        def chars(*cs):
+            it = iter(cs)
+            return lambda: next(it)
+        self.assertEqual(yoke._decode_key(chars("\x1b", "[", "A")), "up")
+        self.assertEqual(yoke._decode_key(chars("\x1b", "[", "B")), "down")
+        self.assertEqual(yoke._decode_key(chars("\x1b", "O", "A")), "up")
+        self.assertEqual(yoke._decode_key(chars(" ")), "space")
+        self.assertEqual(yoke._decode_key(chars("\r")), "enter")
+        self.assertEqual(yoke._decode_key(chars("\n")), "enter")
+        self.assertIsNone(yoke._decode_key(chars("x")))
+        with self.assertRaises(KeyboardInterrupt):
+            yoke._decode_key(chars("\x03"))
+
+
 class TestRun(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
