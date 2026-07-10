@@ -6,7 +6,7 @@ Task: `yoke help` + `yoke sources` doctor report + `yoke sources <name>` setup p
 - [x] 3 design — done 2026-07-10, artifact: design.md
 - [x] 4 plan — done 2026-07-10, artifact: plan.md
 - [x] 5 act — done 2026-07-10, artifact: plan.md
-- [ ] 6 verify
+- [x] 6 verify — done 2026-07-10, artifact: verify.md
 - [ ] 7 review
 
 ## Grill summary (2026-07-10)
