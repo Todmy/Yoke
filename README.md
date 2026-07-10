@@ -65,6 +65,8 @@ pip install pyyaml                                               # or write ~/.y
 
 `yoke run` walks you through a sources menu, then asks before it spends a model call. Your shortlist lands at `~/.yoke/SHORTLIST.md`. Useful flags: `--yes` (skip the prompts, use your remembered selection), `--dry-run` (stop after collect), `--mock` (no real model call, deterministic fake).
 
+Other commands: `yoke help` lists them all; `yoke sources` reports each source's status (available · cost · geo · roles last run), and `yoke sources <name>` prints that source's setup page — how to enable it, with the exact commands. Add `--json` to either `sources` form for machine-readable output (handy when another tool or agent drives Yoke).
+
 ## Status
 
 Early. The engine was extracted from a working private setup and is being decoupled into a clean, profile-driven tool. Expect rough edges and breaking changes. Issues and ideas welcome.
