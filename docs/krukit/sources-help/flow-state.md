@@ -7,7 +7,7 @@ Task: `yoke help` + `yoke sources` doctor report + `yoke sources <name>` setup p
 - [x] 4 plan — done 2026-07-10, artifact: plan.md
 - [x] 5 act — done 2026-07-10, artifact: plan.md
 - [x] 6 verify — done 2026-07-10, artifact: verify.md
-- [ ] 7 review
+- [x] 7 review — done 2026-07-10, artifact: flow-state.md
 
 ## Grill summary (2026-07-10)
 **Resolved (code/default):**
@@ -26,3 +26,10 @@ Task: `yoke help` + `yoke sources` doctor report + `yoke sources <name>` setup p
 
 ## Design approval (2026-07-10)
 > "+" — 2026-07-10 (design.md approved; constitution check 0 violations)
+
+## Review summary (2026-07-10)
+Independent zero-context reviewer on `git diff b44ce3c..HEAD`. Findings: 0 Critical, 1 Important, 7 Minor.
+- **Fixed:** Important #1 — `_last_run_counts` crashed on valid-JSON-wrong-shape scan (commit 4def12d, TDD red→green). Minor #2/#3/#4/#5/#6 — single `load_sources`, JSON geo `None→any`, raw-tag + enabled-bool contract lock tests, argparse-internals comment (commit f7fd6b4).
+- **Declined (with reason):** #7 unknown-source under `--json` returns no JSON — design-specified stderr + exit 2 (grill Q5); agent checks exit code. #8 "0 roles" unrepresentable vs `—` — accepted design (grill Q3), noted in verify V2.
+- Fixed 6, declined 2. Full suite 252/252 on final state. Knowledge: Valis lesson f0124ff2 (proposed).
+- Branch: committed directly to `main` (repo convention); no worktrees created. Remote outcome: awaiting user.
