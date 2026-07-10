@@ -420,6 +420,21 @@ class TestRun(unittest.TestCase):
         self.assertTrue(all("fake2" not in k for k in index))
 
 
+class TestSourceHelp(unittest.TestCase):
+    def test_help_prefers_constant(self):
+        mod = SimpleNamespace(HELP="X", __doc__="doc")
+        self.assertEqual(yoke._source_help(mod), "X")
+
+    def test_help_falls_back_to_doc(self):
+        mod = SimpleNamespace(__doc__="  doc here  ")  # no HELP attr
+        self.assertEqual(yoke._source_help(mod), "doc here")
+
+    def test_help_default_sentence(self):
+        mod = SimpleNamespace(__doc__=None)  # neither HELP nor docstring
+        self.assertEqual(yoke._source_help(mod),
+                         "No setup needed — works out of the box.")
+
+
 class TestSourcesMeta(unittest.TestCase):
     def test_sources_meta_shape(self):
         m1, _ = _fake_source("hn", [])

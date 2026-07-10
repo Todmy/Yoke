@@ -18,6 +18,12 @@ NAME = "eures"
 TAGS = {"domain": "any", "country": "any"}
 COST = "free"
 
+HELP = """\
+EURES — the EU public job-vacancy search (keyless JSON).
+Returns: EU postings matched by lane keywords, filtered by profile.countries.
+Setup: none — works out of the box.
+"""
+
 SEARCH_URL = "https://europa.eu/eures/api/jv-searchengine/public/jv-search/search"
 DETAIL_URL = "https://europa.eu/eures/portal/jv-se/jv-details/"
 RESULTS_PER_PAGE = 50

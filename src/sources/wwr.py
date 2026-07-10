@@ -14,6 +14,12 @@ NAME = "wwr"
 TAGS = {"domain": "it", "country": "intl"}
 COST = "free"
 
+HELP = """\
+We Work Remotely — the programming-jobs RSS feed.
+Returns: remote engineering roles parsed from the feed.
+Setup: none — works out of the box.
+"""
+
 FEED_URL = "https://weworkremotely.com/categories/remote-programming-jobs.rss"
 UA = "Mozilla/5.0 (compatible; yoke/0.1)"
 

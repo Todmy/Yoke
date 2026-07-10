@@ -11,6 +11,14 @@ NAME = "jobspy"
 TAGS = {"domain": "any", "country": "any"}
 COST = "free"
 
+HELP = """\
+python-jobspy — Indeed / LinkedIn / Google jobs (optional dependency).
+Returns: postings scraped via the jobspy package.
+Setup: pip install python-jobspy
+Notes: OFF by default — LinkedIn/Indeed terms restrict scraping; enable at your
+own discretion. The package is imported lazily, so the plugin loads without it.
+"""
+
 _INTERVAL_TO_UNIT = {
     "hourly": "hour",
     "daily": "day",

@@ -21,6 +21,16 @@ NAME = "brave"
 TAGS = {"domain": "any", "country": "any"}
 COST = "key"
 
+HELP = """\
+Brave Search — web-search dorks over ATS hosts + PL aggregators.
+Returns: postings matched by lane-keyword dorks against job-board hosts.
+Setup: needs a Brave Search API key.
+  1. Get a key: https://brave.com/search/api/
+  2. export BRAVE_API_KEY=<key>
+Notes: paid API (a free tier ~2k queries/mo exists); the key is read only from
+the environment.
+"""
+
 API_URL = "https://api.search.brave.com/res/v1/web/search"
 TIMEOUT = 20
 SLEEP_BETWEEN_QUERIES = 1.1

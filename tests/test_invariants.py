@@ -80,5 +80,16 @@ class TestSourcePluginsExposeContract(unittest.TestCase):
                 self.assertTrue(callable(getattr(mod, "fetch")))
 
 
+class TestSourcePluginsHaveHelp(unittest.TestCase):
+    def test_every_plugin_resolves_help(self):
+        from src import collect, yoke
+
+        for mod in collect.load_sources():
+            with self.subTest(module=mod.NAME):
+                help_text = yoke._source_help(mod)
+                self.assertIsInstance(help_text, str)
+                self.assertTrue(help_text.strip())
+
+
 if __name__ == "__main__":
     unittest.main()

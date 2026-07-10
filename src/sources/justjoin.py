@@ -21,6 +21,13 @@ NAME = "justjoin"
 TAGS = {"domain": "it", "country": "pl"}
 COST = "free"
 
+HELP = """\
+justjoin.it — Polish B2B tech aggregator (public JSON, real salaries).
+Returns: PL/remote roles discovered by category, with structured USD-converted
+comp.
+Setup: none — works out of the box.
+"""
+
 # categoryId: 1=JS/TS (bridge), 5=Python, 25=AI.
 CATEGORIES = (1, 5, 25)
 

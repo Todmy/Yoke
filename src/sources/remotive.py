@@ -14,6 +14,12 @@ NAME = "remotive"
 TAGS = {"domain": "it", "country": "intl"}
 COST = "free"
 
+HELP = """\
+Remotive — remote-jobs JSON API (no key).
+Returns: remote postings matched by lane keywords.
+Setup: none — works out of the box.
+"""
+
 API_URL = "https://remotive.com/api/remote-jobs"
 UA = "yoke/0.1"
 TIMEOUT = 20

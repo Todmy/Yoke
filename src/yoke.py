@@ -337,6 +337,16 @@ def _print_summary(records, stats, shortlist_path):
         print(f"failed analyses: {failed} (kept as tier C)")
 
 
+def _source_help(mod):
+    """Setup text for a source: its `HELP` constant, else the module docstring,
+    else a default. Optional-by-construction — a plugin without HELP still
+    resolves to usable text (mirrors the `bypass_lane` getattr precedent).
+    """
+    return (getattr(mod, "HELP", None)
+            or (getattr(mod, "__doc__", None) or "").strip()
+            or "No setup needed — works out of the box.")
+
+
 def _sources_meta():
     """Status row per registered source: {name, cost, available, reason, tags}.
 

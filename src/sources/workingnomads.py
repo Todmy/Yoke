@@ -13,6 +13,12 @@ NAME = "workingnomads"
 TAGS = {"domain": "it", "country": "intl"}
 COST = "free"
 
+HELP = """\
+Working Nomads — clean JSON feed of recent remote dev roles.
+Returns: remote postings with a real location field (good geo-gating).
+Setup: none — works out of the box.
+"""
+
 API_URL = "https://www.workingnomads.com/api/exposed_jobs/"
 UA = "Mozilla/5.0 (compatible; yoke/0.1)"
 

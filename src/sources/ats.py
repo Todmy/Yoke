@@ -22,6 +22,15 @@ NAME = "ats"
 TAGS = {"domain": "it", "country": "any"}
 COST = "free"
 
+HELP = """\
+Company ATS boards — greenhouse / lever / ashby / personio / smartrecruiters /
+workable / recruitee public APIs.
+Returns: open roles from the companies you list in profile.sources.companies
+([{slug, ats}]).
+Setup: none — works out of the box; add companies to profile.sources.companies
+to widen coverage.
+"""
+
 UA = "Mozilla/5.0 (yoke job scan)"
 
 _URLS = {

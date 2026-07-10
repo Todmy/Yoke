@@ -26,6 +26,12 @@ NAME = "vc"
 TAGS = {"domain": "any", "country": "any"}
 COST = "free"
 
+HELP = """\
+VC-portfolio discovery — turns a fund's portfolio into ATS job roles (YC + a16z).
+Returns: roles from portfolio companies crawled for their ATS boards.
+Setup: none — works out of the box.
+"""
+
 CAP = 40  # max new (unprobed) companies per scan — bounds the probe fan-out
 
 YC_URL = "https://api.ycombinator.com/v0.1/companies"

@@ -19,6 +19,13 @@ NAME = "germany_ba"
 TAGS = {"domain": "any", "country": "de"}
 COST = "free"
 
+HELP = """\
+Germany Bundesagentur für Arbeit (BA) — the federal jobs API (free).
+Returns: German-market postings; country-gated to run when profile.countries
+includes DE.
+Setup: none — works out of the box.
+"""
+
 API_URL = "https://rest.arbeitsagentur.de/jobboerse/jobsuche-service/pc/v4/app/jobs"
 API_KEY = "jobboerse-jobsuche"
 DETAIL_URL = "https://www.arbeitsagentur.de/jobsuche/jobdetail/{refnr}"

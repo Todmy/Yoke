@@ -13,6 +13,12 @@ NAME = "remoteok"
 TAGS = {"domain": "it", "country": "intl"}
 COST = "free"
 
+HELP = """\
+RemoteOK — remote-jobs JSON feed (no key).
+Returns: recent remote postings.
+Setup: none — works out of the box.
+"""
+
 API_URL = "https://remoteok.com/api"
 UA = "yoke/0.1"
 TIMEOUT = 20

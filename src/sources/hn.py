@@ -13,6 +13,13 @@ from src.collect import JD_MAX_CHARS, norm, strip_html
 NAME = "hn"
 TAGS = {"domain": "it", "country": "intl"}
 COST = "free"
+
+HELP = """\
+Hacker News "Who is hiring?" — the latest monthly thread via Algolia.
+Returns: comments mentioning remote, as roles (first ~160 chars stand in for
+the title).
+Setup: none — works out of the box.
+"""
 bypass_lane = True  # comment titles aren't job titles
 
 # search_by_date (not /search) so the NEWEST thread wins, not the highest-ranked
