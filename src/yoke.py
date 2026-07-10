@@ -337,17 +337,27 @@ def _print_summary(records, stats, shortlist_path):
         print(f"failed analyses: {failed} (kept as tier C)")
 
 
+def _sources_meta():
+    """Status row per registered source: {name, cost, available, reason, tags}.
+
+    Shared by `_run` (menu/consent) and `yoke sources` (doctor report); calls
+    each plugin's available() but nothing that fetches or spends.
+    """
+    meta = []
+    for mod in collect.load_sources():
+        ok, reason = mod.available()
+        meta.append(
+            {"name": mod.NAME, "cost": mod.COST, "available": bool(ok),
+             "reason": reason, "tags": mod.TAGS}
+        )
+    return meta
+
+
 def _run(args, input_fn):
     profile = load_profile()
     state = load_state()
 
-    sources_meta = []
-    for mod in collect.load_sources():
-        ok, reason = mod.available()
-        sources_meta.append(
-            {"name": mod.NAME, "cost": mod.COST, "available": bool(ok),
-             "reason": reason, "tags": mod.TAGS}
-        )
+    sources_meta = _sources_meta()
     if args.sources:
         selected = [s.strip() for s in args.sources.split(",") if s.strip()]
     elif args.yes:

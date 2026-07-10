@@ -420,6 +420,23 @@ class TestRun(unittest.TestCase):
         self.assertTrue(all("fake2" not in k for k in index))
 
 
+class TestSourcesMeta(unittest.TestCase):
+    def test_sources_meta_shape(self):
+        m1, _ = _fake_source("hn", [])
+        m2 = SimpleNamespace(
+            NAME="brave", TAGS={"domain": "it", "country": "any"}, COST="key",
+            available=lambda: (False, "BRAVE_API_KEY not set"), fetch=lambda p: [],
+        )
+        with mock.patch.object(collect, "load_sources", return_value=[m1, m2]):
+            meta = yoke._sources_meta()
+        self.assertEqual({m["name"] for m in meta}, {"hn", "brave"})
+        for m in meta:
+            self.assertEqual(set(m), {"name", "cost", "available", "reason", "tags"})
+        brave = next(m for m in meta if m["name"] == "brave")
+        self.assertFalse(brave["available"])
+        self.assertEqual(brave["reason"], "BRAVE_API_KEY not set")
+
+
 class TestLastRunCounts(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
