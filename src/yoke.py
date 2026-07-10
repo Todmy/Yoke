@@ -111,41 +111,74 @@ def _recommended_names(sources_meta, countries):
 
 _MENU_HINT = " ↑/↓ move · space toggle · enter start"
 
+_GEO_LABEL = {"intl": "remote", "any": "any"}
 
-def _menu_rows(rec, oth, expanded, selected):
-    """Flat navigable-row model: recommended sources, then an 'Other (N)'
-    control that reveals the rest when expanded. Every row is a cursor stop.
+
+def _geo_badge(tags):
+    """Short geo label from a source's country tag: ISO-2 upper for a
+    country-pinned board (PL, DE), else 'remote'/'any' for global sources.
+    A single scalar can't express a multi-country board (PL+UA) — that would
+    need a geo-list re-model; today every source has one dominant orientation.
+    """
+    country = str((tags or {}).get("country") or "any")
+    return _GEO_LABEL.get(country, country.upper())
+
+
+def _paint(text, code):
+    return f"\x1b[{code}m{text}\x1b[0m"
+
+
+def _badge_colored(tags):
+    """Geo badge with an ANSI hue by kind: country=green, remote=cyan, any=dim."""
+    label = _geo_badge(tags)
+    return _paint(label, {"remote": "36", "any": "2"}.get(label, "32"))
+
+
+def _menu_rows(rec, oth, unavail, expanded, selected):
+    """Flat navigable-row model: recommended sources, then collapsible 'Other'
+    and 'Unavailable' controls. `expanded` is {'other': bool, 'unavail': bool}.
+    Row kinds: 'src' (selectable), 'more' (control), 'unavail' (read-only).
     """
     rows = [{"kind": "src", "meta": m, "indent": 0} for m in rec]
     if oth:
-        on = sum(1 for m in oth if m["name"] in selected)
-        rows.append({"kind": "more", "count": len(oth), "on": on})
-        if expanded:
+        rows.append({"kind": "more", "which": "other", "label": "Other",
+                     "count": len(oth), "open": expanded["other"],
+                     "on": sum(1 for m in oth if m["name"] in selected)})
+        if expanded["other"]:
             rows += [{"kind": "src", "meta": m, "indent": 1} for m in oth]
+    if unavail:
+        rows.append({"kind": "more", "which": "unavail", "label": "Unavailable",
+                     "count": len(unavail), "open": expanded["unavail"], "on": 0})
+        if expanded["unavail"]:
+            rows += [{"kind": "unavail", "meta": m, "indent": 1} for m in unavail]
     return rows
 
 
-def _row_text(row, is_cursor, selected, expanded):
+def _row_text(row, is_cursor, selected):
     pointer = "❯" if is_cursor else " "
-    if row["kind"] == "more":
-        tri = "▾" if expanded else "▸"
-        tail = f" · {row['on']} on" if (not expanded and row["on"]) else ""
-        return f" {pointer} {tri} Other ({row['count']}{tail})"
+    kind = row["kind"]
+    if kind == "more":
+        tri = "▾" if row["open"] else "▸"
+        tail = f" · {row['on']} on" if (not row["open"] and row["on"]) else ""
+        return f" {pointer} {tri} {row['label']} ({row['count']}{tail})"
     m = row["meta"]
+    pad = "  " * row["indent"]
+    if kind == "unavail":  # read-only, dim, carries the why — no checkbox
+        line = (f" {pointer} {pad}{m['name']} "
+                f"({_geo_badge(m.get('tags'))}, {m['cost']}) — {m['reason']}")
+        return _paint(line, "2")
     mark = "x" if m["name"] in selected else " "
-    status = "available" if m["available"] else f"unavailable: {m['reason']}"
-    return (f" {pointer} {'  ' * row['indent']}[{mark}] "
-            f"{m['name']} ({m['cost']}, {status})")
+    return (f" {pointer} {pad}[{mark}] {m['name']} "
+            f"({_badge_colored(m.get('tags'))}, {m['cost']})")
 
 
-def _render_menu(rows, selected, cursor, top, viewport, expanded):
+def _render_menu(rows, selected, cursor, top, viewport):
     """One frame: title, a `viewport`-tall window of rows around the cursor,
     and a hint that carries a position readout only while windowed.
     """
     end = min(top + viewport, len(rows))
     lines = ["Sources:"]
-    lines += [_row_text(rows[i], i == cursor, selected, expanded)
-              for i in range(top, end)]
+    lines += [_row_text(rows[i], i == cursor, selected) for i in range(top, end)]
     hint = _MENU_HINT
     if len(rows) > viewport:
         hint += f"   [{cursor + 1}/{len(rows)}]"
@@ -159,26 +192,29 @@ def select_sources_tui(sources_meta, preselected, read_key, out=print,
 
     Pure over read_key/out — read_key() yields _decode_key tokens and out()
     renders a frame; the real terminal wiring lives in _interactive_select.
-    `recommended` (a set of names) splits the list into a recommended section
-    and a collapsed 'Other'; None keeps every source recommended (flat list).
+    Available sources split into a recommended section and a collapsed 'Other'
+    (via the `recommended` name set; None keeps them all recommended);
+    unavailable sources collapse under a read-only 'Unavailable' control.
+    space or → works a collapse control; → is a no-op on a source row.
     `viewport` caps visible rows, windowing around the cursor for long lists.
-    Unavailable sources cannot be enabled; returns the selection with
-    recommended sources first, then Other, each in menu order.
+    Returns the selection with recommended sources first, then Other.
     """
     if not sources_meta:
         return []
+    avail = [m for m in sources_meta if m["available"]]
+    unavail = [m for m in sources_meta if not m["available"]]
     if recommended is None:
-        rec, oth = list(sources_meta), []
+        rec, oth = avail, []
     else:
-        rec = [m for m in sources_meta if m["name"] in recommended]
-        oth = [m for m in sources_meta if m["name"] not in recommended]
+        rec = [m for m in avail if m["name"] in recommended]
+        oth = [m for m in avail if m["name"] not in recommended]
     order = rec + oth
     wanted = set(preselected)
-    selected = {m["name"] for m in order if m["available"] and m["name"] in wanted}
-    expanded = not rec  # nothing recommended → open Other so the list isn't empty
+    selected = {m["name"] for m in order if m["name"] in wanted}
+    expanded = {"other": not rec, "unavail": False}
     cursor = 0
     top = 0
-    rows = _menu_rows(rec, oth, expanded, selected)
+    rows = _menu_rows(rec, oth, unavail, expanded, selected)
     prev = 0
 
     def draw(first):
@@ -188,7 +224,7 @@ def select_sources_tui(sources_meta, preselected, read_key, out=print,
         elif cursor >= top + viewport:
             top = cursor - viewport + 1
         top = max(0, min(top, max(0, len(rows) - viewport)))
-        text = _render_menu(rows, selected, cursor, top, viewport, expanded)
+        text = _render_menu(rows, selected, cursor, top, viewport)
         out(text if first else f"\x1b[{prev}A\x1b[J" + text)
         prev = text.count("\n") + 1
 
@@ -205,14 +241,11 @@ def select_sources_tui(sources_meta, preselected, read_key, out=print,
         elif key in ("space", "right"):
             row = rows[cursor]
             if row["kind"] == "more":
-                expanded = not expanded  # space or → works the collapse control
-            elif key == "space":  # → is a no-op on a source row; space toggles it
-                m = row["meta"]
-                if m["name"] in selected:
-                    selected.discard(m["name"])
-                elif m["available"]:
-                    selected.add(m["name"])
-        rows = _menu_rows(rec, oth, expanded, selected)
+                expanded[row["which"]] = not expanded[row["which"]]  # space or →
+            elif key == "space" and row["kind"] == "src":  # → is a no-op here
+                name = row["meta"]["name"]
+                selected.discard(name) if name in selected else selected.add(name)
+        rows = _menu_rows(rec, oth, unavail, expanded, selected)
         cursor = min(cursor, len(rows) - 1)
         draw(first=False)
 

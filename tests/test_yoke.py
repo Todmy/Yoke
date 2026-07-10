@@ -102,6 +102,13 @@ class TestSourceRelevance(unittest.TestCase):
             {"hn", "justjoin", "eures"},
         )
 
+    def test_geo_badge_labels(self):
+        self.assertEqual(yoke._geo_badge({"country": "pl"}), "PL")
+        self.assertEqual(yoke._geo_badge({"country": "de"}), "DE")
+        self.assertEqual(yoke._geo_badge({"country": "intl"}), "remote")
+        self.assertEqual(yoke._geo_badge({"country": "any"}), "any")
+        self.assertEqual(yoke._geo_badge(None), "any")  # no tags → any
+
 
 class TestSelectSourcesTui(unittest.TestCase):
     @staticmethod
@@ -127,17 +134,40 @@ class TestSelectSourcesTui(unittest.TestCase):
         )
         self.assertEqual(got, ["beta"])
 
-    def test_tui_cannot_enable_unavailable(self):
+    def test_tui_unavailable_not_selectable(self):
         meta = [
             _meta("alpha"),
             _meta("brave", available=False, reason="key missing", cost="key"),
         ]
-        # cursor onto brave, space is a no-op (unavailable), enter → only alpha
+        # brave lives in a collapsed Unavailable section: down→control, right
+        # expands, down→brave, space is a no-op (unavailable). Only alpha returns.
         got = yoke.select_sources_tui(
-            meta, ["alpha"], self._keys("down", "space", "enter"),
+            meta, ["alpha"], self._keys("down", "right", "down", "space", "enter"),
             out=lambda *a, **k: None,
         )
         self.assertEqual(got, ["alpha"])
+
+    def test_tui_unavailable_hidden_until_expand(self):
+        meta = [
+            _meta("alpha"),
+            _meta("brave", available=False, reason="BRAVE_API_KEY not set", cost="key"),
+        ]
+        frames = []
+        yoke.select_sources_tui(
+            meta, [], self._keys("enter"), out=lambda t="": frames.append(t),
+        )
+        self.assertIn("Unavailable (1)", frames[0])  # control shown
+        self.assertNotIn("brave", frames[0])         # source hidden while collapsed
+
+    def test_tui_row_shows_geo_badge(self):
+        meta = [{**_meta("justjoin"), "tags": {"country": "pl"}}]
+        frames = []
+        yoke.select_sources_tui(
+            meta, [], self._keys("enter"), out=lambda t="": frames.append(t),
+        )
+        self.assertIn("PL", frames[0])         # geo badge rendered
+        self.assertIn("justjoin", frames[0])
+        self.assertNotIn("available", frames[0])  # status noise dropped
 
     def test_tui_other_collapsed_hides_until_expand(self):
         meta = [_meta("hn"), _meta("germany_ba")]
