@@ -452,6 +452,22 @@ class TestSourcesMeta(unittest.TestCase):
         self.assertEqual(brave["reason"], "BRAVE_API_KEY not set")
 
 
+class TestSourcePage(unittest.TestCase):
+    def test_page_available(self):
+        row = {**_meta("hn"), "tags": {"country": "intl"}}
+        out = yoke._render_source_page(row, "how to use hn")
+        self.assertIn("✓ available", out)
+        self.assertIn("how to use hn", out)
+
+    def test_page_unavailable_shows_reason(self):
+        row = {**_meta("brave", available=False,
+                       reason="BRAVE_API_KEY not set", cost="key"),
+               "tags": {"country": "any"}}
+        out = yoke._render_source_page(row, "get a key")
+        self.assertIn("✗ BRAVE_API_KEY not set", out)
+        self.assertIn("get a key", out)
+
+
 class TestSourcesReport(unittest.TestCase):
     def _m(self, name, available=True, reason="", cost="free", country="any"):
         return {**_meta(name, available, reason, cost), "tags": {"country": country}}

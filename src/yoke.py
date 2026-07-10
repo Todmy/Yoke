@@ -418,6 +418,18 @@ def _render_sources_report(meta, enabled_names, counts, recommended, use_color=F
     return "\n".join(lines)
 
 
+def _render_source_page(row, help_text, use_color=False):
+    """One source's setup page: a live status line + its HELP body."""
+    def paint(text, code):
+        return _paint(text, code) if use_color else text
+
+    if row["available"]:
+        status = f"{paint('✓', '32')} available"
+    else:
+        status = f"{paint('✗', '31')} {row['reason']}"
+    return f"{row['name']} — {status}\n\n{help_text}"
+
+
 def _run(args, input_fn):
     profile = load_profile()
     state = load_state()
