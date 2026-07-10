@@ -363,6 +363,61 @@ def _sources_meta():
     return meta
 
 
+def _source_json(row, enabled, count):
+    """Stable machine shape for one source (agent-facing contract). `enabled` is
+    bool|None (None = no profile), `count` is int|None (None = absent last run).
+    """
+    return {
+        "name": row["name"],
+        "geo": (row.get("tags") or {}).get("country", "any"),
+        "cost": row["cost"],
+        "available": bool(row["available"]),
+        "reason": row["reason"],
+        "enabled": enabled,
+        "roles_last_run": count,
+    }
+
+
+def _render_sources_report(meta, enabled_names, counts, recommended, use_color=False):
+    """Doctor report: Available (recommended-first) then Unavailable. Available
+    rows carry enabled-state + roles-last-run; unavailable rows carry the reason.
+    `enabled_names` None → enabled column shows '—'. Color gated on use_color so
+    piped/agent output stays clean.
+    """
+    width = max((len(m["name"]) for m in meta), default=0)
+    avail = [m for m in meta if m["available"]]
+    unavail = [m for m in meta if not m["available"]]
+    avail.sort(key=lambda m: m["name"] not in recommended)  # recommended first, stable
+
+    def paint(text, code):
+        return _paint(text, code) if use_color else text
+
+    lines = ["Sources", ""]
+    if avail:
+        lines.append("Available")
+        for m in avail:
+            nm = m["name"]
+            if enabled_names is None:
+                en = "—"
+            else:
+                en = "enabled" if nm in enabled_names else "disabled"
+            roles = f"{counts[nm]} roles last run" if nm in counts else "—"
+            lines.append(
+                f"  {nm:<{width}}  {_geo_badge(m.get('tags')):<6}  "
+                f"{m['cost']:<4}  {paint('✓', '32')}  {en:<8}  {roles}"
+            )
+    if unavail:
+        lines.append("Unavailable")
+        for m in unavail:
+            nm = m["name"]
+            lines.append(
+                f"  {nm:<{width}}  {_geo_badge(m.get('tags')):<6}  "
+                f"{m['cost']:<4}  {paint('✗', '31')}  {m['reason']}"
+            )
+    lines += ["", "→ yoke sources <name> for setup"]
+    return "\n".join(lines)
+
+
 def _run(args, input_fn):
     profile = load_profile()
     state = load_state()

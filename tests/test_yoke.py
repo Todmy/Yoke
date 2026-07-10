@@ -452,6 +452,54 @@ class TestSourcesMeta(unittest.TestCase):
         self.assertEqual(brave["reason"], "BRAVE_API_KEY not set")
 
 
+class TestSourcesReport(unittest.TestCase):
+    def _m(self, name, available=True, reason="", cost="free", country="any"):
+        return {**_meta(name, available, reason, cost), "tags": {"country": country}}
+
+    def test_report_splits_available_unavailable(self):
+        meta = [self._m("hn"),
+                self._m("brave", available=False,
+                        reason="BRAVE_API_KEY not set", cost="key")]
+        out = yoke._render_sources_report(meta, set(), {}, set())
+        self.assertIn("Available", out)
+        self.assertIn("Unavailable", out)
+        self.assertIn("BRAVE_API_KEY not set", out)
+        brave_line = next(l for l in out.splitlines() if "brave" in l)
+        self.assertNotIn("roles", brave_line)  # unavailable carries reason, not a count
+
+    def test_report_enabled_and_roles(self):
+        out = yoke._render_sources_report([self._m("hn")], {"hn"}, {"hn": 5}, set())
+        self.assertIn("enabled", out)
+        self.assertIn("5 roles", out)
+
+    def test_report_enabled_none_shows_dash(self):
+        out = yoke._render_sources_report([self._m("hn")], None, {}, set())
+        self.assertNotIn("enabled", out)
+        self.assertNotIn("disabled", out)
+        self.assertIn("—", out)
+
+    def test_report_recommended_first(self):
+        meta = [self._m("alpha"), self._m("beta")]
+        out = yoke._render_sources_report(meta, set(), {}, {"beta"})
+        self.assertLess(out.index("beta"), out.index("alpha"))
+
+    def test_report_no_color_has_no_escapes(self):
+        meta = [self._m("hn"),
+                self._m("brave", available=False, reason="x", cost="key")]
+        out = yoke._render_sources_report(meta, set(), {}, set(), use_color=False)
+        self.assertNotIn("\x1b[", out)
+
+    def test_source_json_shape(self):
+        row = self._m("brave", available=False,
+                      reason="BRAVE_API_KEY not set", cost="key")
+        obj = yoke._source_json(row, None, None)
+        self.assertEqual(set(obj), {"name", "geo", "cost", "available",
+                                    "reason", "enabled", "roles_last_run"})
+        self.assertEqual(obj["geo"], "any")
+        self.assertFalse(obj["available"])
+        self.assertIn('"enabled": null', json.dumps(obj))  # None → JSON null
+
+
 class TestLastRunCounts(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
