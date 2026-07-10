@@ -420,5 +420,20 @@ class TestRun(unittest.TestCase):
         self.assertTrue(all("fake2" not in k for k in index))
 
 
+class TestHelpCommand(unittest.TestCase):
+    def test_render_help_lists_all_names(self):
+        out = yoke._render_help([("run", "collect and score"),
+                                 ("board", "print shortlist")])
+        self.assertIn("run", out)
+        self.assertIn("collect and score", out)
+        self.assertIn("board", out)
+        self.assertIn("yoke <command> -h", out)  # footer pointer to flags
+
+    def test_subcommands_reads_parser(self):
+        names = [n for n, _ in yoke._subcommands(yoke._build_parser())]
+        self.assertIn("run", names)
+        self.assertIn("board", names)
+
+
 if __name__ == "__main__":
     unittest.main()

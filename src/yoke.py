@@ -426,6 +426,32 @@ def _cmd_drop(match, reason):
     return 0
 
 
+def _subcommands(parser):
+    """(name, help) for every registered subcommand, read off the built parser
+    so `yoke help` can never drift from what argparse actually accepts.
+    """
+    for action in parser._actions:
+        if isinstance(action, argparse._SubParsersAction):
+            return [(a.dest, a.help or "") for a in action._choices_actions]
+    return []
+
+
+def _render_help(commands):
+    """Aligned `name  purpose` list — the command surface an agent reads to
+    discover what Yoke can do. `yoke <command> -h` still owns per-command flags.
+    """
+    width = max((len(n) for n, _ in commands), default=0)
+    lines = ["Yoke — job-search harness. Commands:", ""]
+    lines += [f"  {n:<{width}}  {h}" for n, h in commands]
+    lines += ["", "Run `yoke <command> -h` for flags."]
+    return "\n".join(lines)
+
+
+def _cmd_help(parser):
+    print(_render_help(_subcommands(parser)))
+    return 0
+
+
 def _build_parser():
     p = argparse.ArgumentParser(prog="yoke", description="job scan → scored shortlist")
     sub = p.add_subparsers(dest="cmd")
