@@ -548,6 +548,15 @@ class TestLastRunCounts(unittest.TestCase):
             "not json", encoding="utf-8")
         self.assertEqual(yoke._last_run_counts(), {})
 
+    def test_wrong_shape_scan_returns_empty(self):
+        # valid JSON but not a list (agent/hand-written file) must degrade, not crash
+        self._write_scan("2026-01-01-00-00-00", {"source": "hn"})
+        self.assertEqual(yoke._last_run_counts(), {})
+
+    def test_list_of_non_dicts_returns_empty(self):
+        self._write_scan("2026-01-01-00-00-00", [1, 2, 3])
+        self.assertEqual(yoke._last_run_counts(), {})
+
 
 class TestCliDispatch(unittest.TestCase):
     def setUp(self):

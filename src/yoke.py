@@ -570,9 +570,11 @@ def _last_run_counts():
         jobs = json.loads(scans[-1].read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return {}
+    if not isinstance(jobs, list):  # a hand-/agent-written file need not be a job list
+        return {}
     counts = {}
     for j in jobs:
-        src = j.get("source")
+        src = j.get("source") if isinstance(j, dict) else None
         if src:
             counts[src] = counts.get(src, 0) + 1
     return counts
