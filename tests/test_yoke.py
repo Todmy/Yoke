@@ -5,7 +5,7 @@ import re
 import sys
 import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
@@ -547,6 +547,60 @@ class TestLastRunCounts(unittest.TestCase):
         (paths.home() / "scans" / "2026-01-01-00-00-00.json").write_text(
             "not json", encoding="utf-8")
         self.assertEqual(yoke._last_run_counts(), {})
+
+
+class TestCliDispatch(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        os.environ["YOKE_HOME"] = self._tmp.name
+        paths.ensure_home()
+
+    def tearDown(self):
+        self._tmp.cleanup()
+        os.environ["YOKE_HOME"] = _TMP
+
+    def test_dispatch_help_returns_zero(self):
+        with redirect_stdout(io.StringIO()):
+            rc = yoke.main(["help"])
+        self.assertEqual(rc, 0)  # COMMANDS gate: 'help' not swallowed into run
+
+    def test_dispatch_sources_returns_zero(self):
+        # no profile in this tmp home → profile-optional path must not raise
+        with redirect_stdout(io.StringIO()):
+            rc = yoke.main(["sources"])
+        self.assertEqual(rc, 0)
+
+    def test_help_lists_help_and_sources(self):
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            yoke.main(["help"])
+        out = buf.getvalue()
+        self.assertIn("help", out)
+        self.assertIn("sources", out)
+
+    def test_sources_unknown_name_exit_2(self):
+        with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+            rc = yoke.main(["sources", "bogus"])
+        self.assertEqual(rc, 2)
+
+    def test_sources_json_has_sources_key(self):
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            yoke.main(["sources", "--json"])
+        data = json.loads(buf.getvalue())
+        self.assertIn("sources", data)
+        self.assertTrue(all(
+            set(s) == {"name", "geo", "cost", "available",
+                       "reason", "enabled", "roles_last_run"}
+            for s in data["sources"]))
+
+    def test_sources_name_json_has_help(self):
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            yoke.main(["sources", "hn", "--json"])
+        data = json.loads(buf.getvalue())
+        self.assertEqual(data["name"], "hn")
+        self.assertTrue(data["help"].strip())
 
 
 class TestHelpCommand(unittest.TestCase):

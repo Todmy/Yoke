@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from src import analyze, board, collect, llm, prepare
 from src.paths import ProfileError, home, load_profile, load_state, save_state
 
-COMMANDS = ("run", "board", "apply", "drop")
+COMMANDS = ("run", "board", "apply", "drop", "sources", "help")
 
 
 class MockBackend:
@@ -430,6 +430,49 @@ def _render_source_page(row, help_text, use_color=False):
     return f"{row['name']} — {status}\n\n{help_text}"
 
 
+def _cmd_sources(name, as_json):
+    """`yoke sources` (report) / `yoke sources <name>` (setup page). Read-only,
+    profile-optional (degrades to enabled='—' when no profile), agent-facing
+    via --json. Unknown name → stderr + exit 2.
+    """
+    meta = _sources_meta()
+    try:
+        profile = load_profile()
+    except ProfileError:
+        profile = None
+    enabled = set(profile.get("sources", {}).get("enabled", [])) if profile else None
+    recommended = (_recommended_names(meta, profile.get("countries", []))
+                   if profile else set())
+    counts = _last_run_counts()
+
+    def enabled_of(nm):
+        return None if enabled is None else (nm in enabled)
+
+    if name is not None:
+        row = next((m for m in meta if m["name"] == name), None)
+        if row is None:
+            print(f"unknown source: {name}", file=sys.stderr)
+            return 2
+        mods = {mod.NAME: mod for mod in collect.load_sources()}
+        help_text = _source_help(mods[name])
+        if as_json:
+            obj = _source_json(row, enabled_of(name), counts.get(name))
+            obj["help"] = help_text
+            print(json.dumps(obj))
+        else:
+            print(_render_source_page(row, help_text, use_color=sys.stdout.isatty()))
+        return 0
+
+    if as_json:
+        print(json.dumps({"sources": [
+            _source_json(m, enabled_of(m["name"]), counts.get(m["name"])) for m in meta
+        ]}))
+    else:
+        print(_render_sources_report(meta, enabled, counts, recommended,
+                                     use_color=sys.stdout.isatty()))
+    return 0
+
+
 def _run(args, input_fn):
     profile = load_profile()
     state = load_state()
@@ -579,6 +622,12 @@ def _build_parser():
     dr = sub.add_parser("drop", help="remove a role from the board")
     dr.add_argument("match")
     dr.add_argument("--reason", default=None)
+
+    srcp = sub.add_parser("sources", help="show source status + setup pages")
+    srcp.add_argument("name", nargs="?", default=None,
+                      help="show one source's setup page")
+    srcp.add_argument("--json", action="store_true", help="machine-readable output")
+    sub.add_parser("help", help="list all commands and what they do")
     return p
 
 
@@ -586,10 +635,15 @@ def main(argv=None, input_fn=input):
     argv = list(sys.argv[1:] if argv is None else argv)
     if not argv or argv[0] not in COMMANDS:
         argv.insert(0, "run")  # `yoke --yes` == `yoke run --yes`
-    args = _build_parser().parse_args(argv)
+    parser = _build_parser()
+    args = parser.parse_args(argv)
     try:
         if args.cmd == "run":
             return _run(args, input_fn)
+        if args.cmd == "help":
+            return _cmd_help(parser)
+        if args.cmd == "sources":
+            return _cmd_sources(args.name, args.json)
         if args.cmd == "board":
             return _cmd_board()
         if args.cmd == "apply":
