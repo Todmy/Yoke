@@ -420,6 +420,39 @@ class TestRun(unittest.TestCase):
         self.assertTrue(all("fake2" not in k for k in index))
 
 
+class TestLastRunCounts(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        os.environ["YOKE_HOME"] = self._tmp.name
+        paths.ensure_home()
+
+    def tearDown(self):
+        self._tmp.cleanup()
+        os.environ["YOKE_HOME"] = _TMP
+
+    def _write_scan(self, ts, jobs):
+        (paths.home() / "scans" / f"{ts}.json").write_text(
+            json.dumps(jobs), encoding="utf-8")
+
+    def test_counts_group_by_source(self):
+        self._write_scan("2026-01-01-00-00-00",
+                         [{"source": "hn"}, {"source": "hn"}, {"source": "vc"}])
+        self.assertEqual(yoke._last_run_counts(), {"hn": 2, "vc": 1})
+
+    def test_newest_scan_wins(self):
+        self._write_scan("2026-01-01-00-00-00", [{"source": "hn"}])
+        self._write_scan("2026-02-02-00-00-00", [{"source": "vc"}, {"source": "vc"}])
+        self.assertEqual(yoke._last_run_counts(), {"vc": 2})
+
+    def test_empty_home_returns_empty(self):
+        self.assertEqual(yoke._last_run_counts(), {})
+
+    def test_malformed_scan_returns_empty(self):
+        (paths.home() / "scans" / "2026-01-01-00-00-00.json").write_text(
+            "not json", encoding="utf-8")
+        self.assertEqual(yoke._last_run_counts(), {})
+
+
 class TestHelpCommand(unittest.TestCase):
     def test_render_help_lists_all_names(self):
         out = yoke._render_help([("run", "collect and score"),

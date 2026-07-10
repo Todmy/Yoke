@@ -426,6 +426,28 @@ def _cmd_drop(match, reason):
     return 0
 
 
+def _last_run_counts():
+    """Per-source role counts from the newest scan snapshot, grouped by `source`.
+
+    The count is the post-gate matched slice that actually landed that run — a
+    source absent from the last run has no entry (caller renders it as '—', not
+    0). Missing/empty/malformed scans degrade to {} without raising.
+    """
+    scans = sorted((home() / "scans").glob("*.json"))
+    if not scans:
+        return {}
+    try:
+        jobs = json.loads(scans[-1].read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    counts = {}
+    for j in jobs:
+        src = j.get("source")
+        if src:
+            counts[src] = counts.get(src, 0) + 1
+    return counts
+
+
 def _subcommands(parser):
     """(name, help) for every registered subcommand, read off the built parser
     so `yoke help` can never drift from what argparse actually accepts.
