@@ -119,3 +119,20 @@
 - **Type consistency:** `enabled` is `bool|None` and `roles_last_run` is `int|None` across `_source_json`/`_cmd_sources`/tests; `_render_*` return `str`; `_cmd_*` return `int`.
 - **Parallel/mechanical:** T4a `[P]` (disjoint source files); T8 `[mechanical]`. T1,T2,T3,T4b,T5,T6,T7 share `src/yoke.py` → sequential.
 - **Suggested order:** T1 → T2 → T3 → T4a → T4b → T5 → T6 → T7 → T8.
+
+## Task status (act, 2026-07-10)
+- [x] T1 `_subcommands`+`_render_help`+`_cmd_help` — commit d0a36dc
+- [x] T2 `_last_run_counts` — commit 646da3f
+- [x] T3 extract `_sources_meta` — commit 1b5a720
+- [x] T4a per-plugin `HELP` (12 sources) + T4b `_source_help` — commit b8d6c45
+- [x] T5 `_render_sources_report`+`_source_json` — commit b07c6be
+- [x] T6 `_render_source_page` — commit 7142a70
+- [x] T7 wire `help`/`sources` + `_cmd_sources` — commit 7d51110
+- [x] T8 README — commit a9453a7
+
+Full suite: 247 tests pass (222 baseline + 25 new). One commit per task.
+
+## Learnings
+- `SimpleNamespace().__doc__` returns the *class* docstring (non-empty), so the `_source_help` default-sentence fallback test must use `SimpleNamespace(__doc__=None)` to force the empty path — a bare `SimpleNamespace()` would resolve to the type's docstring, not the default.
+- Pyright emits stale `not defined` / `not accessed` diagnostics mid-edit (e.g. `_cmd_sources` flagged undefined at its own call site until re-analysis); the unittest run is authoritative, not the inline diagnostics.
+- `Path.glob("*.json")` on a non-existent `scans/` dir returns empty without raising — `_last_run_counts` needs no explicit `exists()` guard.
