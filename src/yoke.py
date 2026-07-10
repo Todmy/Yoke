@@ -347,14 +347,15 @@ def _source_help(mod):
             or "No setup needed — works out of the box.")
 
 
-def _sources_meta():
+def _sources_meta(modules=None):
     """Status row per registered source: {name, cost, available, reason, tags}.
 
     Shared by `_run` (menu/consent) and `yoke sources` (doctor report); calls
-    each plugin's available() but nothing that fetches or spends.
+    each plugin's available() but nothing that fetches or spends. `modules`
+    lets a caller pass an already-loaded plugin list to avoid a second load.
     """
     meta = []
-    for mod in collect.load_sources():
+    for mod in (modules if modules is not None else collect.load_sources()):
         ok, reason = mod.available()
         meta.append(
             {"name": mod.NAME, "cost": mod.COST, "available": bool(ok),
@@ -369,7 +370,7 @@ def _source_json(row, enabled, count):
     """
     return {
         "name": row["name"],
-        "geo": (row.get("tags") or {}).get("country", "any"),
+        "geo": (row.get("tags") or {}).get("country") or "any",  # mirror _geo_badge
         "cost": row["cost"],
         "available": bool(row["available"]),
         "reason": row["reason"],
@@ -435,7 +436,8 @@ def _cmd_sources(name, as_json):
     profile-optional (degrades to enabled='—' when no profile), agent-facing
     via --json. Unknown name → stderr + exit 2.
     """
-    meta = _sources_meta()
+    modules = collect.load_sources()
+    meta = _sources_meta(modules)
     try:
         profile = load_profile()
     except ProfileError:
@@ -453,8 +455,8 @@ def _cmd_sources(name, as_json):
         if row is None:
             print(f"unknown source: {name}", file=sys.stderr)
             return 2
-        mods = {mod.NAME: mod for mod in collect.load_sources()}
-        help_text = _source_help(mods[name])
+        mod = next(m for m in modules if m.NAME == name)
+        help_text = _source_help(mod)
         if as_json:
             obj = _source_json(row, enabled_of(name), counts.get(name))
             obj["help"] = help_text
@@ -583,6 +585,11 @@ def _last_run_counts():
 def _subcommands(parser):
     """(name, help) for every registered subcommand, read off the built parser
     so `yoke help` can never drift from what argparse actually accepts.
+
+    Couples to argparse internals (`_SubParsersAction`, `_choices_actions`) —
+    the conventional stdlib-only idiom; if that private shape is ever renamed
+    this raises rather than degrading, but the alternative is a hand-kept list
+    that silently drifts.
     """
     for action in parser._actions:
         if isinstance(action, argparse._SubParsersAction):

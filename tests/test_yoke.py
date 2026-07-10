@@ -515,6 +515,16 @@ class TestSourcesReport(unittest.TestCase):
         self.assertFalse(obj["available"])
         self.assertIn('"enabled": null', json.dumps(obj))  # None → JSON null
 
+    def test_source_json_geo_raw_tag(self):
+        # JSON geo is the raw country tag, NOT the display badge ("pl", not "PL")
+        row = {**_meta("justjoin"), "tags": {"country": "pl"}}
+        self.assertEqual(yoke._source_json(row, True, 3)["geo"], "pl")
+
+    def test_source_json_geo_none_defaults_any(self):
+        # a tag with an explicit country:None must not leak JSON null into geo
+        row = {**_meta("x"), "tags": {"country": None}}
+        self.assertEqual(yoke._source_json(row, None, None)["geo"], "any")
+
 
 class TestLastRunCounts(unittest.TestCase):
     def setUp(self):
@@ -610,6 +620,16 @@ class TestCliDispatch(unittest.TestCase):
         data = json.loads(buf.getvalue())
         self.assertEqual(data["name"], "hn")
         self.assertTrue(data["help"].strip())
+
+    def test_sources_json_enabled_reflects_profile(self):
+        prof = {**PROFILE, "sources": {"enabled": ["hn"]}}
+        (paths.home() / "profile.json").write_text(json.dumps(prof), encoding="utf-8")
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            yoke.main(["sources", "--json"])
+        by = {s["name"]: s for s in json.loads(buf.getvalue())["sources"]}
+        self.assertTrue(by["hn"]["enabled"])          # listed in profile.sources.enabled
+        self.assertFalse(by["remoteok"]["enabled"])   # available but not enabled
 
 
 class TestHelpCommand(unittest.TestCase):
