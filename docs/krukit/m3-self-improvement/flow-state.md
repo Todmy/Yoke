@@ -5,7 +5,7 @@ Task: M3 "Self-improvement loop" (ROADMAP.md) — `eval.py` (safety gates on a f
 - [x] 2 grill — done 2026-07-11, artifact: flow-state.md
 - [x] 3 design — done 2026-07-11, artifact: design.md
 - [x] 4 plan — done 2026-07-11, artifact: plan.md
-- [ ] 5 act
+- [x] 5 act — done 2026-07-11, artifact: plan.md
 - [ ] 6 verify
 - [ ] 7 review
 

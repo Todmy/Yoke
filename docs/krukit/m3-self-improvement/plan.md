@@ -118,5 +118,12 @@
 ## Spec coverage (design DoD → tasks)
 - DoD 1 (`eval --record` → `_eval_run.json`) → T6, T7. DoD 2 (`eval` zero-call scorecard + `--json`) → T5, T6, T7. DoD 3 (`tune` grid refit, proposes, cold-start) → T3, T4, T7 + ADR-0005. DoD 4 (apply/drop snapshot before prune) → T1, T2. DoD 5 (golden schema + fixture + docs) → T5, T8. DoD 6 (suite green, zero-model proven, sum=100) → T3, T9 + guards across T5-T7.
 
+## Task status
+- [x] T1 labels store · [x] T2 board hooks · [x] T3 tune core · [x] T4 tune renderers
+- [x] T5 eval score+fixtures · [x] T6 eval record+renderers · [x] T7 CLI · [x] T8 README · [x] T9 invariants
+- Full suite: **301 tests OK** (baseline 252 + 49 new). One commit per task (T1→T9).
+
 ## Learnings
-(append-only; populated during act)
+- `eval` module shadows the Python builtin when imported as `from src import eval` in yoke.py — harmless (yoke never calls builtin `eval`), but flags on some linters.
+- `eval.record` recovers the `comp_vs_floor` **verdict** string by parsing the analyze record's `features["comp_vs_floor"]["evidence"]` prefix (`"floor verdict: X"`) — analyze exposes the verdict no other way. If that evidence string format changes, `record` breaks; a dedicated verdict field on the record would decouple it.
+- Pyright emits stale `"unknown import symbol"` for freshly-created `src/` modules within the same edit session; the `unittest` run is authoritative (matches the sources-help learning).
