@@ -7,7 +7,7 @@ Task: M3 "Self-improvement loop" (ROADMAP.md) — `eval.py` (safety gates on a f
 - [x] 4 plan — done 2026-07-11, artifact: plan.md
 - [x] 5 act — done 2026-07-11, artifact: plan.md
 - [x] 6 verify — done 2026-07-11, artifact: verify.md
-- [ ] 7 review
+- [x] 7 review — done 2026-07-11, artifact: flow-state.md
 
 ## Grill summary (2026-07-11)
 **Reframe (load-bearing):** "self-improvement" (M3) = improving the **process quality**, not just the weight numbers. `eval` must *localize which pipeline part underperforms* (comp estimation, red-flag detection, geo) — the per-dimension diagnostic is the primary value; `tune`'s weight-refit is one narrow automated lever. (User: "self-improvement процесу, не self-improvement ваг… не було достатньо добре пропрацьована зарплата, чи не було достатньо добре знайдено Red Flags".)
@@ -27,3 +27,13 @@ Task: M3 "Self-improvement loop" (ROADMAP.md) — `eval.py` (safety gates on a f
 
 ## Design approval (2026-07-11)
 > "+" — 2026-07-11 (design.md approved; constitution check 0 violations). Design clarification: golden-set tooling scope = schema + committed fixture + documented manual build (bootstrap deferred).
+
+## Act summary (2026-07-11)
+Inline TDD, 9 tasks (T1 labels → T9 invariants), one commit per task (`ff9083d`→`83e0ff9`). Full suite 301 OK. Live loop proven: base 60/40 @ BA 0.0 → refit 40/60 @ 1.0.
+
+## Review summary (2026-07-11)
+Independent zero-context reviewer on `git diff 6931fe9..HEAD` (src+tests, ~1049 lines). Findings: 1 Critical, 2 Important, 6 Minor.
+- **Fixed (6):** C1 tune re-literalled the Tier-B cutline → now references `scoring.TIER_B` (single-home #3). I1 eval not fully fail-open (crash on list-with-non-dict / corrupt run file) → filter + guard → exit 2. I2 feature-less labels were permanent false-negatives past the cold-start guard → tune uses only usable feature vectors. M3 analysis-failed golden roles (geo="") now count as unparseable safety hits. M4 `eval --record` honours `--json`. M1 non-dict feature value no longer crashes tune. One commit per fix.
+- **Declined (3, with reason):** M2 duplicate golden keys double-count safety — golden is a curated human-frozen artifact; silent dedup would mask an authoring error. M5 diagnostic denominators (red-flag recall 0.0 on a clean set) — cosmetic, doesn't touch the safety verdict. M6 `eval` builtin shadow + grid coarsen-once — cosmetic / perf-only, concrete-with-seams #4.
+- Fixed 6, declined 3. Full suite **310/310** on final state. Knowledge: Valis lesson `d0456309` (proposed), builds on grill decision `e1ee284f`.
+- Branch: committed directly to `main` (repo convention); no worktrees. Remote outcome: pushed to origin/main with user permission (AskUserQuestion "Пуш main у remote", 2026-07-11).
