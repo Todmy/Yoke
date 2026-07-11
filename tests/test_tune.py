@@ -80,5 +80,48 @@ class RefitTest(unittest.TestCase):
         self.assertEqual(r1, r2)
 
 
+class RenderTest(unittest.TestCase):
+    def setUp(self):
+        os.environ["YOKE_HOME"] = tempfile.mkdtemp(prefix="yoke-test-tune-")
+
+    def _result(self):
+        return tune.refit(
+            _pairs([{"a": 90, "b": 10}] * 5, [{"a": 10, "b": 90}] * 5),
+            {"a": 50, "b": 50},
+        )
+
+    def test_render_proposal_shows_diff(self):
+        out = tune.render_proposal(self._result())
+        self.assertIn("a", out)
+        self.assertIn("50", out)   # before
+        self.assertIn("60", out)   # after
+        self.assertIn("1.0", out)  # ba_after
+
+    def test_render_cold_start_message(self):
+        res = tune.refit(_pairs([{"a": 1}] * 2, [{"a": 1}] * 5), {"a": 100})
+        out = tune.render_proposal(res)
+        self.assertIn("declined", out.lower())
+        self.assertIn("2", out)
+        self.assertIn("5", out)
+
+    def test_render_no_color_no_escapes(self):
+        self.assertNotIn("\x1b[", tune.render_proposal(self._result(), use_color=False))
+
+    def test_proposal_json_key_set(self):
+        obj = tune.proposal_json(self._result())
+        self.assertEqual(
+            set(obj),
+            {"cold_start", "n", "objective", "threshold",
+             "before", "after", "ba_before", "ba_after"},
+        )
+
+    def test_write_proposal_creates_file(self):
+        tune.write_proposal(self._result())
+        import json
+        from src.paths import home
+        data = json.loads((home() / tune.TUNED_FILE).read_text(encoding="utf-8"))
+        self.assertIn("after", data)
+
+
 if __name__ == "__main__":
     unittest.main()

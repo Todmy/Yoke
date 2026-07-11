@@ -7,10 +7,17 @@ red-flag penalty map are out of scope (ADR-0001/0003). It PROPOSES — never
 mutates profile.yml (ADR-0005).
 """
 
+import json
 from math import comb
 
 from src import scoring
+from src.paths import ensure_home, home
 
+TUNED_FILE = "_tuned_weights.json"
+_JSON_KEYS = (
+    "cold_start", "n", "objective", "threshold",
+    "before", "after", "ba_before", "ba_after",
+)
 _MAX_COMPOSITIONS = 200_000
 
 
@@ -97,3 +104,46 @@ def refit(pairs, base_weights: dict, step: int = 5, threshold: int = 55, min_eac
         result["after"] = best_cand
         result["ba_after"] = best_ba
     return result
+
+
+def _paint(text: str, code: str, use_color: bool) -> str:
+    return f"\x1b[{code}m{text}\x1b[0m" if use_color else text
+
+
+def render_proposal(result: dict, use_color: bool = False) -> str:
+    """Human render: cold-start decline, or the before->after weight diff + BA delta."""
+    n = result["n"]
+    if result["cold_start"]:
+        return (
+            f"tune declined: need >=5 applied and >=5 dropped labels "
+            f"(have {n['applied']}/{n['dropped']})."
+        )
+    before, after = result["before"], result["after"]
+    lines = [
+        f"Tuned-weights proposal ({result['objective']}) "
+        f"— {n['applied']} applied / {n['dropped']} dropped",
+        "",
+    ]
+    for k in before:
+        b, a = before[k], after.get(k, 0)
+        row = f"  {k}: {b} -> {a}"
+        lines.append(_paint(row, "33", use_color) if a != b else row)
+    lines += [
+        "",
+        f"Balanced accuracy: {result['ba_before']} -> {result['ba_after']}",
+        "Written to _tuned_weights.json — apply manually; profile.yml unchanged.",
+    ]
+    return "\n".join(lines)
+
+
+def proposal_json(result: dict) -> dict:
+    """Stable --json contract: the fixed key set only."""
+    return {k: result[k] for k in _JSON_KEYS}
+
+
+def write_proposal(result: dict) -> None:
+    """Write the proposal to home()/_tuned_weights.json."""
+    ensure_home()
+    (home() / TUNED_FILE).write_text(
+        json.dumps(proposal_json(result), ensure_ascii=False, indent=2), encoding="utf-8"
+    )
