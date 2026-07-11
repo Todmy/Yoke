@@ -632,6 +632,97 @@ class TestCliDispatch(unittest.TestCase):
         self.assertFalse(by["remoteok"]["enabled"])   # available but not enabled
 
 
+_FIXTURES = Path(__file__).resolve().parent / "fixtures"
+
+
+class TestEvalTuneCli(unittest.TestCase):
+    def setUp(self):
+        self._home = tempfile.mkdtemp(prefix="yoke-test-yoke-")
+        os.environ["YOKE_HOME"] = self._home
+        paths.ensure_home()
+
+    def _write(self, name, obj):
+        (Path(self._home) / name).write_text(json.dumps(obj), encoding="utf-8")
+
+    def _golden(self):
+        return json.loads((_FIXTURES / "golden.json").read_text(encoding="utf-8"))
+
+    def _eval_run(self):
+        return json.loads((_FIXTURES / "eval_run.json").read_text(encoding="utf-8"))
+
+    def test_help_lists_eval_and_tune(self):
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            yoke.main(["help"])
+        out = buf.getvalue()
+        self.assertIn("eval", out)
+        self.assertIn("tune", out)
+
+    def test_eval_missing_golden_exit2(self):
+        with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+            rc = yoke.main(["eval"])
+        self.assertEqual(rc, 2)
+
+    def test_eval_score_missing_run_exit2(self):
+        self._write("_golden.json", self._golden())
+        with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+            rc = yoke.main(["eval"])
+        self.assertEqual(rc, 2)
+
+    def test_eval_score_json_key_set(self):
+        self._write("_golden.json", self._golden())
+        self._write("_eval_run.json", self._eval_run())
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            rc = yoke.main(["eval", "--json"])
+        self.assertEqual(rc, 0)
+        data = json.loads(buf.getvalue())
+        self.assertEqual(set(data), {"n", "backend", "safety", "dimensions", "fit", "verdict"})
+
+    def test_eval_record_via_mock(self):
+        self._write("profile.json", PROFILE)
+        self._write("_golden.json", self._golden())
+        with mock.patch.object(yoke.llm, "get_backend",
+                               return_value=yoke.MockBackend(["lane_fit"])):
+            with redirect_stdout(io.StringIO()):
+                rc = yoke.main(["eval", "--record"])
+        self.assertEqual(rc, 0)
+        self.assertTrue((Path(self._home) / "_eval_run.json").is_file())
+
+    def test_tune_cold_start_message(self):
+        self._write("profile.json", PROFILE)
+        self._write("_labels.json", [{"features": {"lane_fit": {"score": 80}},
+                                       "label": "applied"}])
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            rc = yoke.main(["tune"])
+        self.assertEqual(rc, 0)
+        self.assertIn("declined", buf.getvalue().lower())
+
+    def test_tune_json_key_set(self):
+        self._write("profile.json", PROFILE)
+        self._write("_labels.json", [])
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            yoke.main(["tune", "--json"])
+        data = json.loads(buf.getvalue())
+        self.assertEqual(
+            set(data),
+            {"cold_start", "n", "objective", "threshold",
+             "before", "after", "ba_before", "ba_after"})
+
+    def test_tune_and_eval_score_zero_model_calls(self):
+        self._write("profile.json", PROFILE)
+        self._write("_labels.json", [])
+        self._write("_golden.json", self._golden())
+        self._write("_eval_run.json", self._eval_run())
+        with mock.patch.object(yoke.llm, "get_backend",
+                               side_effect=AssertionError("real backend constructed")):
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(yoke.main(["tune"]), 0)
+                self.assertEqual(yoke.main(["eval"]), 0)
+
+
 class TestHelpCommand(unittest.TestCase):
     def test_render_help_lists_all_names(self):
         out = yoke._render_help([("run", "collect and score"),

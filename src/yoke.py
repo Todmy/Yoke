@@ -11,10 +11,10 @@ import json
 import sys
 from datetime import datetime, timezone
 
-from src import analyze, board, collect, llm, prepare
+from src import analyze, board, collect, eval, labels, llm, prepare, tune
 from src.paths import ProfileError, home, load_profile, load_state, save_state
 
-COMMANDS = ("run", "board", "apply", "drop", "sources", "help")
+COMMANDS = ("run", "board", "apply", "drop", "sources", "help", "eval", "tune")
 
 
 class MockBackend:
@@ -475,6 +475,53 @@ def _cmd_sources(name, as_json):
     return 0
 
 
+def _cmd_eval(record, as_json):
+    """`yoke eval` scores frozen model outputs vs the golden set (zero model
+    calls); `yoke eval --record` first runs the current backend over the golden
+    roles (the only model op). Missing golden / run → stderr + exit 2.
+    """
+    golden = eval.load_golden()
+    if not golden:
+        print("no golden set: create $YOKE_HOME/_golden.json", file=sys.stderr)
+        return 2
+    if record:
+        run = eval.record(golden, llm.get_backend(), print)
+        print(f"recorded {len(run['roles'])} roles via {run['backend']} → _eval_run.json")
+        return 0
+    run_path = home() / eval.EVAL_RUN_FILE
+    if not run_path.is_file():
+        print("no eval run: `yoke eval --record` first", file=sys.stderr)
+        return 2
+    card = eval.score(json.loads(run_path.read_text(encoding="utf-8")), golden)
+    if as_json:
+        print(json.dumps(eval.scorecard_json(card)))
+    else:
+        print(eval.render_scorecard(card, use_color=sys.stdout.isatty()))
+    return 0
+
+
+def _cmd_tune(as_json):
+    """`yoke tune` refits additive weights to apply/drop labels and PROPOSES
+    (diff + _tuned_weights.json); never mutates profile.yml. Zero model calls.
+    """
+    scoring_cfg = load_profile().get("scoring", {})
+    weights = {f["name"]: f["weight"]
+               for f in scoring_cfg.get("features", []) + scoring_cfg.get("deterministic", [])}
+    pairs = [
+        ({n: fv.get("score", 0) for n, fv in (rec.get("features") or {}).items()},
+         rec.get("label"))
+        for rec in labels.load_labels()
+        if rec.get("label") in ("applied", "dropped")
+    ]
+    result = tune.refit(pairs, weights)
+    tune.write_proposal(result)
+    if as_json:
+        print(json.dumps(tune.proposal_json(result)))
+    else:
+        print(tune.render_proposal(result, use_color=sys.stdout.isatty()))
+    return 0
+
+
 def _run(args, input_fn):
     profile = load_profile()
     state = load_state()
@@ -637,6 +684,13 @@ def _build_parser():
                       help="show one source's setup page")
     srcp.add_argument("--json", action="store_true", help="machine-readable output")
     sub.add_parser("help", help="list all commands and what they do")
+
+    evp = sub.add_parser("eval", help="score the model vs the frozen golden set")
+    evp.add_argument("--record", action="store_true",
+                     help="run the current model over the golden set first")
+    evp.add_argument("--json", action="store_true", help="machine-readable output")
+    tnp = sub.add_parser("tune", help="propose refit weights from apply/drop labels")
+    tnp.add_argument("--json", action="store_true", help="machine-readable output")
     return p
 
 
@@ -653,6 +707,10 @@ def main(argv=None, input_fn=input):
             return _cmd_help(parser)
         if args.cmd == "sources":
             return _cmd_sources(args.name, args.json)
+        if args.cmd == "eval":
+            return _cmd_eval(args.record, args.json)
+        if args.cmd == "tune":
+            return _cmd_tune(args.json)
         if args.cmd == "board":
             return _cmd_board()
         if args.cmd == "apply":
