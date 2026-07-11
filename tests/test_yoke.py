@@ -679,6 +679,13 @@ class TestEvalTuneCli(unittest.TestCase):
         data = json.loads(buf.getvalue())
         self.assertEqual(set(data), {"n", "backend", "safety", "dimensions", "fit", "verdict"})
 
+    def test_eval_corrupt_run_exit2(self):
+        self._write("_golden.json", self._golden())
+        (Path(self._home) / "_eval_run.json").write_text("{corrupt", encoding="utf-8")
+        with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+            rc = yoke.main(["eval"])
+        self.assertEqual(rc, 2)
+
     def test_eval_record_via_mock(self):
         self._write("profile.json", PROFILE)
         self._write("_golden.json", self._golden())

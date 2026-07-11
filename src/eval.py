@@ -36,7 +36,7 @@ def load_golden() -> list[dict]:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return []
-    return data if isinstance(data, list) else []
+    return [e for e in data if isinstance(e, dict)] if isinstance(data, list) else []
 
 
 def score(eval_run: dict, golden: list[dict]) -> dict:
@@ -45,17 +45,20 @@ def score(eval_run: dict, golden: list[dict]) -> dict:
     Returns a scorecard: dominant safety hard-counts + per-dimension diagnostics
     + subordinate tier-agreement + a safety verdict.
     """
-    by_key = {m.get("key"): m for m in eval_run.get("roles", [])}
+    by_key = {m.get("key"): m for m in eval_run.get("roles", []) if isinstance(m, dict)}
+    valid = [g for g in golden if isinstance(g, dict)]
     geo_fp = tier_op = unparseable = 0
     geo_agree = comp_agree = tier_exact = tier_adj = 0
     evaluable = 0
     rf_tp = rf_fp = rf_fn = 0
     feat_err: dict[str, list[float]] = {}
 
-    for g in golden:
+    for g in valid:
         m = by_key.get(g.get("key"))
         truth = g.get("truth", {})
-        if m is None or "geo" not in m or "tier" not in m:
+        # missing join OR an analysis-failed role (analyze emits geo="") is a
+        # safety hit, never silently "evaluable & clean" (review M3).
+        if m is None or not m.get("geo") or not m.get("tier"):
             unparseable += 1
             continue
         evaluable += 1
@@ -96,7 +99,7 @@ def score(eval_run: dict, golden: list[dict]) -> dict:
 
     total = geo_fp + tier_op + unparseable
     return {
-        "n": len(golden),
+        "n": len(valid),
         "backend": eval_run.get("backend"),
         "safety": {
             "geo_false_positive": geo_fp,

@@ -492,7 +492,12 @@ def _cmd_eval(record, as_json):
     if not run_path.is_file():
         print("no eval run: `yoke eval --record` first", file=sys.stderr)
         return 2
-    card = eval.score(json.loads(run_path.read_text(encoding="utf-8")), golden)
+    try:
+        run = json.loads(run_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        print("eval run file is unreadable: re-run `yoke eval --record`", file=sys.stderr)
+        return 2
+    card = eval.score(run, golden)
     if as_json:
         print(json.dumps(eval.scorecard_json(card)))
     else:

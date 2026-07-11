@@ -80,6 +80,33 @@ class ScoreTest(unittest.TestCase):
         card = ev.score(run, _golden())
         self.assertEqual(card["safety"]["unparseable"], 1)
 
+    def test_empty_geo_is_unparseable(self):
+        # analysis-failed golden role: analyze emits geo="" — must count as a
+        # safety hit, not read as clean (review M3).
+        run = _run()
+        run["roles"][3]["geo"] = ""
+        card = ev.score(run, _golden())
+        self.assertEqual(card["safety"]["unparseable"], 1)
+        self.assertEqual(card["verdict"], "safety-fail")
+
+    def test_score_skips_non_dict_golden(self):
+        golden = _golden() + ["GARBAGE"]
+        card = ev.score(_run(), golden)  # must not raise
+        self.assertEqual(card["n"], 4)  # the string row excluded
+
+    def test_score_skips_non_dict_model_role(self):
+        run = _run()
+        run["roles"].append("GARBAGE")
+        card = ev.score(run, _golden())  # must not raise
+        self.assertEqual(card["verdict"], "safety-clean")
+
+    def test_load_golden_skips_non_dict(self):
+        from src.paths import home
+        os.environ["YOKE_HOME"] = tempfile.mkdtemp(prefix="yoke-test-eval-")
+        (home() / ev.GOLDEN_FILE).write_text(
+            json.dumps([{"key": "g1"}, "junk", 7]), encoding="utf-8")
+        self.assertEqual(ev.load_golden(), [{"key": "g1"}])
+
     def test_score_zero_model_calls(self):
         from src import yoke
         with mock.patch.object(yoke.llm, "get_backend",
