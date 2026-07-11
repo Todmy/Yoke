@@ -91,5 +91,39 @@ class TestSourcePluginsHaveHelp(unittest.TestCase):
                 self.assertTrue(help_text.strip())
 
 
+def _references_llm(tree):
+    """True if the module body imports src.llm at module level (backend must be
+    injected into the self-improvement modules, never imported)."""
+    for node in tree.body:
+        if isinstance(node, ast.ImportFrom) and node.module:
+            if "llm" in node.module.split("."):
+                return True
+            if node.module == "src" and any(a.name == "llm" for a in node.names):
+                return True
+        elif isinstance(node, ast.Import):
+            if any("llm" in a.name.split(".") for a in node.names):
+                return True
+    return False
+
+
+class TestSelfImprovementModulesNoLLM(unittest.TestCase):
+    def test_eval_tune_labels_dont_import_llm(self):
+        for name in ("eval.py", "tune.py", "labels.py"):
+            with self.subTest(module=name):
+                tree = ast.parse((SRC / name).read_text())
+                self.assertFalse(_references_llm(tree),
+                                 f"{name} imports src.llm at module level; inject the backend")
+
+
+class TestTuneWeightSumInvariant(unittest.TestCase):
+    def test_refit_after_sums_to_100(self):
+        from src import tune
+
+        pairs = ([({"a": 90, "b": 10}, "applied")] * 5
+                 + [({"a": 10, "b": 90}, "dropped")] * 5)
+        res = tune.refit(pairs, {"a": 50, "b": 50})
+        self.assertEqual(sum(res["after"].values()), 100)
+
+
 if __name__ == "__main__":
     unittest.main()
