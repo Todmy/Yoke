@@ -512,12 +512,15 @@ def _cmd_tune(as_json):
     scoring_cfg = load_profile().get("scoring", {})
     weights = {f["name"]: f["weight"]
                for f in scoring_cfg.get("features", []) + scoring_cfg.get("deterministic", [])}
-    pairs = [
-        ({n: fv.get("score", 0) for n, fv in (rec.get("features") or {}).items()},
-         rec.get("label"))
-        for rec in labels.load_labels()
-        if rec.get("label") in ("applied", "dropped")
-    ]
+    pairs = []
+    for rec in labels.load_labels():
+        if rec.get("label") not in ("applied", "dropped"):
+            continue
+        scores = {n: fv.get("score", 0)
+                  for n, fv in (rec.get("features") or {}).items()
+                  if isinstance(fv, dict)}
+        if scores:  # feature-less labels can't inform the additive fit — skip them
+            pairs.append((scores, rec["label"]))
     result = tune.refit(pairs, weights)
     tune.write_proposal(result)
     if as_json:

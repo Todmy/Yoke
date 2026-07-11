@@ -706,6 +706,27 @@ class TestEvalTuneCli(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertIn("declined", buf.getvalue().lower())
 
+    def test_tune_ignores_feature_less_labels(self):
+        # feature-less labels can't inform the additive fit — they must be
+        # excluded, not counted as usable (review I2). 5 feature-less applied +
+        # 5 real dropped -> 0 usable applied -> cold-start decline.
+        self._write("profile.json", PROFILE)
+        self._write("_labels.json",
+                    [{"label": "applied"}] * 5
+                    + [{"features": {"lane_fit": {"score": 10}}, "label": "dropped"}] * 5)
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            yoke.main(["tune"])
+        self.assertIn("declined", buf.getvalue().lower())
+
+    def test_tune_survives_malformed_feature_value(self):
+        # hand-edited label with a non-dict feature value must not crash (review M1)
+        self._write("profile.json", PROFILE)
+        self._write("_labels.json", [{"features": {"lane_fit": "OOPS"}, "label": "applied"}])
+        with redirect_stdout(io.StringIO()):
+            rc = yoke.main(["tune"])
+        self.assertEqual(rc, 0)
+
     def test_tune_json_key_set(self):
         self._write("profile.json", PROFILE)
         self._write("_labels.json", [])
