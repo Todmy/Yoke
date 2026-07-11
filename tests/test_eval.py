@@ -94,5 +94,49 @@ class ScoreTest(unittest.TestCase):
         self.assertEqual(len(ev.load_golden()), 4)
 
 
+_PROFILE = {
+    "countries": ["pl"],
+    "comp": {"floor_net_usd_mo": 5000},
+    "scoring": {
+        "features": [{"name": "hire_probability", "weight": 60, "desc": "will they hire"}],
+        "deterministic": [{"name": "comp_vs_floor", "weight": 40}],
+    },
+}
+
+
+class RecordRenderTest(unittest.TestCase):
+    def setUp(self):
+        from src.paths import home
+        os.environ["YOKE_HOME"] = tempfile.mkdtemp(prefix="yoke-test-eval-")
+        (home() / "profile.json").write_text(json.dumps(_PROFILE), encoding="utf-8")
+
+    def _backend(self):
+        from src.yoke import MockBackend
+        return MockBackend(["hire_probability"])
+
+    def test_record_via_mock_backend(self):
+        from src.paths import home
+        run = ev.record(_golden(), self._backend())
+        self.assertEqual(len(run["roles"]), 4)
+        self.assertTrue((home() / ev.EVAL_RUN_FILE).is_file())
+        self.assertIn("key", run["roles"][0])
+        self.assertIn("features", run["roles"][0])
+
+    def test_record_sets_backend_describe(self):
+        run = ev.record(_golden(), self._backend())
+        self.assertEqual(run["backend"], "mock (no model call)")
+
+    def test_render_scorecard_safety_before_fit(self):
+        out = ev.render_scorecard(ev.score(_run(), _golden()))
+        self.assertLess(out.lower().index("safety"), out.lower().index("fit"))
+
+    def test_render_no_color(self):
+        self.assertNotIn("\x1b[", ev.render_scorecard(ev.score(_run(), _golden())))
+
+    def test_scorecard_json_key_set(self):
+        obj = ev.scorecard_json(ev.score(_run(), _golden()))
+        self.assertEqual(set(obj), {"n", "backend", "safety", "dimensions", "fit", "verdict"})
+
+
 if __name__ == "__main__":
     unittest.main()

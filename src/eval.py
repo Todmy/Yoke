@@ -9,10 +9,12 @@ tier-agreement is subordinate.
 
 import json
 
-from src.paths import home
+from src import analyze
+from src.paths import ensure_home, home, load_profile
 
 GOLDEN_FILE = "_golden.json"
 EVAL_RUN_FILE = "_eval_run.json"
+_JSON_KEYS = ("n", "backend", "safety", "dimensions", "fit", "verdict")
 
 _TIER_RANK = {"A": 3, "B": 2, "C": 1}
 
@@ -109,3 +111,79 @@ def score(eval_run: dict, golden: list[dict]) -> dict:
         },
         "verdict": "safety-fail" if total else "safety-clean",
     }
+
+
+def record(golden: list[dict], backend, log=lambda *a: None) -> dict:
+    """Run the current backend over the golden roles once, freeze to _eval_run.json.
+
+    The ONLY model-touching function in eval — reuses the analyze scoring path
+    (backend injected, so eval imports no llm). Returns the eval_run dict.
+    """
+    profile = load_profile()
+    cards = [{
+        "key": g.get("key"), "company": g.get("company", ""), "title": g.get("title", ""),
+        "location": g.get("location", ""), "url": g.get("url", ""),
+        "source": g.get("source", ""), "jd": g.get("jd", ""),
+        "needs_ai": True, "comp_norm": None,
+    } for g in golden]
+    records = analyze.analyze_cards(cards, profile, backend, log)
+
+    roles = []
+    for rec in records:
+        feats = rec.get("features", {})
+        comp_ev = feats.get("comp_vs_floor", {}).get("evidence", "")
+        verdict = comp_ev.removeprefix("floor verdict: ") if comp_ev else "unknown"
+        roles.append({
+            "key": rec.get("key"),
+            "geo": rec.get("geo_certainty", ""),
+            "tier": rec.get("tier", ""),
+            "comp_vs_floor": verdict,
+            "red_flags": [rf["category"] for rf in rec.get("red_flags", []) if rf.get("category")],
+            "fit": rec.get("fit", 0),
+            "features": {name: fv.get("score", 0) for name, fv in feats.items()},
+        })
+    eval_run = {"backend": backend.describe(), "roles": roles}
+    ensure_home()
+    (home() / EVAL_RUN_FILE).write_text(
+        json.dumps(eval_run, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    return eval_run
+
+
+def _paint(text: str, code: str, use_color: bool) -> str:
+    return f"\x1b[{code}m{text}\x1b[0m" if use_color else text
+
+
+def render_scorecard(card: dict, use_color: bool = False) -> str:
+    """Human render: verdict + safety FIRST (dominant), then per-dimension
+    diagnostics (actionable), then subordinate tier agreement."""
+    s, d, fit = card["safety"], card["dimensions"], card["fit"]
+    color = "31" if card["verdict"] == "safety-fail" else "32"
+    lines = [
+        f"Eval scorecard — {card['n']} roles via {card['backend']}",
+        "",
+        _paint(f"VERDICT: {card['verdict']}", color, use_color),
+        "Safety (dominant):",
+        f"  geo false-positive:  {s['geo_false_positive']}",
+        f"  tier over-promotion: {s['tier_over_promotion']}",
+        f"  unparseable:         {s['unparseable']}",
+        "",
+        "Dimensions (which part of the process is weak):",
+        f"  geo agreement:            {d['geo']['agreement']}",
+        f"  comp_vs_floor agreement:  {d['comp_vs_floor']['agreement']}",
+        f"  red_flags recall/prec:    {d['red_flags']['recall']}/{d['red_flags']['precision']}",
+    ]
+    for name, stats in d.get("features", {}).items():
+        lines.append(f"  feature {name} MAE:      {stats['mae']}")
+    lines += [
+        "",
+        "Fit (subordinate):",
+        f"  tier exact:    {fit['tier_exact']}",
+        f"  tier adjacent: {fit['tier_adjacent']}",
+    ]
+    return "\n".join(lines)
+
+
+def scorecard_json(card: dict) -> dict:
+    """Stable --json contract: the fixed key set only."""
+    return {k: card[k] for k in _JSON_KEYS}
