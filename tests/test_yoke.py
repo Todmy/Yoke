@@ -696,6 +696,19 @@ class TestEvalTuneCli(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertTrue((Path(self._home) / "_eval_run.json").is_file())
 
+    def test_eval_record_json(self):
+        # --record must honour --json for a script driving Yoke (review M4)
+        self._write("profile.json", PROFILE)
+        self._write("_golden.json", self._golden())
+        with mock.patch.object(yoke.llm, "get_backend",
+                               return_value=yoke.MockBackend(["lane_fit"])):
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                rc = yoke.main(["eval", "--record", "--json"])
+        self.assertEqual(rc, 0)
+        data = json.loads(buf.getvalue())
+        self.assertIn("recorded", data)
+
     def test_tune_cold_start_message(self):
         self._write("profile.json", PROFILE)
         self._write("_labels.json", [{"features": {"lane_fit": {"score": 80}},

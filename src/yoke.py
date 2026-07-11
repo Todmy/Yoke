@@ -485,8 +485,12 @@ def _cmd_eval(record, as_json):
         print("no golden set: create $YOKE_HOME/_golden.json", file=sys.stderr)
         return 2
     if record:
-        run = eval.record(golden, llm.get_backend(), print)
-        print(f"recorded {len(run['roles'])} roles via {run['backend']} → _eval_run.json")
+        log = (lambda *a: None) if as_json else print  # keep --json output clean
+        run = eval.record(golden, llm.get_backend(), log)
+        if as_json:
+            print(json.dumps({"recorded": len(run["roles"]), "backend": run["backend"]}))
+        else:
+            print(f"recorded {len(run['roles'])} roles via {run['backend']} → _eval_run.json")
         return 0
     run_path = home() / eval.EVAL_RUN_FILE
     if not run_path.is_file():
