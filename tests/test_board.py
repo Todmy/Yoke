@@ -12,7 +12,7 @@ _REPO_ROOT = str(Path(__file__).resolve().parent.parent)
 if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
 
-from src import board  # noqa: E402
+from src import board, labels  # noqa: E402
 from src.paths import home  # noqa: E402
 
 
@@ -114,6 +114,41 @@ class BoardTest(unittest.TestCase):
         text = path.read_text(encoding="utf-8")
         self.assertIn("Компанія", text)
         self.assertNotIn("| Company |", text)
+
+    # --- M3: apply/drop snapshot the feature vector before prune (T2) ---
+
+    def test_apply_snapshots_features_before_prune(self):
+        board.upsert([_record()])
+        board.mark_applied("x.com/1")
+        stored = labels.load_labels()
+        self.assertEqual(len(stored), 1)
+        self.assertEqual(stored[0]["label"], "applied")
+        self.assertIsNone(stored[0]["reason"])
+        # the feature vector survived the prune
+        self.assertEqual(
+            stored[0]["features"],
+            {"hire_probability": {"score": 80, "evidence": "solid"}},
+        )
+
+    def test_drop_snapshots_with_reason(self):
+        board.upsert([_record()])
+        board.drop("x.com/1", reason="salary too low")
+        stored = labels.load_labels()
+        self.assertEqual(len(stored), 1)
+        self.assertEqual(stored[0]["label"], "dropped")
+        self.assertEqual(stored[0]["reason"], "salary too low")
+        self.assertEqual(stored[0]["fit"], 80)
+
+    def test_apply_no_hit_no_snapshot(self):
+        board.mark_applied("https://never-seen.example/job")
+        self.assertEqual(labels.load_labels(), [])
+
+    def test_apply_ledger_shape_unchanged(self):
+        board.upsert([_record()])
+        board.mark_applied("x.com/1")
+        b = board.load_board()
+        self.assertIn("acme|backendengineer", b["applied"])
+        self.assertEqual(b["roles"], {})
 
 
 if __name__ == "__main__":

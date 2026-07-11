@@ -10,6 +10,7 @@ import datetime
 import json
 from pathlib import Path
 
+from . import labels
 from .paths import ensure_home, home
 
 BOARD_FILE = "_board.json"
@@ -117,6 +118,7 @@ def mark_applied(match: str) -> list[str]:
     ]
     if hit:
         for r in hit:
+            labels.record(r, "applied")  # snapshot features before prune (M3)
             for k in (r.get("key"), r.get("role_key")):
                 if k:
                     applied.add(k)
@@ -138,6 +140,7 @@ def drop(match: str, reason: str | None = None) -> list[str]:
             needle in r.get("key", "").lower()
             or needle in f"{r.get('company', '')} {r.get('title', '')}".lower()
         ):
+            labels.record(r, "dropped", reason)  # snapshot features before prune (M3)
             del b["roles"][key]
             b["dropped"].append({"key": key, "reason": reason, "date": _today()})
             removed.append(key)
