@@ -1,0 +1,64 @@
+[
+  {
+    "key": "g1",
+    "title": "Backend Engineer",
+    "company": "Acme",
+    "location": "Remote, EU",
+    "url": "https://example.com/g1",
+    "source": "sample",
+    "jd": "Fully remote backend role, EU time zones, competitive pay.",
+    "truth": {
+      "geo": "remote_confirmed",
+      "tier": "A",
+      "comp_vs_floor": "above",
+      "red_flags": [],
+      "features": {"hire_probability": 80}
+    }
+  },
+  {
+    "key": "g2",
+    "title": "Data Engineer",
+    "company": "Beta",
+    "location": "Berlin",
+    "url": "https://example.com/g2",
+    "source": "sample",
+    "jd": "Onsite in Berlin, no remote option.",
+    "truth": {
+      "geo": "onsite",
+      "tier": "C",
+      "comp_vs_floor": "straddles",
+      "red_flags": []
+    }
+  },
+  {
+    "key": "g3",
+    "title": "ML Engineer",
+    "company": "Gamma",
+    "location": "Remote",
+    "url": "https://example.com/g3",
+    "source": "sample",
+    "jd": "Remote-ish, unpaid trial period mentioned.",
+    "truth": {
+      "geo": "verify",
+      "tier": "B",
+      "comp_vs_floor": "above",
+      "red_flags": ["scam_signal"]
+    }
+  },
+  {
+    "key": "g4",
+    "title": "Fullstack Developer",
+    "company": "Delta",
+    "location": "Remote",
+    "url": "https://example.com/g4",
+    "source": "sample",
+    "jd": "Remote fullstack, pay below the floor.",
+    "truth": {
+      "geo": "remote_confirmed",
+      "tier": "B",
+      "comp_vs_floor": "below",
+      "red_flags": [],
+      "features": {"hire_probability": 60}
+    }
+  }
+]

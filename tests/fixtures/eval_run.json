@@ -1,0 +1,9 @@
+{
+  "backend": "mock",
+  "roles": [
+    {"key": "g1", "geo": "remote_confirmed", "tier": "A", "comp_vs_floor": "above", "red_flags": [], "fit": 85, "features": {"hire_probability": 80}},
+    {"key": "g2", "geo": "onsite", "tier": "C", "comp_vs_floor": "straddles", "red_flags": [], "fit": 30, "features": {"hire_probability": 40}},
+    {"key": "g3", "geo": "verify", "tier": "B", "comp_vs_floor": "above", "red_flags": ["scam_signal"], "fit": 60, "features": {"hire_probability": 55}},
+    {"key": "g4", "geo": "remote_confirmed", "tier": "B", "comp_vs_floor": "below", "red_flags": [], "fit": 58, "features": {"hire_probability": 62}}
+  ]
+}
