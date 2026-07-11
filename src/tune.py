@@ -21,12 +21,15 @@ _JSON_KEYS = (
 _MAX_COMPOSITIONS = 200_000
 
 
-def balanced_accuracy(pairs: list[tuple[dict, str]], weights: dict, threshold: int = 55) -> float:
+def balanced_accuracy(pairs: list[tuple[dict, str]], weights: dict, threshold: int | None = None) -> float:
     """0.5*(TPR+TNR) over labeled roles. positive = "applied".
 
-    pred = scoring.fit(scores, weights) >= threshold. An empty class contributes
-    0.0 for its rate (refit's cold-start guard prevents empty classes in practice).
+    pred = scoring.fit(scores, weights) >= threshold. threshold defaults to the
+    Tier-B cutline (single-homed in scoring, never re-literalled here). An empty
+    class contributes 0.0 for its rate (refit's cold-start guard prevents this).
     """
+    if threshold is None:
+        threshold = scoring.TIER_B
     tp = fp = tn = fn = 0
     for scores, label in pairs:
         pred = scoring.fit(scores, weights) >= threshold
@@ -60,13 +63,16 @@ def _compositions(keys: list[str], total: int, step: int):
     yield from rec(0, units)
 
 
-def refit(pairs, base_weights: dict, step: int = 5, threshold: int = 55, min_each: int = 5) -> dict:
+def refit(pairs, base_weights: dict, step: int = 5, threshold: int | None = None, min_each: int = 5) -> dict:
     """Grid-search the weight simplex (sum=100) for max balanced accuracy.
 
-    Returns a proposal dict. Below min_each applied OR dropped -> cold_start
-    (after == before). Never proposes a strictly-worse weight set. Tie-break:
-    smallest L1 distance from base_weights.
+    threshold defaults to the Tier-B cutline (scoring.TIER_B — the worth-pursuing
+    boundary, single-homed there). Returns a proposal dict. Below min_each applied
+    OR dropped -> cold_start (after == before). Never proposes a strictly-worse
+    weight set. Tie-break: smallest L1 distance from base_weights.
     """
+    if threshold is None:
+        threshold = scoring.TIER_B
     n_applied = sum(1 for _, lbl in pairs if lbl == "applied")
     n_dropped = sum(1 for _, lbl in pairs if lbl == "dropped")
     ba_before = balanced_accuracy(pairs, base_weights, threshold)

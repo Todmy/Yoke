@@ -11,7 +11,7 @@ _REPO_ROOT = str(Path(__file__).resolve().parent.parent)
 if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
 
-from src import tune  # noqa: E402
+from src import scoring, tune  # noqa: E402
 
 
 def _pairs(applied, dropped):
@@ -78,6 +78,17 @@ class RefitTest(unittest.TestCase):
         r1 = tune.refit(self._pairs(), self.BASE)
         r2 = tune.refit(self._pairs(), self.BASE)
         self.assertEqual(r1, r2)
+
+
+class ThresholdSingleHomeTest(unittest.TestCase):
+    def test_threshold_tracks_scoring_cutline(self):
+        # The worth-pursuing threshold is the Tier-B cutline — single-homed in
+        # scoring.py, never re-literalled in tune (invariant #3).
+        from unittest import mock
+        pairs = _pairs([{"a": 90}] * 5, [{"a": 10}] * 5)
+        with mock.patch.object(scoring, "TIER_B", 999):
+            res = tune.refit(pairs, {"a": 100})
+        self.assertEqual(res["threshold"], 999)
 
 
 class RenderTest(unittest.TestCase):
